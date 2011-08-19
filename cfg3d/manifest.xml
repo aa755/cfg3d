@@ -1,0 +1,15 @@
+<package>
+  <description brief="cfg3d">
+
+     cfg3d
+
+  </description>
+  <author>Abhishek Anand</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/cfg3d</url>
+  <depend package="roscpp"/>
+
+</package>
+
+
