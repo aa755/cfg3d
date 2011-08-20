@@ -202,8 +202,11 @@ public:
 };
 
 
-typedef priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> SymbolPriorityQueue;
-
+//typedef priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> SymbolPriorityQueue;
+/**
+ * also supports hashing
+ */
+class SymbolPriorityQueue;
 
 class Terminal : public Symbol
 {
@@ -443,7 +446,7 @@ public:
             assert(resIns.second);
         }   */
         
-        planeSet[pointIndices.size()].insert(this);// indexed by size 
+        planeSet[numPoints].insert(this);// indexed by size 
         // S wont ever be finalized , ... so it will only contain planes
                                 
         // computeCentroid();
@@ -518,6 +521,49 @@ public:
   }
 
 int NonTerminal::id_counter=0;
+
+class SymbolPriorityQueue
+{
+    priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> costSortedQueue;
+    vector<NTSet> NTsets;
+public:
+    
+    SymbolPriorityQueue(size_t numPoints) : NTsets(numPoints,NTSet())
+    {
+        
+    }
+    /** 
+     * also check for duplicate and don't add if a duplicate with smaller cost
+     * exists 
+     */
+    void push(NonTerminal * sym)
+    {
+        costSortedQueue.push(sym);
+    }
+        
+    /**
+     * no need to check for duplicate
+     * @param sym
+     */
+    void pushTerminal(Terminal * sym)
+    {
+        costSortedQueue.push(sym);        
+    }
+    
+    Symbol * pop()
+    {
+        Symbol * top=costSortedQueue.top();
+        costSortedQueue.pop();
+        return top;
+    }
+    
+    size_t size()
+    {
+        return costSortedQueue.size();
+    }
+    
+};
+
 class Rule
 {    
 public:
@@ -556,6 +602,8 @@ public:
         newNT->computeSetMembership();
         if(!newNT->checkDuplicate(planeSet))
             pqueue.push(newNT);
+        else
+            delete newNT;
     }
 };
 
@@ -881,8 +929,9 @@ void runParse()
 {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
-    SymbolPriorityQueue pq;
     int numPoints=scene.size();
+    SymbolPriorityQueue pq(numPoints);
+    
 //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
     
     vector<NTSet> planeSet(numPoints,NTSet());
@@ -894,14 +943,14 @@ void runParse()
     {
         temp=new Terminal(i);
         terminals.push_back(temp);
-        pq.push(temp);
+        pq.pushTerminal(temp);
     }
     
     Symbol *min;
     int count=0;
     while(true)
     {
-        min=pq.top();
+        min=pq.pop();
         
         cout<<"\n\n\niter: "<<count++<<" cost was:"<<min->getCost()<<" id was "<<min->getId()<<endl;
         
@@ -943,7 +992,7 @@ void runParse()
         
         
         
-        pq.pop();
+        //pq.pop();
         
     }
 }
@@ -959,6 +1008,7 @@ void subsample(pcl::PointCloud<PointT> & inp,pcl::PointCloud<PointT> & out)
         }
     }
 }
+
 int main(int argc, char** argv) 
 {
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
@@ -966,8 +1016,6 @@ int main(int argc, char** argv)
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
-    
-    
    runParse();
     return 0;
 }
