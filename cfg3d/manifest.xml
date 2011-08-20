@@ -9,6 +9,9 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/cfg3d</url>
   <depend package="roscpp"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="scene_processing"/>
 
 </package>
 
