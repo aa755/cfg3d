@@ -311,7 +311,7 @@ protected:
     /** indices into the pointcloud
      */
     //will be populated only when extracted as min
-/*    void computeCentroid()
+    void computeCentroid()
     {
         PointT point;
         centroid.x=0;
@@ -328,7 +328,7 @@ protected:
             centroid.y /=pointIndices.size();
             centroid.z /=pointIndices.size();                
     }
-  */
+  
     
    void computePointIndices()
     {
@@ -446,7 +446,7 @@ public:
         planeSet[pointIndices.size()].insert(this);// indexed by size 
         // S wont ever be finalized , ... so it will only contain planes
                                 
-      //  computeCentroid();
+        // computeCentroid();
         additionalFinalize();
         return true;
     }
