@@ -13,10 +13,60 @@
 #include "utils.h"
 #include <pcl/segmentation/extract_clusters.h>
 
+using namespace std;
 
 typedef pcl::PointXYZRGBCamSL PointOutT;
 typedef pcl::PointXYZRGB PointInT;
 
+    void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices ,pcl::PointCloud<PointInT> & cloud_seg)
+    {
+        int it1=0;
+        int numPoints=cloud_seg.size();
+        complementIndices.clear();
+        sort(memberIndices.begin(),memberIndices.end());
+        vector<int>::iterator it2=memberIndices.begin();
+        while ((it1 < numPoints ) && (it2 != memberIndices.end()))
+        {
+            if (it1 < *it2)
+            {
+                complementIndices.push_back(it1);
+                it1++;
+            }
+            else if (it1==*it2)
+            { 
+                ++it1; //skip this point
+                ++it2;
+            }
+            else
+            {
+                assert(1==2);
+            }
+
+        
+        }
+        
+        while (it1 < numPoints )
+        {
+            complementIndices.push_back(it1);
+            it1++;
+        }
+    }
+    
+    
+    void getComplementSearchTree(pcl::KdTreeFLANN<PointInT> &nnFinder,vector<int>& memberIndices,pcl::PointCloud<PointInT> & cloud_seg)
+    {
+                
+        vector<int> complementIndices;
+        
+        assert(cloud_seg.size()!=memberIndices.size()); // else it will crash in setInputCloud
+        
+        complementIndices.reserve(cloud_seg.size()-memberIndices.size()); // +1 is not required
+                
+        getComplementPointSet(memberIndices,complementIndices,cloud_seg);
+        
+        nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointInT> >(&cloud_seg),createStaticShared<vector<int> >(&complementIndices));
+    }
+    
 int main(int argc, char** argv)
 {
 //  ros::init(argc, argv,"segmenterAndGraphMaker");
@@ -53,6 +103,7 @@ int main(int argc, char** argv)
     std::cout<<clusters.size() << "clusters found in pcd of size "<<cloud.size()<<std::endl;
 
     cloud_seg.points.resize(cloud.size());
+    
     for (size_t i = 0; i < cloud.size (); i++)
   {
        cloud_seg.points[i].clone(cloud.points[i]);
@@ -61,7 +112,7 @@ int main(int argc, char** argv)
     
     int total=0;
     
-    for (size_t i = 0; i < clusters.size (); i++)
+  for (size_t i = 0; i < clusters.size (); i++)
   {
     for (size_t j = 0; j < clusters[i].indices.size (); j++)
     {
