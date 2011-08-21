@@ -27,9 +27,9 @@ int main(int argc, char** argv)
   
   
 
-    int number_neighbours = 80;
-    float radius = 0.03;// 0.025
-    float angle = 0.52;
+    int number_neighbours = 100;
+    float radius = 0.05;// 0.025
+    float angle = 0.32;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT,pcl::Normal> n3d_;
   std::vector<pcl::PointIndices> clusters;
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
     pcl::extractEuclideanClusters<PointInT,pcl::Normal> ( cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
-    std::cout<<clusters.size() << "clusters found\n";
+    std::cout<<clusters.size() << "clusters found in pcd of size "<<cloud.size()<<std::endl;
 
     cloud_seg.points.resize(cloud.size());
     for (size_t i = 0; i < cloud.size (); i++)
@@ -59,14 +59,18 @@ int main(int argc, char** argv)
         
     }
     
+    int total=0;
     
     for (size_t i = 0; i < clusters.size (); i++)
   {
     for (size_t j = 0; j < clusters[i].indices.size (); j++)
     {
-       cloud_seg.points[clusters[i].indices[j]].segment=i;
+       cloud_seg.points[clusters[i].indices[j]].segment=i+1;
     }
+    std::cout<<"seg size "<<clusters[i].indices.size()<<std::endl;
+    total+=clusters[i].indices.size();
   }
+    std::cout<<total<<std::endl;
 
   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
     
