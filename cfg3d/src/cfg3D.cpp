@@ -24,6 +24,8 @@
 #include <boost/dynamic_bitset.hpp>
 
 #include "point_struct.h"
+#include "utils.h"
+
 //sac_model_plane.h
  
 using namespace std;
@@ -86,20 +88,6 @@ void setDiffernce(std::set<T> & set_1, std::set<T> & set_2)
     
 }
 
-struct null_deleter
-{
-    void operator()(void const *) const
-    {
-    }
-};
-
-
-template<typename X>
-boost::shared_ptr<X> createStaticShared(X * x)
-{
-    boost::shared_ptr<X> px(x, null_deleter());
-    return px;
-}
 
 class NonTerminal;
 class Terminal;
