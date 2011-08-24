@@ -12,6 +12,9 @@
 #include <boost/lexical_cast.hpp>
 #include "utils.h"
 #include <pcl/segmentation/extract_clusters.h>
+#include <octomap/octomap.h>
+#include <octomap_ros/OctomapROS.h>
+#include <octomap_ros/conversions.h>
 
 using namespace std;
 
@@ -67,6 +70,46 @@ typedef pcl::PointXYZRGB PointInT;
         nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointInT> >(&cloud_seg),createStaticShared<vector<int> >(&complementIndices));
     }
     
+class OccupancyMap    
+{
+     float resolution;
+     octomap::OcTreeROS tree;
+     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
+public:
+    pcl::PointXYZ convertFromVector(Eigen::Vector4f p)
+    {
+        pcl::PointXYZ ret;
+        for(int i=0;i<4;i++)
+            ret.data[i]=p(i);
+        return ret;
+    }
+    
+     enum OccupancyState {OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OCCLUDED = 3};
+    OccupancyMap(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, float resolution_=0.02): tree(resolution_)
+    {
+        resolution=resolution_;
+        // convert to  pointXYZ format
+        
+        pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
+        tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),-1,false);
+        //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
+    }
+    
+    
+    OccupancyState getOccupancyState(pcl::PointXYZ pt)
+    {
+            octomap::OcTreeROS::NodeType * treeNode;
+            treeNode = tree.search(pt);
+            if(treeNode->getOccupancy()==1)
+                return OCCUPANCY_OCCUPIED;
+            else if (treeNode->getOccupancy()>0.5)
+                return OCCUPANCY_OCCLUDED;
+            else 
+                return OCCUPANCY_FREE;
+    }
+    
+};
+
 int main(int argc, char** argv)
 {
 //  ros::init(argc, argv,"segmenterAndGraphMaker");
