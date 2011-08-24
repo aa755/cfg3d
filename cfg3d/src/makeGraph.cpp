@@ -84,23 +84,41 @@ public:
         return ret;
     }
     
-     enum OccupancyState {OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OCCLUDED = 3};
+    static void convertToXYZ(const pcl::PointCloud<pcl::PointXYZRGB> &cloud,pcl::PointCloud<pcl::PointXYZ> & cloudxyz)
+    {
+        cloudxyz.points.resize(cloud.size());
+        for(size_t i=0;i<cloud.size();i++)
+        {
+            cloudxyz.points[i].x=cloud.points[i].x;
+            cloudxyz.points[i].y=cloud.points[i].y;
+            cloudxyz.points[i].z=cloud.points[i].z;
+        }
+    }
+    
+     enum OccupancyState {OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OCCLUDED = 3,OCCUPANCY_OUT_OF_RANGE = 4};
     OccupancyMap(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, float resolution_=0.02): tree(resolution_)
     {
         resolution=resolution_;
         // convert to  pointXYZ format
-        
-        pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
+        convertToXYZ(cloud,xyzcloud);
+       // pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
         tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),-1,false);
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
     }
     
     
-    OccupancyState getOccupancyState(pcl::PointXYZ pt)
+    
+    OccupancyState getOccupancyState(const pcl::PointXYZ pt)
     {
             octomap::OcTreeROS::NodeType * treeNode;
             treeNode = tree.search(pt);
-            if(treeNode->getOccupancy()==1)
+    
+            if(treeNode==NULL)
+                return OCCUPANCY_OUT_OF_RANGE;
+            
+            double occupancy=treeNode->getOccupancy();            
+            cout<<"getOcc:"<<occupancy<<endl;
+            if(treeNode->getOccupancy()>=0.7)
                 return OCCUPANCY_OCCUPIED;
             else if (treeNode->getOccupancy()>0.5)
                 return OCCUPANCY_OCCLUDED;
@@ -108,6 +126,10 @@ public:
                 return OCCUPANCY_FREE;
     }
     
+    OccupancyState getOccupancyState(size_t index)
+    {
+        return getOccupancyState(xyzcloud.points[index]);
+    }
 };
 
 int main(int argc, char** argv)
@@ -166,6 +188,11 @@ int main(int argc, char** argv)
   }
     std::cout<<total<<std::endl;
 
+    OccupancyMap occupancy(cloud);
+    for(size_t i=0;i<cloud.size();i++)
+    {
+        cout<<occupancy.getOccupancyState(i)<<endl;
+    }
   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
     
     }
