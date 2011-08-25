@@ -78,10 +78,7 @@ class OccupancyMap
 public:
     pcl::PointXYZ convertFromVector(Eigen::Vector4f p)
     {
-        pcl::PointXYZ ret;
-        for(int i=0;i<4;i++)
-            ret.data[i]=p(i);
-        return ret;
+        return pcl::PointXYZ(p(0),p(1),p(2));
     }
     
     static void convertToXYZ(const pcl::PointCloud<pcl::PointXYZRGB> &cloud,pcl::PointCloud<pcl::PointXYZ> & cloudxyz)
@@ -102,7 +99,7 @@ public:
         // convert to  pointXYZ format
         convertToXYZ(cloud,xyzcloud);
        // pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
-        tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),-1,false);
+        tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),10, false);
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
     }
     
@@ -111,6 +108,8 @@ public:
     OccupancyState getOccupancyState(const pcl::PointXYZ pt)
     {
             octomap::OcTreeROS::NodeType * treeNode;
+//            pcl::PointXYZ ptemp=pt;
+  //          ptemp.y+=0.1;
             treeNode = tree.search(pt);
     
             if(treeNode==NULL)
@@ -118,9 +117,9 @@ public:
             
             double occupancy=treeNode->getOccupancy();            
             cout<<"getOcc:"<<occupancy<<endl;
-            if(treeNode->getOccupancy()>=0.7)
+            if(occupancy>=0.7)
                 return OCCUPANCY_OCCUPIED;
-            else if (treeNode->getOccupancy()>0.5)
+            else if (occupancy>0.5)
                 return OCCUPANCY_OCCLUDED;
             else 
                 return OCCUPANCY_FREE;
@@ -193,7 +192,18 @@ int main(int argc, char** argv)
     {
         cout<<occupancy.getOccupancyState(i)<<endl;
     }
-  pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
+    
+    pcl::PointXYZ t;
+    t.x=-1;
+    t.y=1.2;
+    t.z=-0.8;
+            
+    cout<<"special test point in:"<<occupancy.getOccupancyState(t)<<endl;
+    
+    t.y=0.9;
+    cout<<"special test point out:"<<occupancy.getOccupancyState(t)<<endl;
+    
+  //pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
     
     }
 
