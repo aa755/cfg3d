@@ -99,7 +99,18 @@ public:
         // convert to  pointXYZ format
         convertToXYZ(cloud,xyzcloud);
        // pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
-        tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),10, false);
+        tree.insertScan(xyzcloud,convertFromVector(cloud.sensor_origin_),-1, true);
+        octomap::point3d test;
+        test(0)=-10;
+        test(1)=-10;
+        test(2)=-10;
+        tree.octree.setBBXMin(test);
+        test(0)=10;
+        test(1)=10;
+        test(2)=10;
+        tree.octree.setBBXMax(test );
+        
+        //tree.octree.setBBXMax(octomap::point3d(10,10,10));
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
     }
     
@@ -113,8 +124,10 @@ public:
             treeNode = tree.search(pt);
     
             if(treeNode==NULL)
+            {
+                cout<<"null returned"<<endl;
                 return OCCUPANCY_OUT_OF_RANGE;
-            
+            }
             double occupancy=treeNode->getOccupancy();            
             cout<<"getOcc:"<<occupancy<<endl;
             if(occupancy>=0.7)
@@ -196,7 +209,7 @@ int main(int argc, char** argv)
     pcl::PointXYZ t;
     t.x=-1;
     t.y=1.2;
-    t.z=-0.8;
+    t.z=-0.5;
             
     cout<<"special test point in:"<<occupancy.getOccupancyState(t)<<endl;
     
