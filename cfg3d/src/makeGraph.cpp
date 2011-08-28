@@ -15,6 +15,9 @@
 #include <octomap/octomap.h>
 #include <octomap_ros/OctomapROS.h>
 #include <octomap_ros/conversions.h>
+#include <boost/dynamic_bitset.hpp>
+#include <boost/geometry/geometry.hpp>
+#include <boost/geometry/algorithms/transform.hpp>
 
 using namespace std;
 
@@ -70,11 +73,63 @@ typedef pcl::PointXYZRGB PointInT;
         nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointInT> >(&cloud_seg),createStaticShared<vector<int> >(&complementIndices));
     }
     
+    
+class NeighborFinder
+{
+    boost::dynamic_bitset<> directions;
+    int numAzimuthBins;
+    int numElevationBins;
+public:
+    NeighborFinder(int numAzimuthBins_=8,int numElevationBins_=8)
+    {
+        numAzimuthBins=numAzimuthBins_;
+        numElevationBins=numElevationBins_;
+        directions.resize(numAzimuthBins*numElevationBins,false);
+    }
+    
+    int getIndex(double azimuth, double elevation)
+    {
+        int azimuthBin=(int)round(azimuth);
+        int elevationBin=(int)round(elevation);
+        assert(elevationBin<=numElevationBins);
+        assert(azimuthBin<numAzimuthBins);
+      //  if(elevationBin==numElevationBins)
+      //      elevationBin=0; //circularity
+      //  if(azimuthBin<numAzimuthBins);
+        
+        return azimuthBin*numElevationBins+elevationBin;
+    }
+    
+    void processNeighbor(PointOutT p)
+    {
+        //rev svn r59763
+/* bg::model::point<long double, 2, bg::cs::spherical<bg::degree> > p1(15.0, 5.0);
+    
+    // Transform from degree to radian. Default strategy is automatically selected,
+    // it will convert from degree to radian
+    bg::model::point<long double, 2, bg::cs::spherical<bg::radian> > p2;
+    bg::transform(p1, p2);
+    
+    // Transform from degree (lon-lat) to 3D (x,y,z). Default strategy is automatically selected, 
+    // it will consider points on a unit sphere
+    bg::model::point<long double, 3, bg::cs::cartesian> p3;
+    bg::transform(p1, p3);
+    
+    std::cout 
+        << "p1: " << bg::dsv(p1) << std::endl
+        << "p2: " << bg::dsv(p2) << std::endl
+        << "p3: " << bg::dsv(p3) << std::endl;
+
+    return 0;        
+  */      
+    }
+    
+};
 class OccupancyMap    
 {
      float resolution;
      octomap::OcTreeROS tree;
-     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
+     pcl::PointCloud<pcl::PointXYZ> xyzcloud;     
 public:
     pcl::PointXYZ convertFromVector(Eigen::Vector4f p)
     {
@@ -146,8 +201,18 @@ public:
 
 int main(int argc, char** argv)
 {
+    namespace bg = boost::geometry;
+    typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
+    typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
 //  ros::init(argc, argv,"segmenterAndGraphMaker");
-  pcl::PointCloud<PointOutT> cloud_seg;
+  
+cartesian p3(-1.0/sqrt(2),-1.0/sqrt(2),0);
+spherical p1;
+bg::transform<cartesian,spherical>(p3,p1);
+cout<<bg::dsv(p1)<<endl;
+exit(0);
+
+pcl::PointCloud<PointOutT> cloud_seg;
   pcl::PointCloud<PointInT> cloud;
   pcl::PointCloud<PointInT>::Ptr cloud_ptr=createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
   pcl::io::loadPCDFile<PointInT>(argv[1], cloud);
