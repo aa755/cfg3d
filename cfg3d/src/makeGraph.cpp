@@ -82,7 +82,7 @@ class NeighborFinder
     Eigen::Vector3d point;
 public:
 
-    NeighborFinder(int numAzimuthBins_ = 8, int numElevationBins_ = 8, PointOutT p) : point(p.x, p.y, p.z)
+    NeighborFinder( PointOutT p, int numAzimuthBins_ = 8, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
     {
         numAzimuthBins = numAzimuthBins_;
         numElevationBins = numElevationBins_;
@@ -91,21 +91,6 @@ public:
         directions.resize(numAzimuthBins*numElevationBins, false);
     }
 
-    int getIndex(Eigen::Vector3d direction)
-    {
-        direction.normalize();
-        //check that values lie in principle domain
-        namespace bg = boost::geometry;
-        typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
-        typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
-        //  ros::init(argc, argv,"segmenterAndGraphMaker");
-
-        cartesian p3(directions(0), directions(1), directions(2));
-        spherical p1;
-        bg::transform<cartesian, spherical > (p3, p1);
-        cout << bg::dsv(p1) << endl;
-        return getIndex(p1.get < 0 > (), p1.get < 1 > ());
-    }
 
     int getIndex(double azimuth, double elevation)
     {
@@ -127,6 +112,23 @@ public:
         return azimuthBin * numElevationBins + elevationBin;
     }
 
+    int getIndex(Eigen::Vector3d direction)
+    {
+        direction.normalize();
+        //check that values lie in principle domain
+        namespace bg = boost::geometry;
+        typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
+        typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
+        //  ros::init(argc, argv,"segmenterAndGraphMaker");
+
+        cartesian p3(direction(0), direction(1), direction(2));
+        spherical p1;
+        cout <<"original cart:"<< bg::dsv(p3) << endl;
+        bg::transform<cartesian, spherical > (p3, p1);
+        cout <<"converted sph:"<< bg::dsv(p1) << endl;
+        return getIndex(p1.get < 0 > (), p1.get < 1 > ());
+    }
+    
     Eigen::Vector3d vectorFromPoint(const PointOutT & p)
     {
         return Eigen::Vector3d(p.x, p.y, p.z);
@@ -135,13 +137,12 @@ public:
     void processNeighbor(PointOutT n_)
     {
         Eigen::Vector3d n = vectorFromPoint(n_);
-        direction = n - point;
+        Eigen::Vector3d direction = n - point;
         directions.set(getIndex(direction), true);
     }
 
     Eigen::Vector3d directionFromIndex(int index)
     {
-        assert(1 == 2); // check the direction2index(index2direction(x))=x
         int azimuthBin = index / numElevationBins;
         int elevationBin = index % numElevationBins;
 
@@ -158,7 +159,8 @@ public:
 
         bg::transform<spherical, cartesian > (p1, p3);
         cout << bg::dsv(p3) << endl;
-        return
+//        assert(1 == 2); // check the direction2index(index2direction(x))=x
+        return Eigen::Vector3d(p3.get<0>(),p3.get<1>(),p3.get<2>());
     }
 
 };
@@ -244,6 +246,13 @@ int main(int argc, char** argv)
 {
     //    cout<<-0.2%360<<endl;
     //  exit(0);
+    PointOutT p;
+    p.x=1;
+    p.y=1;
+    p.z=1;
+    NeighborFinder n(p);
+    Eigen::Vector3d d(1,1,1);
+    n.directionFromIndex( n.getIndex(d));
 
     pcl::PointCloud<PointOutT> cloud_seg;
     pcl::PointCloud<PointInT> cloud;
