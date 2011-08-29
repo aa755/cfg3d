@@ -81,8 +81,9 @@ class NeighborFinder
     int numElevationBins;
     double azimuthBinSize;
     double elevationBinSize;
+    Eigen::Vector3d point
 public:
-    NeighborFinder(int numAzimuthBins_=8,int numElevationBins_=8)
+    NeighborFinder(int numAzimuthBins_=8,int numElevationBins_=8, PointOutT p):point(p.x,p.y,p.z)
     {
         numAzimuthBins=numAzimuthBins_;
         numElevationBins=numElevationBins_;
@@ -95,6 +96,16 @@ public:
     {
         direction.normalize();
         //check that values lie in principle domain
+            namespace bg = boost::geometry;
+    typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
+    typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
+//  ros::init(argc, argv,"segmenterAndGraphMaker");
+  
+cartesian p3(directions(0),directions(1),directions(2));
+spherical p1;
+bg::transform<cartesian,spherical>(p3,p1);
+cout<<bg::dsv(p1)<<endl;
+return getIndex();
     }
     
     int getIndex(double azimuth, double elevation)
@@ -116,20 +127,40 @@ public:
         
         return azimuthBin*numElevationBins+elevationBin;
     }
-    
-    void processNeighbor(PointOutT p)
+
+    Eigen::Vector3d vectorFromPoint(const PointOutT & p)
     {
+	return Eigen::Vector3d(p.x,p.y,p.z);
+    }
+
+    void processNeighbor(PointOutT n_)
+    {
+	Eigen::Vector3d n=vectorFromPoint(n_);
+	direction=n-point;
+	directions.set(getIndex(direction),true);
+    }
+
+    Eigen::Vector3d directionFromIndex(int index)
+{
+assert(1==2); // check the direction2index(index2direction(x))=x
+        int azimuthBin=index / numElevationBins;
+        int elevationBin=index % numElevationBins;
+
+        double azimuth=(azimuthBin*azimuthBinSize);
+        double elevation=(elevationBin*elevationBinSize);
+
             namespace bg = boost::geometry;
     typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
     typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
 //  ros::init(argc, argv,"segmenterAndGraphMaker");
   
-cartesian p3(-1.0/sqrt(2),-1.0/sqrt(2),0);
-spherical p1;
-bg::transform<cartesian,spherical>(p3,p1);
-cout<<bg::dsv(p1)<<endl;
+cartesian p3;
+spherical p1(azimuth,elevation);
 
-    }
+bg::transform<spherical,cartesian>(p1,p3);
+cout<<bg::dsv(p3)<<endl;
+return 
+}
     
 };
 class OccupancyMap    
