@@ -81,7 +81,7 @@ class NeighborFinder
     int numElevationBins;
     double azimuthBinSize;
     double elevationBinSize;
-    Eigen::Vector3d point
+    Eigen::Vector3d point;
 public:
     NeighborFinder(int numAzimuthBins_=8,int numElevationBins_=8, PointOutT p):point(p.x,p.y,p.z)
     {
@@ -105,7 +105,7 @@ cartesian p3(directions(0),directions(1),directions(2));
 spherical p1;
 bg::transform<cartesian,spherical>(p3,p1);
 cout<<bg::dsv(p1)<<endl;
-return getIndex();
+return getIndex(p1.get<0>(),p1.get<1>());
     }
     
     int getIndex(double azimuth, double elevation)
