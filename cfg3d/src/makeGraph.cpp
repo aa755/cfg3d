@@ -80,6 +80,7 @@ class NeighborFinder
     double azimuthBinSize;
     double elevationBinSize;
     Eigen::Vector3d point;
+    int iterator;
 public:
 
     NeighborFinder(PointOutT p, int numAzimuthBins_ = 8, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
@@ -89,6 +90,7 @@ public:
         azimuthBinSize = 360.0 / numAzimuthBins;
         elevationBinSize = 180.0 / numElevationBins;
         directions.resize(numAzimuthBins*numElevationBins, false);
+        iterator=-1;
     }
 
     int getIndex(double azimuth, double elevation)
@@ -161,6 +163,32 @@ public:
         //        assert(1 == 2); // check the direction2index(index2direction(x))=x
         return Eigen::Vector3d(p3.get < 0 > (), p3.get < 1 > (), p3.get < 2 > ());
     }
+    
+    bool iterator_get_next_direction(Eigen::Vector3d & direction)
+    {
+        
+        if(iterator==-1)
+            iterator= directions.find_first();
+        else
+            iterator= directions.find_next(iterator);
+        
+        //http://cplusplus.syntaxerrors.info/index.php?title=Warning:_comparison_between_signed_and_unsigned_integer_expressions
+        if(iterator==(int)boost::dynamic_bitset<>::npos)
+        {
+            iterator=directions.size(); // at the end, so that next time also npos is returned
+            return false;
+        }
+        else
+        {
+            direction=directionFromIndex(iterator);
+            return true;
+        }
+    }
+    
+    void iterator_reset()
+    {
+        iterator=-1;
+    }
 
 };
 
@@ -169,6 +197,11 @@ class OccupancyMap
     float resolution;
     octomap::OcTreeROS tree;
     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
+    pcl::KdTreeFLANN<PointOutT> nnFinder;
+    pcl::PointCloud<PointOutT> *cloudSeg;
+    static const float nearThresh=0.06;
+    static const float nearOccThresh=1.0;
+
 public:
 
     pcl::PointXYZ convertFromVector(Eigen::Vector4f p)
@@ -176,7 +209,7 @@ public:
         return pcl::PointXYZ(p(0), p(1), p(2));
     }
 
-    static void convertToXYZ(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, pcl::PointCloud<pcl::PointXYZ> & cloudxyz)
+    static void convertToXYZ(const pcl::PointCloud<PointOutT> &cloud, pcl::PointCloud<pcl::PointXYZ> & cloudxyz)
     {
         cloudxyz.points.resize(cloud.size());
         for (size_t i = 0; i < cloud.size(); i++)
@@ -192,12 +225,16 @@ public:
         OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OCCLUDED = 3, OCCUPANCY_OUT_OF_RANGE = 4
     };
 
-    OccupancyMap(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, float resolution_ = 0.02) : tree(resolution_)
+    OccupancyMap(pcl::PointCloud<PointOutT> & cloud, float resolution_ = 0.02) : tree(resolution_)
     {
+        cloudSeg=& cloud;
         resolution = resolution_;
         convertToXYZ(cloud, xyzcloud);
         tree.insertScan(xyzcloud, convertFromVector(cloud.sensor_origin_), -1, true);
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
+        
+        nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointOutT> >(&cloud));
+
     }
 
     OccupancyState getOccupancyState(const pcl::PointXYZ pt)
@@ -239,26 +276,33 @@ public:
     {
         return getOccupancyState(xyzcloud.points[index]);
     }
+    
+    void getNeighborSegs(size_t index, set<int> segIndices )
+    {
+        NeighborFinder nf(cloudSeg->points.at(index));
+        vector<int> indices;
+        vector<float> distances;
+        indices.clear();
+        nnFinder.radiusSearch(index,nearThresh,indices,distances,std::numeric_limits<int>::max());
+        vector<int>::iterator it;
+        for(it=indices.begin();it!=indices.end();it++)
+        {
+            nf.processNeighbor(cloudSeg->points.at(*it));
+        }
+        
+    }
 };
+
+
 
 int main(int argc, char** argv)
 {
-    //    cout<<-0.2%360<<endl;
-    //  exit(0);
-    /*    PointOutT p;
-        p.x=1;
-        p.y=1;
-        p.z=1;
-        NeighborFinder n(p);
-        Eigen::Vector3d d(1,1,1);
-        n.directionFromIndex( n.getIndex(d));
 
         pcl::PointCloud<PointOutT> cloud_seg;
         pcl::PointCloud<PointInT> cloud;
         pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
         pcl::io::loadPCDFile<PointInT > (argv[1], cloud);
 
-     */
 
     int number_neighbours = 100;
     float radius = 0.05; // 0.025
@@ -306,7 +350,7 @@ int main(int argc, char** argv)
     }
     std::cout << total << std::endl;
 
-    OccupancyMap occupancy(cloud);
+    OccupancyMap occupancy(cloud_seg);
 
     pcl::PointXYZ t;
     t.x = -1;

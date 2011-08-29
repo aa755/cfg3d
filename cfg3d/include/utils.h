@@ -23,6 +23,12 @@ boost::shared_ptr<X> createStaticShared(X * x)
     return px;
 }
 
+template<typename X>
+boost::shared_ptr<X> createConstStaticShared(const X * x)
+{
+    boost::shared_ptr<X> px(x, null_deleter());
+    return px;
+}
 
 #endif	/* UTILS_H */
 
