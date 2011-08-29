@@ -82,7 +82,7 @@ class NeighborFinder
     Eigen::Vector3d point;
 public:
 
-    NeighborFinder( PointOutT p, int numAzimuthBins_ = 8, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
+    NeighborFinder(PointOutT p, int numAzimuthBins_ = 8, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
     {
         numAzimuthBins = numAzimuthBins_;
         numElevationBins = numElevationBins_;
@@ -90,7 +90,6 @@ public:
         elevationBinSize = 180.0 / numElevationBins;
         directions.resize(numAzimuthBins*numElevationBins, false);
     }
-
 
     int getIndex(double azimuth, double elevation)
     {
@@ -123,12 +122,12 @@ public:
 
         cartesian p3(direction(0), direction(1), direction(2));
         spherical p1;
-        cout <<"original cart:"<< bg::dsv(p3) << endl;
+        cout << "original cart:" << bg::dsv(p3) << endl;
         bg::transform<cartesian, spherical > (p3, p1);
-        cout <<"converted sph:"<< bg::dsv(p1) << endl;
+        cout << "converted sph:" << bg::dsv(p1) << endl;
         return getIndex(p1.get < 0 > (), p1.get < 1 > ());
     }
-    
+
     Eigen::Vector3d vectorFromPoint(const PointOutT & p)
     {
         return Eigen::Vector3d(p.x, p.y, p.z);
@@ -159,8 +158,8 @@ public:
 
         bg::transform<spherical, cartesian > (p1, p3);
         cout << bg::dsv(p3) << endl;
-//        assert(1 == 2); // check the direction2index(index2direction(x))=x
-        return Eigen::Vector3d(p3.get<0>(),p3.get<1>(),p3.get<2>());
+        //        assert(1 == 2); // check the direction2index(index2direction(x))=x
+        return Eigen::Vector3d(p3.get < 0 > (), p3.get < 1 > (), p3.get < 2 > ());
     }
 
 };
@@ -246,20 +245,20 @@ int main(int argc, char** argv)
 {
     //    cout<<-0.2%360<<endl;
     //  exit(0);
-    PointOutT p;
-    p.x=1;
-    p.y=1;
-    p.z=1;
-    NeighborFinder n(p);
-    Eigen::Vector3d d(1,1,1);
-    n.directionFromIndex( n.getIndex(d));
+    /*    PointOutT p;
+        p.x=1;
+        p.y=1;
+        p.z=1;
+        NeighborFinder n(p);
+        Eigen::Vector3d d(1,1,1);
+        n.directionFromIndex( n.getIndex(d));
 
-    pcl::PointCloud<PointOutT> cloud_seg;
-    pcl::PointCloud<PointInT> cloud;
-    pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
-    pcl::io::loadPCDFile<PointInT > (argv[1], cloud);
+        pcl::PointCloud<PointOutT> cloud_seg;
+        pcl::PointCloud<PointInT> cloud;
+        pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
+        pcl::io::loadPCDFile<PointInT > (argv[1], cloud);
 
-
+     */
 
     int number_neighbours = 100;
     float radius = 0.05; // 0.025
@@ -308,10 +307,6 @@ int main(int argc, char** argv)
     std::cout << total << std::endl;
 
     OccupancyMap occupancy(cloud);
-    for (size_t i = 0; i < cloud.size(); i++)
-    {
-        cout << occupancy.getOccupancyState(i) << endl;
-    }
 
     pcl::PointXYZ t;
     t.x = -1;
