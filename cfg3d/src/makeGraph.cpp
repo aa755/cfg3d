@@ -195,29 +195,14 @@ public:
     OccupancyMap(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, float resolution_ = 0.02) : tree(resolution_)
     {
         resolution = resolution_;
-        // convert to  pointXYZ format
         convertToXYZ(cloud, xyzcloud);
-        // pcl::copyPointCloud<pcl::PointXYZRGB,pcl::PointXYZ>(cloud,xyzcloud);        
         tree.insertScan(xyzcloud, convertFromVector(cloud.sensor_origin_), -1, true);
-        octomap::point3d test;
-        test(0) = -10;
-        test(1) = -10;
-        test(2) = -10;
-        tree.octree.setBBXMin(test);
-        test(0) = 10;
-        test(1) = 10;
-        test(2) = 10;
-        tree.octree.setBBXMax(test);
-
-        //tree.octree.setBBXMax(octomap::point3d(10,10,10));
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
     }
 
     OccupancyState getOccupancyState(const pcl::PointXYZ pt)
     {
         octomap::OcTreeROS::NodeType * treeNode;
-        //            pcl::PointXYZ ptemp=pt;
-        //          ptemp.y+=0.1;
         treeNode = tree.search(pt);
 
         if (treeNode == NULL)
@@ -233,6 +218,21 @@ public:
             return OCCUPANCY_OCCLUDED;
         else
             return OCCUPANCY_FREE;
+    }
+    
+    bool isFree(const pcl::PointXYZ pt)
+    {
+        octomap::OcTreeROS::NodeType * treeNode;
+        treeNode = tree.search(pt);
+
+        if (treeNode == NULL)
+            return false;
+        double occupancy = treeNode->getOccupancy();
+        if (occupancy >= 0.5)
+            return false;
+        else
+            return true;
+        
     }
 
     OccupancyState getOccupancyState(size_t index)
