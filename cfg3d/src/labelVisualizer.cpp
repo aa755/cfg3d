@@ -96,13 +96,23 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
     outcloud.points = incloud.points;
 
 
+    ColorRGB green(0,1,0);
+    ColorRGB red(1,0,0);
+        set<int> & nbrs=neighbors[segment];
+    
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
         if (incloud.points[i].segment == (uint32_t)segment) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
-            outcloud.points[i].rgb = 0.00001;
+            outcloud.points[i].rgb = green.getFloatRep();
             changed = true;
+        }
+        else if(nbrs.find(incloud.points[i].segment)!=nbrs.end())
+        {
+            outcloud.points[i].rgb = red.getFloatRep();
+            changed = true;
+            
         }
     }
     return changed;
@@ -173,16 +183,12 @@ main(int argc, char** argv) {
     bool groundSelected = false;
     bool editLabel = false;
     int targetLabel;
-    if (argc > 2) {
-        editLabel = true;
-        targetLabel = atoi(argv[2]);
-    }
 
     boost::numeric::ublas::matrix<double> outMat(4, 4);
 
     std::ifstream labelFile;
     std::string line;
-    labelFile.open("labels.txt");
+    labelFile.open(argv[2]);
 
     std::cerr << "you can only quit by pressing 9 when the prompt mentions... quitting in other ways will discard any newly added labels\n";
     vector<int> nbrs;
@@ -200,8 +206,11 @@ main(int argc, char** argv) {
             set<int> temp;
             neighbors[segIndex]=temp;
             
-            for(int i=1;i<nbrs.size();i++)
+            for(size_t i=1;i<nbrs.size();i++)
+            {
                 neighbors[segIndex].insert(nbrs.at(i));
+                cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
+            }
         }
     } else {
         cout << "could not open label file...exiting\n";
@@ -212,15 +221,10 @@ main(int argc, char** argv) {
 
     // read from file
     if (pcl::io::loadPCDFile(argv[1], cloud_blob_orig) == -1) {
-        ROS_ERROR("Couldn't read file ");
+        ROS_ERROR("Couldn't read file");
         return (-1);
     }
     ROS_INFO("Loaded %d data points from %s with the following fields: %s", (int) (cloud_blob_orig.width * cloud_blob_orig.height), argv[1], pcl::getFieldsList(cloud_blob_orig).c_str());
-    if (pcl::io::loadPCDFile(argv[2], cloud_blob_pred) == -1) {
-        ROS_ERROR("Couldn't read file ");
-        return (-1);
-    }
-    ROS_INFO("Loaded %d data points from %s with the following fields: %s", (int) (cloud_blob_pred.width * cloud_blob_pred.height), argv[2], pcl::getFieldsList(cloud_blob_pred).c_str());
 
 
 
@@ -228,8 +232,6 @@ main(int argc, char** argv) {
     pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
     pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
 
-    pcl::fromROSMsg(cloud_blob_pred, cloud_pred);
-    pcl::PointCloud<PointT>::Ptr pred_cloud_ptr(new pcl::PointCloud<PointT > (cloud_pred));
 
 
 

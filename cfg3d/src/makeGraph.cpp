@@ -423,9 +423,21 @@ int main(int argc, char** argv)
 {
 
         pcl::PointCloud<PointOutT> cloud_seg;
+        pcl::PointCloud<PointInT> cloud_temp;
+        pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
         pcl::PointCloud<PointInT> cloud;
+        cloud.points.reserve(cloud_temp.size());
+        
+        //remove Nans
+    for (size_t i = 0; i < cloud_temp.size(); i++)
+    {
+        if(isnan( cloud_temp.points[i].x))
+            continue;
+        
+        cloud.points.push_back(cloud_temp.points.at(i));
+    }
+        
         pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
-        pcl::io::loadPCDFile<PointInT > (argv[1], cloud);
 
 
     int number_neighbours = 100;
