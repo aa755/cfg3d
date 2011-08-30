@@ -217,7 +217,7 @@ class OccupancyMap
     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
-    static const float nearThresh=0.06;
+    static const float nearThresh=0.10;
     static const float nearOccThresh=2.0;
 
 public:
@@ -485,7 +485,8 @@ int main(int argc, char** argv)
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
             set<int> ptNbrs;
-            occupancy.getNeighborSegs(i, ptNbrs );
+            tIndex=clusters[i].indices[j];
+            occupancy.getNeighborSegs(tIndex, ptNbrs );
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
         }
         

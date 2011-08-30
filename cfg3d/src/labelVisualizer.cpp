@@ -98,7 +98,7 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
 
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
-        if (incloud.points[i].segment == segment) {
+        if (incloud.points[i].segment == (uint32_t)segment) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
             outcloud.points[i].rgb = 0.00001;
@@ -109,7 +109,7 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
 }
 
 
-void getTokens(std::string str,vector <string> out)
+void getTokens(std::string str,vector <string> & out)
 {
         char_separator<char> sep(",");
         tokenizer<char_separator<char> > tokens(str, sep);
@@ -119,6 +119,20 @@ void getTokens(std::string str,vector <string> out)
         BOOST_FOREACH(string t, tokens) 
         {
 		out.push_back(t);
+        }
+        
+}
+
+void getTokens(std::string str,vector<int> & out)
+{
+        char_separator<char> sep(",");
+        tokenizer<char_separator<char> > tokens(str, sep);
+        
+        out.clear();
+
+        BOOST_FOREACH(string t, tokens) 
+        {
+		out.push_back(boost::lexical_cast<int>(t));
         }
         
 }
@@ -173,16 +187,21 @@ main(int argc, char** argv) {
     std::cerr << "you can only quit by pressing 9 when the prompt mentions... quitting in other ways will discard any newly added labels\n";
     vector<int> nbrs;
     
+    
     if (labelFile.is_open()) {
         int count = 1;
         while (labelFile.good()) {
             getline(labelFile, line); //each line is a label
             if (line.size() == 0)
                 break;
+            
             getTokens(line, nbrs);
-            int segIndex=nbrs[0];
+            int segIndex=nbrs.at(0);
+            set<int> temp;
+            neighbors[segIndex]=temp;
+            
             for(int i=1;i<nbrs.size();i++)
-            neighbors[segIndex]=nbrs;
+                neighbors[segIndex].insert(nbrs.at(i));
         }
     } else {
         cout << "could not open label file...exiting\n";
@@ -251,7 +270,7 @@ main(int argc, char** argv) {
     }
 
     string filename=string(argv[1]).append(".labelColored.pcd");
-    writer.write<PointT > (filename, *cloud_colored_pred, true);
+    //writer.write<PointT > (filename, *cloud_colored_orig, true);
     cout << "normal kill";
 
 
