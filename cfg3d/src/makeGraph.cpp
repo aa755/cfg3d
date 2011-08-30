@@ -113,7 +113,7 @@ public:
         return azimuthBin * numElevationBins + elevationBin;
     }
 
-    int getIndex(Eigen::Vector3d direction)
+    int getIndex(Eigen::Vector3d & direction)
     {
         direction.normalize();
         //check that values lie in principle domain
@@ -135,10 +135,24 @@ public:
         return Eigen::Vector3d(p.x, p.y, p.z);
     }
 
+    static PointOutT pointFromVector(const Eigen::Vector3d & d)
+    {
+        PointOutT p;
+        for(int i=0;i<3;i++)
+            p.data[i]=d(i);
+        p.data[3]=1.0f;
+        return p;
+        
+    }
+    
     void processNeighbor(PointOutT n_)
     {
         Eigen::Vector3d n = vectorFromPoint(n_);
         Eigen::Vector3d direction = n - point;
+        
+        if(direction.norm()==0)
+            return;
+        
         directions.set(getIndex(direction), true);
     }
 
@@ -222,7 +236,7 @@ public:
 
     enum OccupancyState
     {
-        OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OCCLUDED = 3, OCCUPANCY_OUT_OF_RANGE = 4
+        OCCUPANCY_OCCUPIED = 1, OCCUPANCY_FREE = 2, OCCUPANCY_OUT_OF_RANGE = 3
     };
 
     OccupancyMap(pcl::PointCloud<PointOutT> & cloud, float resolution_ = 0.02) : tree(resolution_)
@@ -237,6 +251,15 @@ public:
 
     }
 
+    OccupancyState getOccupancyState(Eigen::Vector3d ptv)
+    {
+        pcl::PointXYZ pt;
+        for(int i=0;i<3;i++)
+            pt.data[i]=ptv(i);
+        pt.data[3]=1.0f;
+        return getOccupancyState(pt);
+    }
+    
     OccupancyState getOccupancyState(const pcl::PointXYZ pt)
     {
         octomap::OcTreeROS::NodeType * treeNode;
@@ -249,10 +272,8 @@ public:
         }
         double occupancy = treeNode->getOccupancy();
         cout << "getOcc:" << occupancy << endl;
-        if (occupancy >= 0.7)
+        if (occupancy >= 0.5)
             return OCCUPANCY_OCCUPIED;
-        else if (occupancy > 0.5)
-            return OCCUPANCY_OCCLUDED;
         else
             return OCCUPANCY_FREE;
     }
@@ -282,7 +303,7 @@ public:
         cout<<msg<<":("<<p.x<<","<<p.y<<","<<p.z<<","<<")"<<endl;
     }
     
-    bool castRay(PointOutT & origin, const PointOutT & 	direction, PointOutT & end)
+    bool castRay(PointOutT  origin, const PointOutT  	direction, PointOutT & end)
     {
         if(tree.castRay(origin,direction,end,true,-1))
         {
@@ -311,28 +332,86 @@ public:
         }
     }
     
-    void getNeighborSegs(size_t index, set<int> segIndices )
+    void getNeighborSegs(size_t index, set<int> & segIndices )
     {
-        NeighborFinder nf(cloudSeg->points.at(index));
+        PointOutT &origin =cloudSeg->points.at(index);
+        uint32_t originSegment=origin.segment;
+                
+        NeighborFinder nf(origin);
         vector<int> indices;
         vector<float> distances;
         indices.clear();
         nnFinder.radiusSearch(index,nearThresh,indices,distances,std::numeric_limits<int>::max());
         vector<int>::iterator it;
+        
         for(it=indices.begin();it!=indices.end();it++)
         {
-            nf.processNeighbor(cloudSeg->points.at(*it));
+            PointOutT &nbr =cloudSeg->points.at(*it);
+            nf.processNeighbor(nbr);
+            if(nbr.segment!=originSegment)
+            {
+                segIndices.insert(nbr.segment);
+            }
+            
         }
-        
+        Eigen::Vector3d originv=NeighborFinder::vectorFromPoint(origin);
+        double initRad=nearThresh*4.0/5.0;
         Eigen::Vector3d direction;
+        PointOutT distantNbr;
         nf.iterator_reset();
+        vector<float> nearest_distances;
+        vector<int> nearest_indices;
         
-/*        while(nf.iterator_get_next_direction(direction))
+        nearest_indices.resize(1,0);
+        nearest_distances.resize(1,0.0);
+        
+        while(nf.iterator_get_next_direction(direction))
         {
-            doubleRad=nearThresh*3/4;
-            while()
+            Eigen::Vector3d testPtV=originv+initRad*direction;
+            OccupancyState s=getOccupancyState(testPtV);
+            if(s==OCCUPANCY_OCCUPIED)
+            {
+                testPtV=originv+nearThresh*5.0*direction/4.0;
+                s=getOccupancyState(testPtV);
+                if(s==OCCUPANCY_OCCUPIED)
+                {
+                    cout<<"occupied\n";
+                    continue;
+                }
+            }
+            
+            castRay(NeighborFinder::pointFromVector(testPtV)  ,  NeighborFinder::pointFromVector(direction), distantNbr);
+            double distance=pcl::euclideanDistance<PointOutT,PointOutT>(origin,distantNbr);
+            bool freePointFound=false;
+            for(double dis=0;dis<distance;dis++)
+            {
+                    Eigen::Vector3d testPtV=originv+dis*direction;
+                    if(getOccupancyState(testPtV)==OCCUPANCY_FREE)
+                    {
+                        freePointFound=true;
+                        break;
+                    }
+            }
+            
+            if(freePointFound)
+                continue;
+            
+            // make sure that the line from here to there has no free points
+            nnFinder.nearestKSearch(distantNbr,1,nearest_indices,nearest_distances);
+            if(nearest_distances.at(0)>2*resolution)
+                continue;
+            
+            
+            
+            segIndices.insert(cloudSeg->points.at(nearest_indices[0]).segment);
+
         }
-  */      
+            cout<<"i"<<index<<":";
+            set<int>::iterator sit;
+            for(sit=segIndices.begin();sit!=segIndices.end();sit++)
+                cout<<*sit<<",";
+            cout<<endl;
+        
     }
 };
 
@@ -395,7 +474,11 @@ int main(int argc, char** argv)
 
     OccupancyMap occupancy(cloud_seg);
 
-    
+    set<int> segIndices;
+     for(size_t i=0;i<cloud.size();i++)
+    {
+         occupancy.getNeighborSegs(i, segIndices );
+    }
 
     //pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
 
