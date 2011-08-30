@@ -276,6 +276,17 @@ public:
     {
         return getOccupancyState(xyzcloud.points[index]);
     }
+
+    void printPoint(PointOutT p,string msg="")
+    {
+        cout<<msg<<":("<<p.x<<","<<p.y<<","<<p.z<<","<<")"<<endl;
+    }
+    
+    void castRay(PointOutT & origin, const PointOutT & 	direction, PointOutT & end)
+    {
+        tree.castRay(origin,direction,end,true,-1);
+        printPoint(end,"rayEnd");
+    }
     
     void getNeighborSegs(size_t index, set<int> segIndices )
     {
@@ -290,6 +301,15 @@ public:
             nf.processNeighbor(cloudSeg->points.at(*it));
         }
         
+        Eigen::Vector3d direction;
+        nf.iterator_reset();
+        
+/*        while(nf.iterator_get_next_direction(direction))
+        {
+            doubleRad=nearThresh*3/4;
+            while()
+        }
+  */      
     }
 };
 
