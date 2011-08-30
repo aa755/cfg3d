@@ -184,7 +184,9 @@ public:
     {
         
         if(iterator==-1)
+        {
             iterator= directions.find_first();
+        }
         else
             iterator= directions.find_next(iterator);
         
@@ -216,7 +218,7 @@ class OccupancyMap
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
     static const float nearThresh=0.06;
-    static const float nearOccThresh=1.0;
+    static const float nearOccThresh=2.0;
 
 public:
 
@@ -269,7 +271,7 @@ public:
 
         if (treeNode == NULL)
         {
-            cout << "null returned" << endl;
+           // cout << "null returned" << endl;
             return OCCUPANCY_OUT_OF_RANGE;
         }
         double occupancy = treeNode->getOccupancy();
@@ -304,34 +306,46 @@ public:
     {
         cout<<msg<<":("<<p.x<<","<<p.y<<","<<p.z<<","<<")"<<endl;
     }
-    
-    bool castRay(PointOutT  origin, const PointOutT  	direction, PointOutT & end)
+
+    /**
+     * @return : -1 if a free point is encountered ... the entire area is not occluded
+     * else returns the index of the 1st point encountered in the direction "direction" from "origin"
+     */
+    int castRay(const Eigen::Vector3d & origin, const Eigen::Vector3d & direction)
     {
-        if(tree.castRay(origin,direction,end,true,-1))
+        const float step = 0.005;
+        OccupancyState st;
+        vector<float> nearest_distances;
+        vector<int> nearest_indices;
+
+        nearest_indices.resize(1, 0);
+        nearest_distances.resize(1, 0.0);
+
+        for (float dis = nearThresh*4.0/3.0; dis < nearOccThresh; dis += step)
         {
-            // If there is no point in that direction it returns a point in opposite direction - so check
-            
-            Eigen::Vector3d dir=NeighborFinder::vectorFromPoint(end)-NeighborFinder::vectorFromPoint(origin);
-            double dot=dir.dot(NeighborFinder::vectorFromPoint(direction));
-            
-            if(dot>0)
+            Eigen::Vector3d tPv=origin + dis * direction;
+            st = getOccupancyState(tPv);
+            if (st == OCCUPANCY_FREE)
             {
-                printPoint(end,"rayEnd");
-                return true;
+                break;
             }
-            else
+            else if (st == OCCUPANCY_OCCUPIED)
             {
-                cout<<"cast ray returned a point in opposite direction\n";
-                return false;
-                
+                PointOutT tpt=NeighborFinder::pointFromVector(tPv);
+                nnFinder.nearestKSearch(tpt, 1, nearest_indices, nearest_distances);
+                if (nearest_distances.at(0) > 2 * resolution)
+                {
+                    cout<<"Warn: this point was expected to be occupied\n";
+                    continue;
+                }
+                else
+                    return nearest_distances.at(0);
             }
-            
         }
-        else
-        {
-            cout<<"cast ray failed\n";
-            return false;
-        }
+        
+        
+        return -1;
+
     }
     
     void getNeighborSegs(size_t index, set<int> & segIndices )
@@ -356,13 +370,11 @@ public:
             if(nbr.segment!=originSegment)
             {
                 segIndices.insert(nbr.segment);
-            }
-            
+            }            
         }
+        
         Eigen::Vector3d originv=NeighborFinder::vectorFromPoint(origin);
-        double initRad=nearThresh*4.0/5.0;
         Eigen::Vector3d direction;
-        PointOutT distantNbr;
         nf.iterator_reset();
         vector<float> nearest_distances;
         vector<int> nearest_indices;
@@ -370,54 +382,24 @@ public:
         nearest_indices.resize(1,0);
         nearest_distances.resize(1,0.0);
         
+        int nbrIndex;
+        uint32_t nbrSeg;
         int count=0;
         while(nf.iterator_get_next_direction(direction))
         {
             count++;
-            cout<<"count: "<<count<<endl;
-            Eigen::Vector3d testPtV=originv+initRad*direction;
-            OccupancyState s=getOccupancyState(testPtV);
-            if(s==OCCUPANCY_OCCUPIED)
+            nbrIndex=castRay(originv,direction);
+            if(nbrIndex>=0)
             {
-                testPtV=originv+nearThresh*5.0*direction/4.0;
-                s=getOccupancyState(testPtV);
-                if(s==OCCUPANCY_OCCUPIED)
-                {
-                    cout<<"occupied\n";
-                    continue;
-                }
+                nbrSeg=cloudSeg->points.at(nbrIndex).segment;
+                
+                if(nbrSeg!=originSegment)
+                        segIndices.insert(nbrSeg);
             }
-            
-            cout<<"before castRay\n";
-            castRay(NeighborFinder::pointFromVector(testPtV)  ,  NeighborFinder::pointFromVector(direction), distantNbr);
-            cout<<"after castRay\n";
-            
-            double distance=pcl::euclideanDistance<PointOutT,PointOutT>(origin,distantNbr);
-            bool freePointFound=false;
-            for(double dis=0;dis<distance;dis+=0.009)
-            {
-                cout<<"dis:"<<dis<<endl;
-                    Eigen::Vector3d testPtV=originv+dis*direction;
-                    if(getOccupancyState(testPtV)==OCCUPANCY_FREE)
-                    {
-                        freePointFound=true;
-                        break;
-                    }
-            }
-            
-            if(freePointFound)
-                continue;
-            
-            // make sure that the line from here to there has no free points
-            nnFinder.nearestKSearch(distantNbr,1,nearest_indices,nearest_distances);
-            if(nearest_distances.at(0)>2*resolution)
-                continue;
-            
-            
-            
-            segIndices.insert(cloudSeg->points.at(nearest_indices[0]).segment);
 
         }
+        
+        cout<<count<<"directions were vacant\n";
             cout<<"i"<<index<<":";
             set<int>::iterator sit;
             for(sit=segIndices.begin();sit!=segIndices.end();sit++)
@@ -487,7 +469,7 @@ int main(int argc, char** argv)
     OccupancyMap occupancy(cloud_seg);
 
     set<int> segIndices;
-     for(size_t i=0;i<2/*cloud.size()*/;i++)
+     for(size_t i=0;i<cloud.size();i++)
     {
          occupancy.getNeighborSegs(i, segIndices );
     }
