@@ -338,8 +338,16 @@ public:
                     cout<<"Warn: this point was expected to be occupied\n";
                     continue;
                 }
+                else if(cloudSeg->points.at(nearest_indices[0]).segment==0)
+                {
+                    cout<<"Info: occlusion search reached an unlabeled point\n";
+                    continue;
+                    
+                }
                 else
-                    return nearest_distances.at(0);
+                {
+                   return nearest_distances.at(0);
+                }
             }
         }
         
@@ -367,7 +375,7 @@ public:
         {
             PointOutT &nbr =cloudSeg->points.at(*it);
             nf.processNeighbor(nbr);
-            if(nbr.segment!=originSegment)
+            if(nbr.segment!=originSegment && nbr.segment!=0)
             {
                 segIndices.insert(nbr.segment);
             }            
@@ -445,40 +453,39 @@ int main(int argc, char** argv)
     pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
-    cloud_seg.points.reserve(cloud.size());
-    
-    PointOutT temp;
+cloud_seg.points.resize(cloud.size());
+
+    for (size_t i = 0; i < cloud.size(); i++)
+    {
+        cloud_seg.points[i].clone(cloud.points[i]);
+
+    }
 
 
     int total = 0;
 
-    int tIndex;
     for (size_t i = 0; i < clusters.size(); i++)
     {
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
-            tIndex=clusters[i].indices[j];
-            temp.clone(cloud.points[tIndex]);
-            temp.segment = i + 1;
-            cloud_seg.points.push_back(temp);
+            cloud_seg.points[clusters[i].indices[j]].segment = i + 1;
         }
-        
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
+    
    pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
 
    std::cout << total << std::endl;
 
     OccupancyMap occupancy(cloud_seg);
 
-    set<int> segIndices;
-    
-    
+        
     std::ofstream logFile;
     logFile.open((std::string(argv[1])+"nbrMap.txt").data(),ios::out);
     set<int>::iterator sit;
 
+    int tIndex;
     for (size_t i = 0; i < clusters.size(); i++)
     {
         set<int> segNbrs;
