@@ -74,7 +74,9 @@ void getComplementSearchTree(pcl::KdTreeFLANN<PointInT> &nnFinder, vector<int>& 
 
 class NeighborFinder
 {
-    boost::dynamic_bitset<> directions;
+    /** $i^th$ bit is false if no neighbor was found in that direction
+     */
+    boost::dynamic_bitset<> directions; 
     int numAzimuthBins;
     int numElevationBins;
     double azimuthBinSize;
@@ -89,7 +91,7 @@ public:
         numElevationBins = numElevationBins_;
         azimuthBinSize = 360.0 / numAzimuthBins;
         elevationBinSize = 180.0 / numElevationBins;
-        directions.resize(numAzimuthBins*numElevationBins, false);
+        directions.resize(numAzimuthBins*numElevationBins, true);
         iterator=-1;
     }
 
@@ -124,9 +126,9 @@ public:
 
         cartesian p3(direction(0), direction(1), direction(2));
         spherical p1;
-        cout << "original cart:" << bg::dsv(p3) << endl;
+     //   cout << "original cart:" << bg::dsv(p3) << endl;
         bg::transform<cartesian, spherical > (p3, p1);
-        cout << "converted sph:" << bg::dsv(p1) << endl;
+       // cout << "converted sph:" << bg::dsv(p1) << endl;
         return getIndex(p1.get < 0 > (), p1.get < 1 > ());
     }
 
@@ -153,7 +155,7 @@ public:
         if(direction.norm()==0)
             return;
         
-        directions.set(getIndex(direction), true);
+        directions.set(getIndex(direction), false);
     }
 
     Eigen::Vector3d directionFromIndex(int index)
@@ -340,10 +342,13 @@ public:
         NeighborFinder nf(origin);
         vector<int> indices;
         vector<float> distances;
-        indices.clear();
+        
+        segIndices.clear();
+        
         nnFinder.radiusSearch(index,nearThresh,indices,distances,std::numeric_limits<int>::max());
         vector<int>::iterator it;
         
+        cout<<"\n\n\n\nnumNearNbrs:"<<indices.size()<<endl;
         for(it=indices.begin();it!=indices.end();it++)
         {
             PointOutT &nbr =cloudSeg->points.at(*it);
@@ -365,8 +370,11 @@ public:
         nearest_indices.resize(1,0);
         nearest_distances.resize(1,0.0);
         
+        int count=0;
         while(nf.iterator_get_next_direction(direction))
         {
+            count++;
+            cout<<"count: "<<count<<endl;
             Eigen::Vector3d testPtV=originv+initRad*direction;
             OccupancyState s=getOccupancyState(testPtV);
             if(s==OCCUPANCY_OCCUPIED)
@@ -380,11 +388,15 @@ public:
                 }
             }
             
+            cout<<"before castRay\n";
             castRay(NeighborFinder::pointFromVector(testPtV)  ,  NeighborFinder::pointFromVector(direction), distantNbr);
+            cout<<"after castRay\n";
+            
             double distance=pcl::euclideanDistance<PointOutT,PointOutT>(origin,distantNbr);
             bool freePointFound=false;
-            for(double dis=0;dis<distance;dis++)
+            for(double dis=0;dis<distance;dis+=0.009)
             {
+                cout<<"dis:"<<dis<<endl;
                     Eigen::Vector3d testPtV=originv+dis*direction;
                     if(getOccupancyState(testPtV)==OCCUPANCY_FREE)
                     {
@@ -475,7 +487,7 @@ int main(int argc, char** argv)
     OccupancyMap occupancy(cloud_seg);
 
     set<int> segIndices;
-     for(size_t i=0;i<cloud.size();i++)
+     for(size_t i=0;i<2/*cloud.size()*/;i++)
     {
          occupancy.getNeighborSegs(i, segIndices );
     }
