@@ -130,7 +130,7 @@ public:
         return getIndex(p1.get < 0 > (), p1.get < 1 > ());
     }
 
-    Eigen::Vector3d vectorFromPoint(const PointOutT & p)
+    static Eigen::Vector3d vectorFromPoint(const PointOutT & p)
     {
         return Eigen::Vector3d(p.x, p.y, p.z);
     }
@@ -282,10 +282,33 @@ public:
         cout<<msg<<":("<<p.x<<","<<p.y<<","<<p.z<<","<<")"<<endl;
     }
     
-    void castRay(PointOutT & origin, const PointOutT & 	direction, PointOutT & end)
+    bool castRay(PointOutT & origin, const PointOutT & 	direction, PointOutT & end)
     {
-        tree.castRay(origin,direction,end,true,-1);
-        printPoint(end,"rayEnd");
+        if(tree.castRay(origin,direction,end,true,-1))
+        {
+            // If there is no point in that direction it returns a point in opposite direction - so check
+            
+            Eigen::Vector3d dir=NeighborFinder::vectorFromPoint(end)-NeighborFinder::vectorFromPoint(origin);
+            double dot=dir.dot(NeighborFinder::vectorFromPoint(direction));
+            
+            if(dot>0)
+            {
+                printPoint(end,"rayEnd");
+                return true;
+            }
+            else
+            {
+                cout<<"cast ray returned a point in opposite direction\n";
+                return false;
+                
+            }
+            
+        }
+        else
+        {
+            cout<<"cast ray failed\n";
+            return false;
+        }
     }
     
     void getNeighborSegs(size_t index, set<int> segIndices )
@@ -372,15 +395,7 @@ int main(int argc, char** argv)
 
     OccupancyMap occupancy(cloud_seg);
 
-    pcl::PointXYZ t;
-    t.x = -1;
-    t.y = 1.2;
-    t.z = -0.5;
-
-    cout << "special test point in:" << occupancy.getOccupancyState(t) << endl;
-
-    t.y = 0.9;
-    cout << "special test point out:" << occupancy.getOccupancyState(t) << endl;
+    
 
     //pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
 
