@@ -445,36 +445,62 @@ int main(int argc, char** argv)
     pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
-    cloud_seg.points.resize(cloud.size());
+    cloud_seg.points.reserve(cloud.size());
+    
+    PointOutT temp;
 
-    for (size_t i = 0; i < cloud.size(); i++)
-    {
-        cloud_seg.points[i].clone(cloud.points[i]);
-
-    }
 
     int total = 0;
 
+    int tIndex;
     for (size_t i = 0; i < clusters.size(); i++)
     {
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
-            cloud_seg.points[clusters[i].indices[j]].segment = i + 1;
+            tIndex=clusters[i].indices[j];
+            temp.clone(cloud.points[tIndex]);
+            temp.segment = i + 1;
+            cloud_seg.points.push_back(temp);
         }
+        
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-    std::cout << total << std::endl;
+   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
+
+   std::cout << total << std::endl;
 
     OccupancyMap occupancy(cloud_seg);
 
     set<int> segIndices;
-     for(size_t i=0;i<cloud.size();i++)
+    
+    
+    std::ofstream logFile;
+    logFile.open((std::string(argv[1])+"nbrMap.txt").data(),ios::out);
+    set<int>::iterator sit;
+
+    for (size_t i = 0; i < clusters.size(); i++)
     {
-         occupancy.getNeighborSegs(i, segIndices );
+        set<int> segNbrs;
+        for (size_t j = 0; j < clusters[i].indices.size(); j++)
+        {
+            set<int> ptNbrs;
+            occupancy.getNeighborSegs(i, ptNbrs );
+            segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
+        }
+        
+        std::cout << "seg size " << clusters[i].indices.size() << std::endl;
+        
+        total += clusters[i].indices.size();
+        
+            logFile<<i+1;
+            for(sit=segNbrs.begin();sit!=segNbrs.end();sit++)
+                logFile<<","<<*sit;
+            logFile<<endl;
+
     }
 
-    //pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
+    logFile.close();
 
 }
 
