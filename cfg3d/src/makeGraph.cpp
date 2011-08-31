@@ -103,6 +103,7 @@ public:
      */
     inline double getBallRadFactor()
     {
+        assert(azimuthBinSize/2.0<=90.0);
         return sin(DEG2RAD(azimuthBinSize/2.0));
     }
 
@@ -397,7 +398,7 @@ public:
                 PointOutT pt=NeighborFinder::pointFromVector(tPv);
                 if(nnFinder.radiusSearch(pt, dis*SineOfBeamConeHalfANgle ,indices , distances,std::numeric_limits<int>::max())==0)
                 {
-                    cerr<<"no point found\n";
+                    //cerr<<"no point found\n";
                     continue;
                 }
                 else
