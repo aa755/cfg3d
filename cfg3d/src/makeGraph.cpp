@@ -229,7 +229,7 @@ class OccupancyMap
     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
-    static const float nearThresh=0.10;
+    static const float nearThresh=0.05;
     static const float nearOccThresh=2.0;
 
 public:
@@ -401,6 +401,8 @@ public:
                     //cerr<<"no point found\n";
                     continue;
                 }
+                else if(cloudSeg->points.at(indices[0]).segment==0)
+                    continue;
                 else
                     return indices[0]; //TODO : return more indices
                 
