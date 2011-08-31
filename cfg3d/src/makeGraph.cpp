@@ -85,7 +85,7 @@ class NeighborFinder
     int iterator;
 public:
 
-    NeighborFinder(PointOutT p, int numAzimuthBins_ = 8, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
+    NeighborFinder(PointOutT p, int numAzimuthBins_ = 100, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
     {
         numAzimuthBins = numAzimuthBins_;
         numElevationBins = numElevationBins_;
@@ -418,6 +418,86 @@ public:
 };
 
 
+  template <typename PointT, typename Normal> 
+  void extractEuclideanClusters( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
+      float tolerance, const boost::shared_ptr<pcl::KdTree<PointT> > &tree, \
+      std::vector<pcl::PointIndices> &clusters, double eps_angle, \
+      unsigned int min_pts_per_cluster = 1, \
+      unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ())
+  {
+    if (tree->getInputCloud ()->points.size () != cloud.points.size ())
+    {
+      ROS_ERROR ("[pcl::extractEuclideanClusters] Tree built for a different point cloud dataset (%zu) than the input cloud (%zu)!", tree->getInputCloud ()->points.size (), cloud.points.size ());
+      return;
+    }
+    if (cloud.points.size () != normals.points.size ())
+    {
+      ROS_ERROR ("[pcl::extractEuclideanClusters] Number of points in the input point cloud (%zu) different than normals (%zu)!", cloud.points.size (), normals.points.size ());
+      return;
+    }
+
+    // Create a bool vector of processed point indices, and initialize it to false
+    std::vector<bool> processed (cloud.points.size (), false);
+
+    std::vector<int> nn_indices;
+    std::vector<float> nn_distances;
+    // Process all points in the indices vector
+    for (size_t i = 0; i < cloud.points.size (); ++i)
+    {
+      if (processed[i])
+        continue;
+
+      std::vector<unsigned int> seed_queue;
+      int sq_idx = 0;
+      seed_queue.push_back (i);
+
+      processed[i] = true;
+
+      while (sq_idx < (int)seed_queue.size ())
+      {
+        // Search for sq_idx
+        if (!tree->radiusSearch (seed_queue[sq_idx], tolerance, nn_indices, nn_distances))
+        {
+          sq_idx++;
+          continue;
+        }
+
+        for (size_t j = 1; j < nn_indices.size (); ++j)             // nn_indices[0] should be sq_idx
+        {
+          if (processed[nn_indices[j]])                         // Has this point been processed before ?
+            continue;
+
+         // processed[nn_indices[j]] = true;
+          // [-1;1]
+          double dot_p = normals.points[i].normal[0] * normals.points[nn_indices[j]].normal[0] +
+                         normals.points[i].normal[1] * normals.points[nn_indices[j]].normal[1] +
+                         normals.points[i].normal[2] * normals.points[nn_indices[j]].normal[2];
+          if ( fabs (acos (dot_p)) < eps_angle /* TODO: check color*/)
+          {
+            processed[nn_indices[j]] = true;
+            seed_queue.push_back (nn_indices[j]);
+          }
+        }
+
+        sq_idx++;
+      }
+
+      // If this queue is satisfactory, add to the clusters
+      if (seed_queue.size () >= min_pts_per_cluster && seed_queue.size () <= max_pts_per_cluster)
+      {
+        pcl::PointIndices r;
+        r.indices.resize (seed_queue.size ());
+        for (size_t j = 0; j < seed_queue.size (); ++j)
+          r.indices[j] = seed_queue[j];
+
+        sort (r.indices.begin (), r.indices.end ());
+        r.indices.erase (unique (r.indices.begin (), r.indices.end ()), r.indices.end ());
+
+        r.header = cloud.header;
+        clusters.push_back (r);   // We could avoid a copy by working directly in the vector
+      }
+    }
+  }
 
 int main(int argc, char** argv)
 {
@@ -486,7 +566,7 @@ cloud_seg.points.resize(cloud.size());
         total += clusters[i].indices.size();
     }
     
-   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg);
+   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg,true);
 
    std::cout << total << std::endl;
 
@@ -494,7 +574,7 @@ cloud_seg.points.resize(cloud.size());
 
         
     std::ofstream logFile;
-    logFile.open((std::string(argv[1])+"nbrMap.txt").data(),ios::out);
+    logFile.open((std::string(argv[1])+".nbrMap.txt").data(),ios::out);
     set<int>::iterator sit;
 
     int tIndex;
