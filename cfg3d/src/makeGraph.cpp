@@ -229,8 +229,9 @@ class OccupancyMap
     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
-    static const float nearThresh=0.05;
+    static const float nearThresh=0.01;
     static const float nearOccThresh=2.0;
+    static const float step = 0.005;
 
 public:
 
@@ -374,12 +375,11 @@ public:
      */
     int castBeam(const Eigen::Vector3d & origin, const Eigen::Vector3d & direction, double SineOfBeamConeHalfANgle)
     {
-        const float step = 0.005;
         OccupancyState st;
                 vector<int> indices;
                 vector<float> distances;
 
-        for (float dis = nearThresh*4.0/3.0; dis < nearOccThresh; dis += step)
+        for (float dis = nearThresh; dis < nearOccThresh; dis += step)
         {
             Eigen::Vector3d tPv=origin + dis * direction;
             st = getOccupancyState(tPv);
@@ -428,13 +428,16 @@ public:
         nnFinder.radiusSearch(index,nearThresh,indices,distances,std::numeric_limits<int>::max());
         vector<int>::iterator it;
         
-        cout<<"\n\n\n\nnumNearNbrs:"<<indices.size()<<endl;
+        cout<<"\n\n\n\nseg"<<originSegment<<"numNearNbrs:"<<indices.size()<<endl;
         for(it=indices.begin();it!=indices.end();it++)
         {
             PointOutT &nbr =cloudSeg->points.at(*it);
             nf.processNeighbor(nbr);
             if(nbr.segment!=originSegment && nbr.segment!=0)
             {
+              //  double dist=(pcl::euclideanDistance<PointOutT,PointOutT>(origin,nbr) );
+                // assert( dist<= nearThresh );
+                cout<<nbr.segment<<"added (within nearThresh)\n";
                 segIndices.insert(nbr.segment);
             }            
         }
@@ -458,6 +461,23 @@ public:
             nbrIndex=castBeam(originv,direction,nf.getBallRadFactor());
             if(nbrIndex>=0)
             {
+                double distance=pcl::euclideanDistance<PointOutT,PointOutT>(origin,cloudSeg->points[nbrIndex]);
+                Eigen::Vector3d dir2=NeighborFinder::vectorFromPoint(cloudSeg->points[nbrIndex])-originv;
+                dir2.normalize();
+                int freeCount=0;
+                for(double dis=0;dis<distance;dis+=step)
+                {
+                    Eigen::Vector3d testPtV=originv+dis*dir2;
+                    if(getOccupancyState(testPtV)==OCCUPANCY_FREE)
+                    {
+                        freeCount++;
+                    }
+                }                
+                
+                if(freeCount>2)
+                    continue;
+                    
+                
                 nbrSeg=cloudSeg->points.at(nbrIndex).segment;
                 
                 if(nbrSeg!=originSegment)
