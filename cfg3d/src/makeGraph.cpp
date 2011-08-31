@@ -85,14 +85,25 @@ class NeighborFinder
     int iterator;
 public:
 
-    NeighborFinder(PointOutT p, int numAzimuthBins_ = 100, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
+    NeighborFinder(PointOutT p, int numAzimuthBins_ = 16, int numElevationBins_ = 8) : point(p.x, p.y, p.z)
     {
         numAzimuthBins = numAzimuthBins_;
         numElevationBins = numElevationBins_;
         azimuthBinSize = 360.0 / numAzimuthBins;
         elevationBinSize = 180.0 / numElevationBins;
         directions.resize(numAzimuthBins*numElevationBins, true);
+        assert(azimuthBinSize==elevationBinSize);
         iterator=-1;
+    }
+    
+    /**
+     * 
+     * @param direction
+     * @return  f such that f*d is the rad that can fit in the conical beam at distance d
+     */
+    inline double getBallRadFactor()
+    {
+        return sin(DEG2RAD(azimuthBinSize/2.0));
     }
 
     int getIndex(double azimuth, double elevation)
@@ -356,6 +367,50 @@ public:
 
     }
     
+    /**
+     * @return : -1 if a free point is encountered ... the entire area is not occluded
+     * else returns the index of the 1st point encountered in the beam of angular width binAngle with central direction as "direction" from "origin"
+     */
+    int castBeam(const Eigen::Vector3d & origin, const Eigen::Vector3d & direction, double SineOfBeamConeHalfANgle)
+    {
+        const float step = 0.005;
+        OccupancyState st;
+                vector<int> indices;
+                vector<float> distances;
+
+        for (float dis = nearThresh*4.0/3.0; dis < nearOccThresh; dis += step)
+        {
+            Eigen::Vector3d tPv=origin + dis * direction;
+            st = getOccupancyState(tPv);
+            if (st == OCCUPANCY_FREE)
+            {
+                /*
+                 *should we check freeness of the entire beam ?
+                 * probably not ... free space is not sparse ... points are 
+                 */
+                break;
+            }
+            else 
+            {
+        
+        
+                PointOutT pt=NeighborFinder::pointFromVector(tPv);
+                if(nnFinder.radiusSearch(pt, dis*SineOfBeamConeHalfANgle ,indices , distances,std::numeric_limits<int>::max())==0)
+                {
+                    cerr<<"no point found\n";
+                    continue;
+                }
+                else
+                    return indices[0]; //TODO : return more indices
+                
+            }
+        }
+        
+        
+        return -1;
+
+    }
+
     void getNeighborSegs(size_t index, set<int> & segIndices )
     {
         PointOutT &origin =cloudSeg->points.at(index);
@@ -396,7 +451,8 @@ public:
         while(nf.iterator_get_next_direction(direction))
         {
             count++;
-            nbrIndex=castRay(originv,direction);
+            //nbrIndex=castRay(originv,direction);
+            nbrIndex=castBeam(originv,direction,nf.getBallRadFactor());
             if(nbrIndex>=0)
             {
                 nbrSeg=cloudSeg->points.at(nbrIndex).segment;
