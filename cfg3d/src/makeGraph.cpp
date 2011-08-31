@@ -379,6 +379,8 @@ public:
                 vector<int> indices;
                 vector<float> distances;
 
+                vector<int>::iterator it;
+                
         for (float dis = nearThresh; dis < nearOccThresh; dis += step)
         {
             Eigen::Vector3d tPv=origin + dis * direction;
@@ -401,10 +403,14 @@ public:
                     //cerr<<"no point found\n";
                     continue;
                 }
-                else if(cloudSeg->points.at(indices[0]).segment==0)
-                    continue;
                 else
-                    return indices[0]; //TODO : return more indices
+                {
+                    for(it=indices.begin();it!=indices.end();it++)
+                    {
+                        if(cloudSeg->points.at(*it).segment!=0)
+                            return *it;
+                    }
+                }
                 
             }
         }
@@ -498,7 +504,7 @@ public:
 
 
   template <typename PointT, typename Normal> 
-  void extractEuclideanClusters( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
+  void extractEuclideanClustersM( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
       float tolerance, const boost::shared_ptr<pcl::KdTree<PointT> > &tree, \
       std::vector<pcl::PointIndices> &clusters, double eps_angle, \
       unsigned int min_pts_per_cluster = 1, \
