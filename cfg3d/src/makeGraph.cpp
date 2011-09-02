@@ -584,6 +584,7 @@ public:
     }
   }
 
+#define MIN_SEG_SIZE 50
 int main(int argc, char** argv)
 {
 
@@ -627,7 +628,8 @@ int main(int argc, char** argv)
     n3d_.compute(cloud_normals);
 
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
-    pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
+//    pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
+    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle);
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
 cloud_seg.points.resize(cloud.size());
@@ -643,6 +645,9 @@ cloud_seg.points.resize(cloud.size());
 
     for (size_t i = 0; i < clusters.size(); i++)
     {
+        if(clusters[i].indices.size()<MIN_SEG_SIZE)
+            continue;
+        
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
             cloud_seg.points[clusters[i].indices[j]].segment = i + 1;
