@@ -128,13 +128,13 @@ public:
         return cost;
     }
 
-    vector<int> & getPointIndices()=0;
+    virtual vector<int> & getPointIndices()=0;
     
      virtual size_t getNumTerminals()=0;
 
     virtual void getCentroid(pcl::PointXYZ & centroid)=0;
     
-    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet)=0;
+    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet,vector<Terminal*> & terminals)=0;
     
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
 //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -143,6 +143,7 @@ public:
 
     void getValidSymbolsForCombination(vector<Terminal*> & terminals/*pass the graph*/,set<int> & nbrTerminals) //#TO CHANGE
     {
+        assert(1==2);// needs to be reimplemented
         //take the union of  neighbors of all terminals in this
         //subtract all terminals in this from the above set.
         
@@ -212,6 +213,8 @@ protected:
     vector<int> pointIndices;
 public:
     
+    static int totalNumTerminals;
+    
     vector<Terminal*> & getNeighbors()
     {
         return neighbors;
@@ -243,6 +246,7 @@ public:
     
     Terminal()
     {
+        index=-1; /// for safety;
         cost=0;
     }
 
@@ -275,7 +279,7 @@ public:
             cout<<"t\t:"<<index<<endl;
         }
         
-    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet){return true;}
+    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet,vector<Terminal*> & terminals){return true;}
     
     //bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)    {
 //        return false; // each terminal can be derived in only 1 way
@@ -296,11 +300,12 @@ public:
   */
 };
 Terminal * terminals;
+int Terminal::totalNumTerminals=0;
 
 class NonTerminal : public Symbol
 {
 protected:
-    size_t numPoints;
+    size_t numTerminals;
 //    vector<bool> setOfPoints;
     boost::dynamic_bitset<> set_membership;
     vector<Symbol*> children;
@@ -312,6 +317,7 @@ protected:
     //will be populated only when extracted as min
     void computeCentroid()
     {
+        assert(pointIndices.size()>0);
         PointT point;
         centroid.x=0;
         centroid.y=0;
@@ -329,7 +335,7 @@ protected:
     }
   
     
-   void computePointIndices(vector<Terminal*> terminals)
+   void computePointIndices(vector<Terminal*> & terminals)
     {
        pointIndices.clear();
        pointIndices.reserve(getNumTerminals());
@@ -337,7 +343,7 @@ protected:
        for(size_t i=0;i<scene.size();i++)
        {
            if(set_membership.test(i))
-               pointIndices.push_back(terminals.at(i).getPointIndices());
+               pointIndices.insert(pointIndices.end(),terminals.at(i)->getPointIndices().begin(),terminals.at(i)->getPointIndices().end());
        }
     }
    
@@ -349,6 +355,12 @@ protected:
 public:
     friend class RS_PlanePlane;
     vector<int> pointIndices; // can be replaced with any sufficient statistic
+    
+    vector<int> & getPointIndices()
+    {
+        assert(pointIndices.size()>0);
+        return pointIndices;
+    }
     
     bool intersects(NonTerminal * other)
     {
@@ -364,7 +376,7 @@ public:
         costSet=false;
         id=id_counter++;
         cout<<"new NT: "<<id<<endl;
-        numPoints=0;
+        numTerminals=0;
     }
 
     friend class NTSetComparison;
@@ -376,8 +388,8 @@ public:
         
     size_t getNumTerminals()
     {
-        assert(numPoints>0);
-        return numPoints;
+        assert(numTerminals>0);
+        return numTerminals;
     }
 
     void setAdditionalCost(double additionalCost)
@@ -396,14 +408,15 @@ public:
         assert(!costSet);
         children.push_back(child);
     }
+    
     void computeSetMembership()
     {
-        set_membership.resize(scene.size(),false);
+        set_membership.resize(Terminal::totalNumTerminals,false);
         for(size_t i=0;i<children.size();i++)
         {
             children[i]->unionMembersip(set_membership);
         }
-        numPoints=set_membership.count();
+        numTerminals=set_membership.count();
     }
 
     void unionMembersip(boost::dynamic_bitset<> & set_membership)
@@ -412,18 +425,18 @@ public:
         set_membership|=this->set_membership;
     }
     
+
     /**
-     * do the book-keeping work:
-     * 1) compute the set of points spanned by this NT
-     * 2) add itself to the list of ancestors of all those points
-     * @param ancestors: list of ancestor-sets for all points in scene 
+     * do some book-keeping
+     * for efficiency it is not done when a new NT is created, but only when it is extracted
+     * from priority queue
      */
-    bool finalize_if_not_duplicate(vector<NTSet> & planeSet)
+    bool finalize_if_not_duplicate(vector<NTSet> & allNTs,vector<Terminal*> & terminals)
     {
         assert(costSet); // cost must be set before adding it to pq
-        if(checkDuplicate(planeSet))
+        if(checkDuplicate(allNTs))
             return false;
-        computePointIndices();
+        computePointIndices(terminals);
    //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
         
 /*        for(size_t i=0;i<pointIndices.size();i++)
@@ -432,7 +445,7 @@ public:
             assert(resIns.second);
         }   */
         
-        planeSet[numPoints].insert(this);// indexed by size 
+        allNTs[numTerminals].insert(this);// indexed by size 
         // S wont ever be finalized , ... so it will only contain planes
                                 
         // computeCentroid();
@@ -445,15 +458,19 @@ public:
         centroid1=centroid;
     }
     
+    /**
+     * subclasses can override this method to do compute and store additional statistic
+     */
     virtual void additionalFinalize()
     {
         
     }
     
-    bool checkDuplicate(vector<NTSet> & planeSet)
+    bool checkDuplicate(vector<NTSet> & allNTs)
     {
-        assert(numPoints>0);
-        NTSet & bin=planeSet[numPoints];
+        assert(1==2); //need to also check if the type is same
+        assert(numTerminals>0);
+        NTSet & bin=allNTs[numTerminals];
         NTSet::iterator lb;
         lb=bin.lower_bound(this);
         if(lb!=bin.end() && (*lb)->set_membership==set_membership)
@@ -496,6 +513,10 @@ public:
 
 int NonTerminal::id_counter=0;
 
+/**
+ * abstraction of a priority queue which can do additional book-keeping later
+ * duplicate check needs to be done on all members, even those whioch have been extracted from PQ
+ */
 class SymbolPriorityQueue
 {
     priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> costSortedQueue;
@@ -604,7 +625,6 @@ public:
     double getNorm()
     {
          return (planeParams[0]*planeParams[0]  +  planeParams[1]*planeParams[1]  +  planeParams[2]*planeParams[2]);
-
     }
     
     void computePlaneParams()
@@ -652,7 +672,7 @@ public:
     }
 };
 
-class RPlane_PlanePoint : public Rule
+class RPlane_PlaneSeg : public Rule
 {
 public:
     int get_Nof_RHS_symbols()
@@ -668,12 +688,13 @@ public:
     
     NonTerminal* applyRule(vector<Symbol*> & RHS)
     {
+        assert(1==2); // avg. distance of points in RHS_seg to RHS_plane
         Plane * LHS=new Plane();
         Plane * RHS_plane=dynamic_cast<Plane *>(RHS.at(0));
-        Terminal * RHS_point=dynamic_cast<Terminal *>(RHS.at(1));
+        Terminal * RHS_seg=dynamic_cast<Terminal *>(RHS.at(1));
         LHS->addChild(RHS_plane);
-        LHS->addChild(RHS_point);
-        LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(RHS_point->getPoint()));
+        LHS->addChild(RHS_seg);
+     //   LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(RHS_point->getPoint()));
 //        RHS_plane->parents->push_back(LHS);
 //        RHS_point->parents->push_back(LHS);
         // not required ... these will be needed only when this is extracted ... it cannot be combined with others
@@ -704,7 +725,7 @@ public:
     }    
 };
 
-class RPlane_PointPoint : public Rule
+class RPlane_SegSeg : public Rule
 {
 public:
     int get_Nof_RHS_symbols()
@@ -720,6 +741,7 @@ public:
     
     NonTerminal* applyRule(vector<Symbol*> & RHS)
     {
+        assert(1==2); // additional cost= avg distance of points in either seg from the plane obtained from both points  
         Plane * LHS=new Plane();
         Terminal * RHS_point1=dynamic_cast<Terminal *>(RHS.at(0));
         Terminal * RHS_point2=dynamic_cast<Terminal *>(RHS.at(1));
@@ -728,7 +750,7 @@ public:
         cout<<RHS_point1->getIndex()<<","<<RHS_point2->getIndex()<<endl;
         assert(RHS_point1->getIndex()!=RHS_point2->getIndex());
         
-        LHS->setAdditionalCost(pcl::euclideanDistance<PointT,PointT>(RHS_point1->getPoint(),RHS_point2->getPoint()));
+//        LHS->setAdditionalCost(pcl::euclideanDistance<PointT,PointT>(RHS_point1->getPoint(),RHS_point2->getPoint()));
         return LHS;
     }
     
@@ -871,8 +893,8 @@ public:
 typedef boost::shared_ptr<Rule>  RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules)
 {
-    rules.push_back(RulePtr(new RPlane_PlanePoint()));    
-    rules.push_back(RulePtr(new RPlane_PointPoint()));    
+    rules.push_back(RulePtr(new RPlane_PlaneSeg()));    
+    rules.push_back(RulePtr(new RPlane_SegSeg()));    
     rules.push_back(RulePtr(new RS_PlanePlane()));    
 }
 
@@ -919,6 +941,7 @@ void runParse()
         terminals.push_back(temp);
         pq.pushTerminal(temp);
     }
+    Terminal::totalNumTerminals=terminals.size();
     
     Symbol *min;
     int count=0;
@@ -935,7 +958,7 @@ void runParse()
             return;
             
         }
-        if(min->finalize_if_not_duplicate(planeSet))
+        if(min->finalize_if_not_duplicate(planeSet,terminals))
         {
         min->printData();
            // log(count,min);
