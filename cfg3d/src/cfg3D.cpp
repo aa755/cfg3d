@@ -116,7 +116,7 @@ public:
             
         }
         
-    virtual void insertPoints(vector<int> & points)=0;
+    //virtual void insertPoints(vector<int> & points)=0;
     
     virtual void unionMembersip(boost::dynamic_bitset<> & set_membership)=0;
     bool operator < (const Symbol &  rhs)
@@ -127,40 +127,46 @@ public:
     double getCost() const {
         return cost;
     }
+
+    vector<int> & getPointIndices()=0;
     
-     virtual size_t getNumPoints()=0;
+     virtual size_t getNumTerminals()=0;
 
     virtual void getCentroid(pcl::PointXYZ & centroid)=0;
     
     virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet)=0;
     
-    virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
+    //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
 //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
     
     virtual int getId()=0;
 
-    void getValidSymbolsForCombination(vector<Terminal*> & terminals,set<int> & nearPoints)
+    void getValidSymbolsForCombination(vector<Terminal*> & terminals/*pass the graph*/,set<int> & nbrTerminals) //#TO CHANGE
     {
+        //take the union of  neighbors of all terminals in this
+        //subtract all terminals in this from the above set.
+        
+        
         // find the nearest point not in this segment
         pcl::KdTreeFLANN<PointT> nnFinder;
         vector<int> indices;
-        indices.reserve(scene.size()-getNumPoints()); // +1 is not required
+        indices.reserve(scene.size()-getNumTerminals()); // +1 is not required
         
-        nearPoints.clear();
+        nbrTerminals.clear();
         
-        if(scene.size()==getNumPoints()) // cannot be combined further
+        if(scene.size()==getNumTerminals()) // cannot be combined further
 		return;
 
-        getComplementPointSet(indices);
-        cout<<indices.size()<<" points in complement set ... this has "<<getNumPoints()<<endl;
+       // getComplementPointSet(indices);
+        cout<<indices.size()<<" points in complement set ... this has "<<getNumTerminals()<<endl;
         nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointT> >(&scene),createStaticShared<vector<int> >(&indices));
         vector<int> nearest_indices;
         vector<float> nearest_distances;
         
         
         vector<int> pointIndicess;
-        pointIndicess.reserve(getNumPoints());
-        insertPoints(pointIndicess);
+        pointIndicess.reserve(getNumTerminals());
+      //  insertPoints(pointIndicess);
         
         set<int>::iterator npit;
                 nearest_indices.resize(1,0);
@@ -169,11 +175,11 @@ public:
         {
                 nnFinder.nearestKSearch(scene.points[pointIndicess[i]],1,nearest_indices,nearest_distances);
                 int nearest_index=indices[nearest_indices[0]];
-                nearPoints.insert(nearest_index);
+                nbrTerminals.insert(nearest_index);
         }
         
 //                combineNTCanditates.insert(allAncestors[minDistIndex].begin(),allAncestors[minDistIndex].end());
-         cout<<nearPoints.size()<<"unique points found"<<endl;
+         cout<<nbrTerminals.size()<<"unique points found"<<endl;
                 
     }
     
@@ -199,13 +205,37 @@ class SymbolPriorityQueue;
 class Terminal : public Symbol
 {
 protected:
+    /** segment index
+     */
     size_t index;
+    vector<Terminal*> neighbors;
+    vector<int> pointIndices;
 public:
+    
+    vector<Terminal*> & getNeighbors()
+    {
+        return neighbors;
+    }
+    
+    /**
+     * will be only used  to compute cost of rules . CFG parsing functions should
+     *  not use it
+     * @return 
+     */
+    vector<int> & getPointIndices()
+    {
+        return pointIndices;
+    }
+    
     int getId()
     {
         return 0;
     }
     
+    /**
+     * add this terminal to the set
+     * @param set_membership
+     */
     void unionMembersip(boost::dynamic_bitset<> & set_membership)
     {
         set_membership.set(index,true);
@@ -233,22 +263,11 @@ public:
         return index;
     }
     
-    const PointT & getPoint()
-    {
-        return scene.points[index];
-    }
-    
-    void insertPoints(vector<int> & points)
-    {
-        points.push_back(index);
-    }
+
     
     void getCentroid(pcl::PointXYZ & centroid)
     {
-        PointT point=scene.points[index];
-        centroid.x=point.x;
-        centroid.y=point.y;
-        centroid.z=point.z;        
+        assert(1==2); // need to be implemented
     }
 
         virtual void printData()
@@ -264,19 +283,8 @@ public:
          * (1 U 2) U 3  or  1 U (2 U 3 )
          */
    // }
-    void getComplementPointSet(vector<int>& indices /* = 0 */)
-    {
-        // will be called only once ... when this terminal is extracted
-        cout<<" terminal complement of index"<<index<<"\n";
-        indices.clear();
-        for(size_t i=0;i<scene.size();i++)
-        {
-            if(i!=index)
-                indices.push_back(i);
-        }
-    }
     
-    size_t getNumPoints()
+    size_t getNumTerminals()
     {
         return 1;
     }
@@ -321,28 +329,18 @@ protected:
     }
   
     
-   void computePointIndices()
+   void computePointIndices(vector<Terminal*> terminals)
     {
        pointIndices.clear();
-       pointIndices.reserve(getNumPoints());
+       pointIndices.reserve(getNumTerminals());
 
        for(size_t i=0;i<scene.size();i++)
        {
            if(set_membership.test(i))
-               pointIndices.push_back(i);
+               pointIndices.push_back(terminals.at(i).getPointIndices());
        }
     }
    
-   void insertPoints(vector<int> & points)
-    {
-       points.reserve(points.size()+getNumPoints());
-
-       for(size_t i=0;i<scene.size();i++)
-       {
-           if(set_membership.test(i))
-               points.push_back(i);
-       }
-    }
    
    /** 
      * compute leaves by concatenating 
@@ -376,7 +374,7 @@ public:
             cout<<id<<"\t:"<<set_membership<<endl;
         }
         
-    size_t getNumPoints()
+    size_t getNumTerminals()
     {
         assert(numPoints>0);
         return numPoints;
@@ -469,18 +467,6 @@ public:
     
     
 
-    void getComplementPointSet(vector<int>& indices /* = 0 */)
-    {
-        int numSPoints=scene.size();
-        indices.clear();
-        indices.reserve(numSPoints-getNumPoints());
-       for(size_t i=0;i<scene.size();i++)
-       {
-           if(!set_membership.test(i))
-               indices.push_back(i);
-       }
-        
-    }
     
 /*    void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
     {
@@ -653,7 +639,7 @@ public:
         {
             assert(planeParamsComputed);
 //            return exp(100*pcl::pointToPlaneDistance<PointT>(p,planeParams))-1;
-            return getNumPoints()*(exp(pcl::pointToPlaneDistance<PointT>(p,planeParams))-1);
+            return getNumTerminals()*(exp(pcl::pointToPlaneDistance<PointT>(p,planeParams))-1);
         }
         else
             assert(1==2);
@@ -850,7 +836,7 @@ public:
         
         if(typeid(*sym)==typeid(Plane))
         {
-            size_t targetSize=scene.size()-sym->getNumPoints();
+            size_t targetSize=scene.size()-sym->getNumTerminals();
                 NTSet & bin=planeSet[targetSize];
                 if(bin.size()==0)
                     return;
@@ -892,7 +878,7 @@ void appendRuleInstances(vector<RulePtr> & rules)
 
 void log(int iter, Symbol *  sym)
 {
-    if(sym->getNumPoints()==1)
+    if(sym->getNumTerminals()==1)
         return;
         pcl::PointCloud<pcl::PointXYZRGBIndex> sceneOut;
         sceneOut.points.resize(scene.size());
