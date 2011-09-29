@@ -963,7 +963,7 @@ void runParse()
         min->printData();
            // log(count,min);
             set<int> combineCandidates;
-            min->getValidSymbolsForCombination(terminals,combineCandidates);
+            min->getValidSymbolsForCombination(terminals,combineCandidates); // get the set of nearby terminals in combineCandidates
             cout<<combineCandidates.size()<<" candidates found and queue has "<<pq.size()<<" elements: \n------------"<<endl;
             set<int>::iterator it;
             for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
@@ -974,7 +974,9 @@ void runParse()
             
             for(size_t i=0;i<rules.size();i++)
             {
-                rules[i]->combineAndPush(min, combineCandidates, pq, planeSet, terminals);
+                rules[i]->combineAndPush(min, combineCandidates, pq, planeSet, terminals); // combine with the eligible NT's to form new NTs and add them to the priority queue
+                //an eligible NT should not span any terminal already in min
+                //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
             
         }
