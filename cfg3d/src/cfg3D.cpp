@@ -109,8 +109,16 @@ protected:
      *  required for being a superior CFG 
      */
     double cost; 
+    boost::dynamic_bitset<> neighbors;
+    vector<Symbol*> optimalParents;
+    
 //    vector<NonTerminal*> parents;
 public:
+        boost::dynamic_bitset<> & getNeigborTerminalBitset()
+        {
+            return  neighbors;
+        }
+        
         virtual void printData()
         {
             
@@ -141,49 +149,6 @@ public:
     
     virtual int getId()=0;
 
-    void getValidSymbolsForCombination(vector<Terminal*> & terminals/*pass the graph*/,set<int> & nbrTerminals) //#TO CHANGE
-    {
-        assert(1==2);// needs to be reimplemented
-        //take the union of  neighbors of all terminals in this
-        //subtract all terminals in this from the above set.
-        
-        
-        // find the nearest point not in this segment
-        pcl::KdTreeFLANN<PointT> nnFinder;
-        vector<int> indices;
-        indices.reserve(scene.size()-getNumTerminals()); // +1 is not required
-        
-        nbrTerminals.clear();
-        
-        if(scene.size()==getNumTerminals()) // cannot be combined further
-		return;
-
-       // getComplementPointSet(indices);
-        cout<<indices.size()<<" points in complement set ... this has "<<getNumTerminals()<<endl;
-        nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointT> >(&scene),createStaticShared<vector<int> >(&indices));
-        vector<int> nearest_indices;
-        vector<float> nearest_distances;
-        
-        
-        vector<int> pointIndicess;
-        pointIndicess.reserve(getNumTerminals());
-      //  insertPoints(pointIndicess);
-        
-        set<int>::iterator npit;
-                nearest_indices.resize(1,0);
-                nearest_distances.resize(1,0.0);
-        for(size_t i=0;i<pointIndicess.size();i++)
-        {
-                nnFinder.nearestKSearch(scene.points[pointIndicess[i]],1,nearest_indices,nearest_distances);
-                int nearest_index=indices[nearest_indices[0]];
-                nbrTerminals.insert(nearest_index);
-        }
-        
-//                combineNTCanditates.insert(allAncestors[minDistIndex].begin(),allAncestors[minDistIndex].end());
-         cout<<nbrTerminals.size()<<"unique points found"<<endl;
-                
-    }
-    
 //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -271,7 +236,7 @@ public:
     
     void getCentroid(pcl::PointXYZ & centroid)
     {
-        assert(1==2); // need to be implemented
+        assert(3==2); // need to be implemented
     }
 
         virtual void printData()
@@ -307,7 +272,7 @@ class NonTerminal : public Symbol
 protected:
     size_t numTerminals;
 //    vector<bool> setOfPoints;
-    boost::dynamic_bitset<> set_membership;
+    boost::dynamic_bitset<> spanned_terminals;
     vector<Symbol*> children;
     pcl::PointXYZ centroid;
     int id;
@@ -342,7 +307,7 @@ protected:
 
        for(size_t i=0;i<scene.size();i++)
        {
-           if(set_membership.test(i))
+           if(spanned_terminals.test(i))
                pointIndices.insert(pointIndices.end(),terminals.at(i)->getPointIndices().begin(),terminals.at(i)->getPointIndices().end());
        }
     }
@@ -364,7 +329,7 @@ public:
     
     bool intersects(NonTerminal * other)
     {
-        return set_membership.intersects(other->set_membership);
+        return spanned_terminals.intersects(other->spanned_terminals);
     }
         int getId()
     {
@@ -383,7 +348,7 @@ public:
     
         virtual void printData()
         {
-            cout<<id<<"\t:"<<set_membership<<endl;
+            cout<<id<<"\t:"<<spanned_terminals<<endl;
         }
         
     size_t getNumTerminals()
@@ -411,18 +376,24 @@ public:
     
     void computeSetMembership()
     {
-        set_membership.resize(Terminal::totalNumTerminals,false);
+        spanned_terminals.resize(Terminal::totalNumTerminals,false);
         for(size_t i=0;i<children.size();i++)
         {
-            children[i]->unionMembersip(set_membership);
+            children[i]->unionMembersip(spanned_terminals);
         }
-        numTerminals=set_membership.count();
+        numTerminals=spanned_terminals.count();
     }
 
+    void computeNeighborTerminalSet()
+    {
+        //priority 1
+        assert(1==2);
+    }
+    
     void unionMembersip(boost::dynamic_bitset<> & set_membership)
     {
 //        assert(pointIndices.size()>0);
-        set_membership|=this->set_membership;
+        set_membership|=this->spanned_terminals;
     }
     
 
@@ -431,8 +402,17 @@ public:
      * for efficiency it is not done when a new NT is created, but only when it is extracted
      * from priority queue
      */
+    /**
+     * declare it optimal and hence do the bookkeeping necesary for combining it with others
+     * @param allNTs
+     * @param terminals
+     * @return 
+     */
     bool finalize_if_not_duplicate(vector<NTSet> & allNTs,vector<Terminal*> & terminals)
     {
+        //priority 2
+        assert(1==2);
+        // visit all children and make parent links
         assert(costSet); // cost must be set before adding it to pq
         if(checkDuplicate(allNTs))
             return false;
@@ -468,12 +448,13 @@ public:
     
     bool checkDuplicate(vector<NTSet> & allNTs)
     {
+        //priority 3
         assert(1==2); //need to also check if the type is same
         assert(numTerminals>0);
         NTSet & bin=allNTs[numTerminals];
         NTSet::iterator lb;
         lb=bin.lower_bound(this);
-        if(lb!=bin.end() && (*lb)->set_membership==set_membership)
+        if(lb!=bin.end() && (*lb)->spanned_terminals==spanned_terminals)
         {
          //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
             return true;
@@ -499,11 +480,11 @@ public:
   bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const &  rhs)
   {
       //start with MSBs
-      for(int i=lhs->set_membership.num_blocks()-1;i>=0;i--)
+      for(int i=lhs->spanned_terminals.num_blocks()-1;i>=0;i--)
       {
-          if(lhs->set_membership.m_bits[i] > rhs->set_membership.m_bits[i])
+          if(lhs->spanned_terminals.m_bits[i] > rhs->spanned_terminals.m_bits[i])
               return true;
-          else if(lhs->set_membership.m_bits[i]  <  rhs->set_membership.m_bits[i])
+          else if(lhs->spanned_terminals.m_bits[i]  <  rhs->spanned_terminals.m_bits[i])
               return false;
           // else look the lower significant block
                       
@@ -590,8 +571,17 @@ public:
         }
         return true;
     }
+
+    /**
+     * 
+     * @param sym : the extracted Symbol
+     * @param neighbosTerminals : it's neighbors : needs to be deleted ... use sym->getNeigborBitset()
+     * @param pqueue : the priority queue
+     * @param planeSet : set of all Non Terminals
+     * @param terminals : set of all terminals
+     */
+    virtual void combineAndPush(Symbol * sym, set<int> & neighbosTerminals , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)=0;
     
-    virtual void combineAndPush(Symbol * sym, set<int> & combineCandidates , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)=0;
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
     {
         newNT->computeSetMembership();
@@ -662,7 +652,7 @@ public:
             return getNumTerminals()*(exp(pcl::pointToPlaneDistance<PointT>(p,planeParams))-1);
         }
         else
-            assert(1==2);
+            assert(4==2);
     }
     
     void additionalFinalize()
@@ -688,18 +678,15 @@ public:
     
     NonTerminal* applyRule(vector<Symbol*> & RHS)
     {
+        //lowest priority
         assert(1==2); // avg. distance of points in RHS_seg to RHS_plane
         Plane * LHS=new Plane();
         Plane * RHS_plane=dynamic_cast<Plane *>(RHS.at(0));
         Terminal * RHS_seg=dynamic_cast<Terminal *>(RHS.at(1));
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
-     //   LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(RHS_point->getPoint()));
-//        RHS_plane->parents->push_back(LHS);
-//        RHS_point->parents->push_back(LHS);
-        // not required ... these will be needed only when this is extracted ... it cannot be combined with others
-//        LHS->computePointIndices();
-//        LHS->computePlaneParams();  
+       
+     // reimplement it   LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(RHS_point->getPoint()));
         return LHS;
     }
     
@@ -725,54 +712,6 @@ public:
     }    
 };
 
-class RPlane_SegSeg : public Rule
-{
-public:
-    int get_Nof_RHS_symbols()
-    {
-        return 2;
-    }
-    
-    void  get_typenames(vector<string> & names)
-    {
-        names.push_back(typeid(Terminal ).name());
-        names.push_back(typeid(Terminal ).name());
-    }
-    
-    NonTerminal* applyRule(vector<Symbol*> & RHS)
-    {
-        assert(1==2); // additional cost= avg distance of points in either seg from the plane obtained from both points  
-        Plane * LHS=new Plane();
-        Terminal * RHS_point1=dynamic_cast<Terminal *>(RHS.at(0));
-        Terminal * RHS_point2=dynamic_cast<Terminal *>(RHS.at(1));
-        LHS->addChild(RHS_point1);
-        LHS->addChild(RHS_point2);
-        cout<<RHS_point1->getIndex()<<","<<RHS_point2->getIndex()<<endl;
-        assert(RHS_point1->getIndex()!=RHS_point2->getIndex());
-        
-//        LHS->setAdditionalCost(pcl::euclideanDistance<PointT,PointT>(RHS_point1->getPoint(),RHS_point2->getPoint()));
-        return LHS;
-    }
-    
-     void combineAndPush(Symbol * sym, set<int> & combineCandidates , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)
-    {
-        set<int>::iterator it;
-     //   cout<<"my type:"<<typeid(*sym).name()<<endl;
-     //   cout<<"my type:"<<typeid(Terminal).name()<<endl;
-        if(typeid(*sym)==typeid(Terminal))
-        {
-            for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
-            {
-              //  cout<<"cand type:"<<typeid(**it).name()<<endl;
-                    vector<Symbol*> temp;
-                    temp.push_back(terminals.at(*it)); 
-                    temp.push_back(sym);
-                    addToPqueueIfNotDuplicate(applyRule(temp),planeSet,pqueue);
-                    cout<<"applied rule p->tt\n";
-            }
-        }
-    }    
-};
 
 class Goal_S : public NonTerminal
 {
@@ -848,8 +787,8 @@ public:
         LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
         cout<<"applied rule S->pp\n";        
         cerr<<"applied rule S->pp: cost "<<LHS->cost<<"\n";        
-        cerr<<RHS_plane1->set_membership<<"\n";        
-        cerr<<RHS_plane2->set_membership<<"\n";        
+        cerr<<RHS_plane1->spanned_terminals<<"\n";        
+        cerr<<RHS_plane2->spanned_terminals<<"\n";        
         return LHS;
     }
     
@@ -874,10 +813,10 @@ public:
                 NTSet::iterator it;
                     Plane * RHS_plane1=dynamic_cast<Plane *>(sym);
 //                    Plane * RHS_plane2=dynamic_cast<Plane *>(*it);
-                assert(!RHS_plane1->set_membership.intersects(neighbors));
+                assert(!RHS_plane1->spanned_terminals.intersects(neighbors));
                 for(it=bin.begin();it!=bin.end();it++)
                 {
-                    if(  (!RHS_plane1->intersects((*it)))   && (*it)->set_membership.intersects(neighbors)  )
+                    if(  (!RHS_plane1->intersects((*it)))   && (*it)->spanned_terminals.intersects(neighbors)  )
                     {
                         vector<Symbol*> temp;
                         temp.push_back(*it); // must be pushed in order
@@ -894,7 +833,7 @@ typedef boost::shared_ptr<Rule>  RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules)
 {
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));    
-    rules.push_back(RulePtr(new RPlane_SegSeg()));    
+//    rules.push_back(RulePtr(new RPlane_SegSeg()));    
     rules.push_back(RulePtr(new RS_PlanePlane()));    
 }
 
@@ -930,7 +869,7 @@ void runParse()
     
 //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
     
-    vector<NTSet> planeSet(numPoints,NTSet());
+    vector<NTSet> allExtractedNTs(numPoints,NTSet());
     
     vector<Terminal *> terminals;
    
@@ -958,23 +897,15 @@ void runParse()
             return;
             
         }
-        if(min->finalize_if_not_duplicate(planeSet,terminals))
+        if(min->finalize_if_not_duplicate(allExtractedNTs,terminals))
         {
         min->printData();
-           // log(count,min);
-            set<int> combineCandidates;
-            min->getValidSymbolsForCombination(terminals,combineCandidates); // get the set of nearby terminals in combineCandidates
-            cout<<combineCandidates.size()<<" candidates found and queue has "<<pq.size()<<" elements: \n------------"<<endl;
-            set<int>::iterator it;
-            for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
-            {
-                cout<<*it<<",";
-            }
-            cout<<"--------\n";
             
             for(size_t i=0;i<rules.size();i++)
             {
-                rules[i]->combineAndPush(min, combineCandidates, pq, planeSet, terminals); // combine with the eligible NT's to form new NTs and add them to the priority queue
+                
+                assert(1==2); // combineAndPush needs to be reimplemented
+                //rules[i]->combineAndPush(min, combineCandidates, pq, allExtractedNTs, terminals); // combine with the eligible NT's to form new NTs and add them to the priority queue
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
