@@ -142,7 +142,7 @@ public:
 
     virtual void getCentroid(pcl::PointXYZ & centroid)=0;
     
-    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet,vector<Terminal*> & terminals)=0;
+    virtual bool declareOptimal(vector<NTSet> & planeSet,vector<Terminal*> & terminals)=0;
     
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
 //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -244,7 +244,7 @@ public:
             cout<<"t\t:"<<index<<endl;
         }
         
-    virtual bool finalize_if_not_duplicate(vector<NTSet> & planeSet,vector<Terminal*> & terminals){return true;}
+    virtual bool declareOptimal(vector<NTSet> & planeSet,vector<Terminal*> & terminals){return true;}
     
     //bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)    {
 //        return false; // each terminal can be derived in only 1 way
@@ -408,14 +408,12 @@ public:
      * @param terminals
      * @return 
      */
-    bool finalize_if_not_duplicate(vector<NTSet> & allNTs,vector<Terminal*> & terminals)
+    bool declareOptimal(vector<NTSet> & allNTs,vector<Terminal*> & terminals)
     {
         //priority 2
         assert(1==2);
         // visit all children and make parent links
         assert(costSet); // cost must be set before adding it to pq
-        if(checkDuplicate(allNTs))
-            return false;
         computePointIndices(terminals);
    //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
         
@@ -446,21 +444,13 @@ public:
         
     }
     
-    bool checkDuplicate(vector<NTSet> & allNTs)
+    bool checkDuplicate(NonTerminal * sym)
     {
-       // dont change it now
-        assert(4==2); //need to also check if the type is same
-        assert(numTerminals>0);
-        NTSet & bin=allNTs[numTerminals];
-        NTSet::iterator lb;
-        lb=bin.lower_bound(this);
-        if(lb!=bin.end() && (*lb)->spanned_terminals==spanned_terminals)
-        {
-         //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
-            return true;
-        }
-        else
+        if(typeid(*sym)!=typeid(*this))
             return false;
+        if(sym->spanned_terminals!=spanned_terminals)
+            return false;
+        return true;
     }
     
     
@@ -494,7 +484,6 @@ public:
 
 int NonTerminal::id_counter=0;
 
-//class 
 /**
  * abstraction of a priority queue which can do additional book-keeping later
  * duplicate check needs to be done on all members, even those whioch have been extracted from PQ
@@ -507,27 +496,81 @@ int NonTerminal::id_counter=0;
  *              else
  *                      add to PQ
  *                      if possible, delete the copy which was present in PQ
+ * 
+ * 
+ * consider using Trie
  *      
  */
 class SymbolPriorityQueue
 {
     priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> costSortedQueue;
-    vector<NTSet> NTsets;
+    vector<NTSet> NTsetsExtracted;
+    vector<NTSet> NTsetsInPQ;
 public:
     
-    SymbolPriorityQueue(size_t numPoints) : NTsets(numPoints,NTSet())
+    SymbolPriorityQueue(size_t numTerminals) : NTsetsExtracted(numTerminals,NTSet()), NTsetsInPQ(numTerminals,NTSet())
     {
         
     }
+    
+    bool CheckIfBetterDuplicateExists(NonTerminal * sym)
+    {
+        int numTerminals=sym->getNumTerminals();
+        assert(numTerminals>0);
+        NTSet & bin=NTsetsExtracted[numTerminals];
+        NTSet::iterator lb;
+        lb=bin.lower_bound(sym);
+        if(lb!=bin.end() && (*lb)->checkDuplicate(sym))
+        {
+         //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            return true;
+        }
+        
+        NTSet & bin1=NTsetsExtracted[numTerminals];
+        lb=bin1.lower_bound(sym);
+        if(lb!=bin1.end() && (*lb)->checkDuplicate(sym))
+        {
+         //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            if(sym->getCost()>=(*lb)->getCost())
+                return true;
+        }
+        return false;
+    }
+    
+    /**
+     * extracted before => was better or same cost
+     * 
+     */
+    bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym)
+    {
+        int numTerminals=sym->getNumTerminals();
+        assert(numTerminals>0);
+        NTSet & bin=NTsetsExtracted[numTerminals];
+        NTSet::iterator lb;
+        lb=bin.lower_bound(sym);
+        if(lb!=bin.end() && (*lb)->checkDuplicate(sym))
+        {
+         //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            return true;
+        }
+        
+        return false;
+    }
+
     /** 
      * also check for duplicate and don't add if a duplicate with smaller cost
      * exists 
      */
-    void push(NonTerminal * sym)
+    bool pushIfNoBetterDuplicateExists(NonTerminal * sym)
     {
-        costSortedQueue.push(sym);
-    }
+        if(CheckIfBetterDuplicateExists(sym))
+            return false;
         
+        costSortedQueue.push(sym);
+        NTsetsInPQ[sym->getNumTerminals()].insert(sym);
+        return true;
+    }
+
     /**
      * no need to check for duplicate
      * @param sym
@@ -541,6 +584,13 @@ public:
     {
         Symbol * top=costSortedQueue.top();
         costSortedQueue.pop();
+        if(typeid(*top)!=typeid(Terminal))
+        {
+                NonTerminal * nt=dynamic_cast<NonTerminal *>(top);
+                NTsetsExtracted[top->getNumTerminals()].insert(nt); // set => no duplicates
+                NTsetsInPQ[top->getNumTerminals()].erase(nt);
+        }
+        
         return top;
     }
     
@@ -596,10 +646,8 @@ public:
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
     {
         newNT->computeSetMembership();
-        if(!newNT->checkDuplicate(planeSet))
-            pqueue.push(newNT);
-        else
-            delete newNT;
+            if(!pqueue.pushIfNoBetterDuplicateExists(newNT))
+                    delete newNT;
     }
 };
 
@@ -769,12 +817,13 @@ public:
 class RS_PlanePlane : public Rule
 {
 public:
-    void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
+/*    void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
     {
         newNT->computeSetMembership();
    //     if(!newNT->checkDuplicate(planeSet)) // no need to check for duplicates
-            pqueue.push(newNT);
+            pqueue.pushIfNoBetterDuplicateExists(newNT);
     }
+  */
     
     int get_Nof_RHS_symbols()
     {
@@ -908,8 +957,9 @@ void runParse()
             return;
             
         }
-        if(min->finalize_if_not_duplicate(allExtractedNTs,terminals))
+        if(typeid(*min)==typeid(Terminal) || !pq.CheckIfBetterDuplicateWasExtracted(dynamic_cast<NonTerminal *>(min)))
         {
+            min->declareOptimal(allExtractedNTs,terminals);
         min->printData();
             
             for(size_t i=0;i<rules.size();i++)
