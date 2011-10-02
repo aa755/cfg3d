@@ -448,8 +448,8 @@ public:
     
     bool checkDuplicate(vector<NTSet> & allNTs)
     {
-        //priority 3
-        assert(1==2); //need to also check if the type is same
+       // dont change it now
+        assert(4==2); //need to also check if the type is same
         assert(numTerminals>0);
         NTSet & bin=allNTs[numTerminals];
         NTSet::iterator lb;
@@ -494,9 +494,20 @@ public:
 
 int NonTerminal::id_counter=0;
 
+//class 
 /**
  * abstraction of a priority queue which can do additional book-keeping later
  * duplicate check needs to be done on all members, even those whioch have been extracted from PQ
+ * check for duplicate:
+ *      if duplicate in sth already extracted from PQ
+ *              don't do anything
+ *      else if found in PQ
+ *              if cost is more than that in PQ
+ *                      ignore
+ *              else
+ *                      add to PQ
+ *                      if possible, delete the copy which was present in PQ
+ *      
  */
 class SymbolPriorityQueue
 {
