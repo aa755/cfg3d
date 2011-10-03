@@ -22,7 +22,7 @@
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #include <boost/dynamic_bitset.hpp>
-
+#include <stack>
 #include "point_struct.h"
 #include "utils.h"
 
@@ -110,10 +110,21 @@ protected:
      */
     double cost; 
     boost::dynamic_bitset<> neighbors;
-    vector<Symbol*> optimalParents;
+    vector<NonTerminal*> optimalParents;
     
 //    vector<NonTerminal*> parents;
 public:
+    virtual void pushEligibleOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs)
+    {
+        assert(2==4);
+        for(size_t i=0;i<optimalParents.size();i++)
+            eligibleNTs.push(optimalParents.at(i));
+    }
+    
+    bool isNeighbor(int terminalIndex)
+    {
+        return neighbors.test(terminalIndex);
+    }
         boost::dynamic_bitset<> & getNeigborTerminalBitset()
         {
             return  neighbors;
@@ -276,6 +287,10 @@ protected:
     vector<Symbol*> children;
     pcl::PointXYZ centroid;
     int id;
+    /**
+     * version number
+     */
+    long lastIteration;
     static int id_counter;
     /** indices into the pointcloud
      */
@@ -303,9 +318,9 @@ protected:
    void computePointIndices(vector<Terminal*> & terminals)
     {
        pointIndices.clear();
-       pointIndices.reserve(getNumTerminals());
+      // pointIndices.reserve(getNumTerminals());
 
-       for(size_t i=0;i<scene.size();i++)
+       for(int i=0;i<Terminal::totalNumTerminals;i++)
        {
            if(spanned_terminals.test(i))
                pointIndices.insert(pointIndices.end(),terminals.at(i)->getPointIndices().begin(),terminals.at(i)->getPointIndices().end());
@@ -342,6 +357,7 @@ public:
         id=id_counter++;
         cout<<"new NT: "<<id<<endl;
         numTerminals=0;
+        lastIteration=0;
     }
 
     friend class NTSetComparison;
@@ -484,6 +500,37 @@ public:
 
 int NonTerminal::id_counter=0;
 
+/**
+ * when an NT is extracted, this class will help in finding possible candidates 
+ * for combination. it uses a stack now, because, it might be useful
+ * later to ignore all the parents of an (bad)NT
+ */
+class FindNTsToCombineWith
+{
+    stack<NonTerminal*> elibibleNTs;
+    long iterationNo;
+    FindNTsToCombineWith(Symbol * sym,vector<Terminal*> & allTerminals, long iterationNo_)
+    {
+        iterationNo=iterationNo_;
+       for(int i=0;i<Terminal::totalNumTerminals;i++)
+       {
+           if(sym->isNeighbor(i))
+           {
+//               allTerminals.at(i)->pushEligibleOptimalParents(elibibleNTs);
+           }
+       }
+        
+    }
+    
+    NonTerminal * nextEligibleNT()
+    {
+        NonTerminal *ret=elibibleNTs.top(); // only unvisited and eligible items were pushed to stack
+        elibibleNTs.pop();
+        
+        //push it's parents which are eligible
+        return ret;
+    }
+};
 /**
  * abstraction of a priority queue which can do additional book-keeping later
  * duplicate check needs to be done on all members, even those whioch have been extracted from PQ
@@ -955,7 +1002,6 @@ void runParse()
             cout<<"goal reached!!"<<endl;
             min->printData();
             return;
-            
         }
         if(typeid(*min)==typeid(Terminal) || !pq.CheckIfBetterDuplicateWasExtracted(dynamic_cast<NonTerminal *>(min)))
         {
