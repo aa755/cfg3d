@@ -114,12 +114,19 @@ protected:
     
 //    vector<NonTerminal*> parents;
 public:
-    virtual void pushEligibleOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs)
+    void pushEligibleOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs)
     {
-        assert(2==4);
+        assert(1==2); // push to the stack: the optimal parents which dont span anything already spanned by extractedSym
         for(size_t i=0;i<optimalParents.size();i++)
-            eligibleNTs.push(optimalParents.at(i));
+        {
+            if(extractedSym->isSpanExclusive(optimalParents.at(i)))
+            {
+                eligibleNTs.push(optimalParents.at(i));
+            }
+        }
     }
+    
+    virtual bool isSpanExclusive( NonTerminal * nt )=0;
     
     bool isNeighbor(int terminalIndex)
     {
@@ -195,6 +202,8 @@ public:
     {
         return neighbors;
     }
+    
+    bool isSpanExclusive( NonTerminal * nt );
     
     /**
      * will be only used  to compute cost of rules . CFG parsing functions should
@@ -327,13 +336,18 @@ protected:
        }
     }
    
-   
+    bool isSpanExclusive( NonTerminal * nt )
+    {        
+        return spanned_terminals.intersects(nt->spanned_terminals);
+    }
+
    /** 
      * compute leaves by concatenating 
      * leaves of children */
     bool costSet;
 public:
     friend class RS_PlanePlane;
+    friend class Terminal;
     vector<int> pointIndices; // can be replaced with any sufficient statistic
     
     vector<int> & getPointIndices()
@@ -497,6 +511,11 @@ public:
       }
       return false; // actually they are equal
   }
+  
+    bool Terminal::isSpanExclusive( NonTerminal * nt )
+    {
+        return !(nt->spanned_terminals.test(index));
+    }
 
 int NonTerminal::id_counter=0;
 
@@ -509,14 +528,16 @@ class FindNTsToCombineWith
 {
     stack<NonTerminal*> elibibleNTs;
     long iterationNo;
+    Symbol *extractedSym;
     FindNTsToCombineWith(Symbol * sym,vector<Terminal*> & allTerminals, long iterationNo_)
     {
+        extractedSym=sym;
         iterationNo=iterationNo_;
        for(int i=0;i<Terminal::totalNumTerminals;i++)
        {
            if(sym->isNeighbor(i))
            {
-//               allTerminals.at(i)->pushEligibleOptimalParents(elibibleNTs);
+               allTerminals.at(i)->pushEligibleOptimalParents(sym,elibibleNTs);
            }
        }
         
@@ -524,10 +545,16 @@ class FindNTsToCombineWith
     
     NonTerminal * nextEligibleNT()
     {
+        if(elibibleNTs.empty())
+            return NULL;
+        
         NonTerminal *ret=elibibleNTs.top(); // only unvisited and eligible items were pushed to stack
         elibibleNTs.pop();
         
         //push it's parents which are eligible
+        // to add a possibility of ignoring all it's ancestors, postpone
+        //next step to nest call by temporarily storing return value
+        ret->pushEligibleOptimalParents(extractedSym,elibibleNTs);
         return ret;
     }
 };
@@ -681,7 +708,6 @@ public:
     }
 
     /**
-     * 
      * @param sym : the extracted Symbol
      * @param neighbosTerminals : it's neighbors : needs to be deleted ... use sym->getNeigborBitset()
      * @param pqueue : the priority queue
