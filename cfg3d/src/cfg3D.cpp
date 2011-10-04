@@ -967,11 +967,27 @@ void subsample(pcl::PointCloud<PointT> & inp,pcl::PointCloud<PointT> & out)
 
 int main(int argc, char** argv) 
 {
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-//    pcl::PointCloud<PointT> temp;
+  //  pcl::io::loadPCDFile<PointT>(argv[1], scene);
+
+    //    pcl::PointCloud<PointT> temp;
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse();
+    
+    
+    
+    
+ //   cout<<"scene has "<<scene.size()<<" points"<<endl;
+ //  runParse();
+    
+    AdvancedDynamicBitset adv;
+    adv.resize(10, false);
+    adv.set(1,true);
+    adv.set(5,true);
+    adv.set(8,true);
+    
+    adv.iteratorReset();
+    int index;
+    while(adv.nextOnBit(index))
+        cout<<index<<endl;
     return 0;
 }

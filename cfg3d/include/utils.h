@@ -34,6 +34,7 @@ class AdvancedDynamicBitset :public boost::dynamic_bitset<>
 {
     
     int position;
+public:
     void iteratorReset()
     {
         position=-1;
