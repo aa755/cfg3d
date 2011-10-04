@@ -678,35 +678,6 @@ public:
 class Rule
 {    
 public:
-    /** eg for A->BCD return 3
-     */
-    virtual int get_Nof_RHS_symbols()=0;
-    
-    /**
-     * this function will be used to check applicability of a rule
-     * @param RHS_symbolIndex 0 based index of the RHS symbol
-     * @return typename of this symbol
-     */
-    virtual void  get_typenames(vector<string> & names)=0;
-    
-    /**
-     *  applies this rule on the given params(RHS of rule)
-     * computes the cos of resulting NT
-     */
-    virtual NonTerminal* applyRule(vector<Symbol*> & RHS)=0;
-    
-    bool checkApplicabilty(vector<Symbol*> & RHS)
-    {
-        vector<string> typenames;
-        get_typenames(typenames);
-        for(int i=0;i<get_Nof_RHS_symbols();i++)
-        {
-            if(typeid(*(RHS.at(i))).name()!=typenames.at(i))
-                return false;
-        }
-        return true;
-    }
-
     /**
      * @param sym : the extracted Symbol
      * @param neighbosTerminals : it's neighbors : needs to be deleted ... use sym->getNeigborBitset()
@@ -714,11 +685,11 @@ public:
      * @param planeSet : set of all Non Terminals
      * @param terminals : set of all terminals
      */
-    virtual void combineAndPush(Symbol * sym, set<int> & neighbosTerminals , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)=0;
+    virtual void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */)=0;
     
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
     {
-        newNT->computeSetMembership();
+        newNT->computeSetMembership(); // required for duplicate check
             if(!pqueue.pushIfNoBetterDuplicateExists(newNT))
                     delete newNT;
     }
@@ -808,13 +779,11 @@ public:
         names.push_back(typeid(Terminal ).name());
     }
     
-    NonTerminal* applyRule(vector<Symbol*> & RHS)
+    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg)
     {
         //lowest priority
         assert(1==2); // avg. distance of points in RHS_seg to RHS_plane
         Plane * LHS=new Plane();
-        Plane * RHS_plane=dynamic_cast<Plane *>(RHS.at(0));
-        Terminal * RHS_seg=dynamic_cast<Terminal *>(RHS.at(1));
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
        
@@ -822,7 +791,7 @@ public:
         return LHS;
     }
     
-     void combineAndPush(Symbol * sym, set<int> & combineCandidates , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)
+     void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */)
     {
         set<int>::iterator it;
             //all terminals have cost=0, all NT's have cost>0,
@@ -831,7 +800,7 @@ public:
             //so, if sym is of type Terminal, it cannot be combined with a plane
         if (typeid(*sym)==typeid(Plane ))
         {
-            for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
+/*           for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
             {
                     vector<Symbol*> temp;
                     temp.push_back(sym);
@@ -839,7 +808,7 @@ public:
                     addToPqueueIfNotDuplicate(applyRule(temp),planeSet,pqueue);
                     cout<<"applied rule p->pt\n";
             }
-            
+  */           
         }
     }    
 };
@@ -887,87 +856,11 @@ public:
     }
 };
 
-class RS_PlanePlane : public Rule
-{
-public:
-/*    void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue)
-    {
-        newNT->computeSetMembership();
-   //     if(!newNT->checkDuplicate(planeSet)) // no need to check for duplicates
-            pqueue.pushIfNoBetterDuplicateExists(newNT);
-    }
-  */
-    
-    int get_Nof_RHS_symbols()
-    {
-        return 2;
-    }
-    
-    void  get_typenames(vector<string> & names)
-    {
-        names.push_back(typeid(Plane).name());
-        names.push_back(typeid(Plane).name());
-    }
-    
-    NonTerminal* applyRule(vector<Symbol*> & RHS)
-    {
-        Goal_S * LHS=new Goal_S();
-        Plane * RHS_plane1=dynamic_cast<Plane *>(RHS.at(0));
-        Plane * RHS_plane2=dynamic_cast<Plane *>(RHS.at(1));
-        LHS->addChild(RHS_plane1);
-        LHS->addChild(RHS_plane2);
-        //int deficit=scene.size()-RHS_plane1->getNumPoints()-RHS_plane2->getNumPoints();
-        LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
-        cout<<"applied rule S->pp\n";        
-        cerr<<"applied rule S->pp: cost "<<LHS->cost<<"\n";        
-        cerr<<RHS_plane1->spanned_terminals<<"\n";        
-        cerr<<RHS_plane2->spanned_terminals<<"\n";        
-        return LHS;
-    }
-    
-     void combineAndPush(Symbol * sym, set<int> & combineCandidates , SymbolPriorityQueue & pqueue, vector<NTSet> & planeSet /* = 0 */, vector<Terminal*> & terminals /* = 0 */)
-    {
-        
-        if(typeid(*sym)==typeid(Plane))
-        {
-            size_t targetSize=scene.size()-sym->getNumTerminals();
-                NTSet & bin=planeSet[targetSize];
-                if(bin.size()==0)
-                    return;
-                
-            boost::dynamic_bitset<> neighbors(scene.size());
-            set<int>::iterator nit;
-            
-            for(nit=combineCandidates.begin();nit!=combineCandidates.end();nit++)
-            {
-                neighbors.set(*nit,true);
-            }
-            
-                NTSet::iterator it;
-                    Plane * RHS_plane1=dynamic_cast<Plane *>(sym);
-//                    Plane * RHS_plane2=dynamic_cast<Plane *>(*it);
-                assert(!RHS_plane1->spanned_terminals.intersects(neighbors));
-                for(it=bin.begin();it!=bin.end();it++)
-                {
-                    if(  (!RHS_plane1->intersects((*it)))   && (*it)->spanned_terminals.intersects(neighbors)  )
-                    {
-                        vector<Symbol*> temp;
-                        temp.push_back(*it); // must be pushed in order
-                        temp.push_back(sym);
-                        addToPqueueIfNotDuplicate(applyRule(temp),planeSet,pqueue);
-                    }
-                }
-                    
-        }
-    }    
-};
 
 typedef boost::shared_ptr<Rule>  RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules)
 {
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));    
-//    rules.push_back(RulePtr(new RPlane_SegSeg()));    
-    rules.push_back(RulePtr(new RS_PlanePlane()));    
 }
 
 void log(int iter, Symbol *  sym)

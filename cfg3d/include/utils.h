@@ -30,5 +30,26 @@ boost::shared_ptr<X> createConstStaticShared(const X * x)
     return px;
 }
 
+class AdvancedDynamicBitset :public boost::dynamic_bitset<>
+{
+    
+    int position;
+    void iteratorReset()
+    {
+        position=-1;
+    }
+    
+    bool nextOnBit(int & index)
+    {
+        if(position==-1)
+            position=find_first();
+        else
+            position=find_next(position);
+        
+        index=position;
+        return position!=(int)npos;
+    }
+};
+
 #endif	/* UTILS_H */
 
