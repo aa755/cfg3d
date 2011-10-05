@@ -192,13 +192,12 @@ protected:
     /** segment index
      */
     size_t index;
-    vector<Terminal*> neighbors;
     vector<int> pointIndices;
 public:
     
     static int totalNumTerminals;
     
-    vector<Terminal*> & getNeighbors()
+    boost::dynamic_bitset<> & getNeighbors()
     {
         return neighbors;
     }
@@ -414,10 +413,20 @@ public:
         numTerminals=spanned_terminals.count();
     }
 
+    /***
+     * Iterates through all neighbors of NonTerminal node's children,
+     * computing the union of all children neighbors minus the span of the
+     * NonTerminal node.
+     */
     void computeNeighborTerminalSet()
     {
-        //priority 1
-        assert(1==2);
+        boost::dynamic_bitset<> temp(spanned_terminals.size());
+        vector<Symbol*>::iterator it;
+        for (it = children.begin(); it != children.end(); ++it) {
+            temp |= (*it)->getNeigborTerminalBitset();
+        }
+        temp -= spanned_terminals;
+        neighbors = temp;
     }
     
     void unionMembership(boost::dynamic_bitset<> & set_membership)
@@ -967,11 +976,22 @@ void subsample(pcl::PointCloud<PointT> & inp,pcl::PointCloud<PointT> & out)
 
 int main(int argc, char** argv) 
 {
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    boost::dynamic_bitset<> x(5);
+    boost::dynamic_bitset<> y(5);
+    x[1]=1;
+    x[3]=1;
+    y[0]=1;
+    y[2]=1;
+    y[4]=1;
+    cout<<x<<endl;
+    cout<<y<<endl;
+    x|=y;
+    cout<<"new x: "<<x<<endl;
+//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
 //    pcl::PointCloud<PointT> temp;
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse();
-    return 0;
+//    cout<<"scene has "<<scene.size()<<" points"<<endl;
+//   runParse();
+//    return 0;
 }
