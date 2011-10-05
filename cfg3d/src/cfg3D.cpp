@@ -101,7 +101,7 @@ protected:
 public:
 
     void pushEligibleOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs) {
-        assert(1 == 2); // push to the stack: the optimal parents which dont span anything already spanned by extractedSym
+        assert(1 == 2); // check duplicate
         for (size_t i = 0; i < optimalParents.size(); i++) {
             if (extractedSym->isSpanExclusive(optimalParents.at(i))) {
                 eligibleNTs.push(optimalParents.at(i));
@@ -715,7 +715,8 @@ public:
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
 
-        // reimplement it   LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(RHS_point->getPoint()));
+        
+        LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(1)]));
         return LHS;
     }
 
