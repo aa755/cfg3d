@@ -145,7 +145,7 @@ public:
     //virtual void insertPoints(vector<int> & points)=0;
     
     virtual void unionMembership(boost::dynamic_bitset<> & set_membership)=0;
-    bool operator < (const Symbol &  rhs)
+    bool operator < (const Symbol& rhs)
     {
         return cost <rhs.cost;
     }
@@ -156,7 +156,7 @@ public:
 
     virtual vector<int> & getPointIndices()=0;
     
-     virtual size_t getNumTerminals()=0;
+    virtual size_t getNumTerminals()=0;
 
     virtual void getCentroid(pcl::PointXYZ & centroid)=0;
     
@@ -167,6 +167,13 @@ public:
     
     virtual int getId()=0;
 
+    /**
+     * Adds node to the list of optimal parents of a node for bookkeeping.
+     * @param node: node to add
+     */
+    void appendOptimalParents(NonTerminal* node) {
+        optimalParents.push_back(node);
+    }
 //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -451,6 +458,10 @@ public:
     {
         //priority 2
         assert(1==2);
+        vector<Symbol*>::iterator it;
+        for (it = children.begin(); it != children.end(); ++it) {
+
+        }
         // visit all children and make parent links
         assert(costSet); // cost must be set before adding it to pq
         computePointIndices(terminals);
