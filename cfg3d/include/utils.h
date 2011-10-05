@@ -7,6 +7,7 @@
 
 #ifndef UTILS_H
 #define	UTILS_H
+#include <boost/dynamic_bitset.hpp>
 
 struct null_deleter
 {

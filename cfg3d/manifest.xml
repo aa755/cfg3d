@@ -11,6 +11,9 @@
   <depend package="roscpp"/>
   <depend package="pcl"/>
   <depend package="pcl_ros"/>
+  <depend package="octomap"/>
+  <depend package="octomap_ros"/>
+  <depend package="pcl_visualization"/>
   <!--depend package="scene_processing"/-->
 
 </package>
