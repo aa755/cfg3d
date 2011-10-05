@@ -100,14 +100,7 @@ protected:
     //    vector<NonTerminal*> parents;
 public:
 
-    void pushEligibleOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs) {
-        assert(1 == 2); // check duplicate
-        for (size_t i = 0; i < optimalParents.size(); i++) {
-            if (extractedSym->isSpanExclusive(optimalParents.at(i))) {
-                eligibleNTs.push(optimalParents.at(i));
-            }
-        }
-    }
+    void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
     virtual bool isSpanExclusive(NonTerminal * nt) = 0;
 
@@ -379,7 +372,7 @@ public:
      * NonTerminal node.
      */
     void computeNeighborTerminalSet() {
-        boost::dynamic_bitset<> temp(spanned_terminals.size());
+        boost::dynamic_bitset<> temp(spanned_terminals.size(),false);
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); ++it) {
             temp |= (*it)->getNeigborTerminalBitset();
@@ -449,6 +442,16 @@ public:
         return true;
     }
 
+    void setLastIteration(long lastIteration)
+    {
+        this->lastIteration = lastIteration;
+    }
+
+    long getLastIteration() const
+    {
+        return lastIteration;
+    }
+
     /*    void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
         {
             thisAncestors=allAncestors[pointIndices[0]];
@@ -478,6 +481,19 @@ bool Terminal::isSpanExclusive(NonTerminal * nt) {
     return !(nt->spanned_terminals.test(index));
 }
 
+void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo)
+{
+    assert(1 == 2); // check duplicate
+    for (size_t i = 0; i < optimalParents.size(); i++)
+    {
+        if (optimalParents.at(i)->getLastIteration() < iterationNo && extractedSym->isSpanExclusive(optimalParents.at(i)))
+        {
+            optimalParents.at(i)->setLastIteration(iterationNo);
+            eligibleNTs.push(optimalParents.at(i));
+        }
+    }
+}
+
 int NonTerminal::id_counter = 0;
 
 /**
@@ -495,14 +511,14 @@ class FindNTsToCombineWith {
         iterationNo = iterationNo_;
         for (int i = 0; i < Terminal::totalNumTerminals; i++) {
             if (sym->isNeighbor(i)) {
-                allTerminals.at(i)->pushEligibleOptimalParents(sym, elibibleNTs);
+                allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, elibibleNTs,iterationNo);
             }
         }
 
     }
 
     NonTerminal * nextEligibleNT() {
-        if (elibibleNTs.empty())
+        if (elibibleNTs.empty())   
             return NULL;
 
         NonTerminal *ret = elibibleNTs.top(); // only unvisited and eligible items were pushed to stack
@@ -511,7 +527,7 @@ class FindNTsToCombineWith {
         //push it's parents which are eligible
         // to add a possibility of ignoring all it's ancestors, postpone
         //next step to nest call by temporarily storing return value
-        ret->pushEligibleOptimalParents(extractedSym, elibibleNTs);
+        ret->pushEligibleNonDuplicateOptimalParents(extractedSym, elibibleNTs,iterationNo);
         return ret;
     }
 };
