@@ -144,7 +144,7 @@ public:
         
     //virtual void insertPoints(vector<int> & points)=0;
     
-    virtual void unionMembersip(boost::dynamic_bitset<> & set_membership)=0;
+    virtual void unionMembership(boost::dynamic_bitset<> & set_membership)=0;
     bool operator < (const Symbol &  rhs)
     {
         return cost <rhs.cost;
@@ -224,7 +224,7 @@ public:
      * add this terminal to the set
      * @param set_membership
      */
-    void unionMembersip(boost::dynamic_bitset<> & set_membership)
+    void unionMembership(boost::dynamic_bitset<> & set_membership)
     {
         set_membership.set(index,true);
     }
@@ -409,7 +409,7 @@ public:
         spanned_terminals.resize(Terminal::totalNumTerminals,false);
         for(size_t i=0;i<children.size();i++)
         {
-            children[i]->unionMembersip(spanned_terminals);
+            children[i]->unionMembership(spanned_terminals);
         }
         numTerminals=spanned_terminals.count();
     }
@@ -420,7 +420,7 @@ public:
         assert(1==2);
     }
     
-    void unionMembersip(boost::dynamic_bitset<> & set_membership)
+    void unionMembership(boost::dynamic_bitset<> & set_membership)
     {
 //        assert(pointIndices.size()>0);
         set_membership|=this->spanned_terminals;
