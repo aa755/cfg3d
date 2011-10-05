@@ -456,13 +456,11 @@ public:
      */
     bool declareOptimal(vector<NTSet> & allNTs,vector<Terminal*> & terminals)
     {
-        //priority 2
-        assert(1==2);
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); ++it) {
-
+            (*it)->appendOptimalParents(this);
         }
-        // visit all children and make parent links
+
         assert(costSet); // cost must be set before adding it to pq
         computePointIndices(terminals);
    //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
