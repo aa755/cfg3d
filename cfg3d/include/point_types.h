@@ -77,6 +77,11 @@ namespace pcl {
             distance = 0.0;
 
         }
+        
+        void clone(const struct PointXYZRGBCamSL & rhs) {
+            *this=rhs;
+        }
+        
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     } EIGEN_ALIGN16;
 }
