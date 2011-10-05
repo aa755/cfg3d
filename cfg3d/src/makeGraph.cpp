@@ -22,7 +22,7 @@
 using namespace std;
 
 typedef pcl::PointXYZRGBCamSL PointOutT;
-typedef pcl::PointXYZRGB PointInT;
+typedef pcl::PointXYZRGBCamSL PointInT;
 
 void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices, pcl::PointCloud<PointInT> & cloud_seg)
 {
