@@ -94,7 +94,7 @@ protected:
      *  required for being a superior CFG
      */
     double cost;
-    boost::dynamic_bitset<> neighbors;
+    AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
 
     //    vector<NonTerminal*> parents;
@@ -116,6 +116,16 @@ public:
 
     }
 
+    void resetNeighborIterator()
+    {
+        assert(neighbors.size()>0);
+        neighbors.iteratorReset();
+    }
+    
+    bool nextNeighborIndex( int & index)
+    {
+        return neighbors.nextOnBit(index);
+    }
     //virtual void insertPoints(vector<int> & points)=0;
 
     virtual void unionMembership(boost::dynamic_bitset<> & set_membership) = 0;
@@ -288,15 +298,6 @@ protected:
         centroid.z /= pointIndices.size();
     }
 
-    void computePointIndices(vector<Terminal*> & terminals) {
-        pointIndices.clear();
-        // pointIndices.reserve(getNumTerminals());
-
-        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
-            if (spanned_terminals.test(i))
-                pointIndices.insert(pointIndices.end(), terminals.at(i)->getPointIndices().begin(), terminals.at(i)->getPointIndices().end());
-        }
-    }
 
     bool isSpanExclusive(NonTerminal * nt) {
         return spanned_terminals.intersects(nt->spanned_terminals);
@@ -310,6 +311,17 @@ public:
     friend class RS_PlanePlane;
     friend class Terminal;
     vector<int> pointIndices; // can be replaced with any sufficient statistic
+
+    void computePointIndices(vector<Terminal*> & terminals) {
+        if(pointIndices.size()>0)
+            return ;
+        // pointIndices.reserve(getNumTerminals());
+
+        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
+            if (spanned_terminals.test(i))
+                pointIndices.insert(pointIndices.end(), terminals.at(i)->getPointIndices().begin(), terminals.at(i)->getPointIndices().end());
+        }
+    }
 
     vector<int> & getPointIndices() {
         assert(pointIndices.size() > 0);
@@ -365,6 +377,8 @@ public:
         cout << "absc: " << cost << endl;
     }
 
+
+    
     void addChild(Symbol * child) {
         assert(!costSet);
         children.push_back(child);
@@ -384,13 +398,12 @@ public:
      * NonTerminal node.
      */
     void computeNeighborTerminalSet() {
-        boost::dynamic_bitset<> temp(spanned_terminals.size(),false);
+        neighbors.resize (Terminal::totalNumTerminals,false);
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); ++it) {
-            temp |= (*it)->getNeigborTerminalBitset();
+            neighbors |= (*it)->getNeigborTerminalBitset();
         }
-        temp -= spanned_terminals;
-        neighbors = temp;
+        neighbors -= spanned_terminals;
     }
 
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
@@ -447,6 +460,9 @@ public:
     }
 
     bool checkDuplicate(NonTerminal * sym) {
+        assert(spanned_terminals.size()>0);
+        assert(sym->spanned_terminals.size()>0);
+        
         if (typeid (*sym) != typeid (*this))
             return false;
         if (sym->spanned_terminals != spanned_terminals)
@@ -660,8 +676,8 @@ public:
      */
     virtual void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) = 0;
 
-    virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, vector<NTSet> & planeSet, SymbolPriorityQueue & pqueue) {
-        newNT->computeSetMembership(); // required for duplicate check
+    virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
+      //  newNT->computeSetMembership(); // required for duplicate check
         if (!pqueue.pushIfNoBetterDuplicateExists(newNT))
             delete newNT;
     }
@@ -691,8 +707,9 @@ public:
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
-        double norm = getNorm();
-        planeParams /= norm;
+        assert(fabs(getNorm()-1)<0.05);
+     //   double norm = getNorm();
+     //   planeParams /= norm;
         planeParamsComputed = true;
     }
 
@@ -700,7 +717,7 @@ public:
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
-    double costOfAddingPoint(PointT p) {
+    double costOfAddingPoint(PointT & p) {
         if (pointIndices.size() == 2) {
             /*return it's min distance to either points
              */
@@ -718,9 +735,32 @@ public:
             assert(4 == 2);
     }
 
+    void setCost()
+    {
+        setAdditionalCost(sumDistancesSqredToPlane(this));
+    }
+    
+    /**
+     * computes the sum of distances of all points spanned by symbol t from this plane
+     * using distance squared since, the plane parameters are obtained by using a least squares fit
+     * http://www.ros.org/doc/unstable/api/pcl/html/feature_8h.html
+     * @param t
+     * @return 
+     */
+    double sumDistancesSqredToPlane(Symbol * t) {
+            assert(planeParamsComputed);
+            double sum=0;
+        for (unsigned int i = 0; i < t->getPointIndices().size(); i++) {
+            PointT & p=scene.points[t->getPointIndices().at(i)];
+                sum+=pcl::pointToPlaneDistance<PointT > (p, planeParams);
+        }
+            return sum;
+            
+    }
+    
     void additionalFinalize() {
-        if (pointIndices.size() >= 3)
-            computePlaneParams();
+       // if (pointIndices.size() >= 3)
+         //   computePlaneParams();
     }
 };
 
@@ -736,39 +776,35 @@ public:
         names.push_back(typeid (Terminal).name());
     }
 
-    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg) {
+    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
         Plane * LHS = new Plane();
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSetMembership();
+        LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
-
-        for (unsigned int i = 0; i < RHS_seg->getPointIndices().size(); i++) {
-                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(i)]));
-        }
-        
-        for (unsigned int i = 0; i < RHS_plane->getPointIndices().size(); i++) {
-                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_plane->getPointIndices().at(i)]));
-        }
+        LHS->setCost();
         return LHS;
     }
 
-    void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */)
+    {
         set<int>::iterator it;
         //all terminals have cost=0, all NT's have cost>0,
         //so when a terminal is extracted, no non-terminal(plane)
         //has been extracted yet
         //so, if sym is of type Terminal, it cannot be combined with a plane
-        if (typeid (*sym) == typeid (Plane)) {
-            /*           for(it=combineCandidates.begin();it!=combineCandidates.end();it++)
-                        {
-                                vector<Symbol*> temp;
-                                temp.push_back(sym);
-                                temp.push_back(terminals.at(*it)); // must be pushed in order
-                                addToPqueueIfNotDuplicate(applyRule(temp),planeSet,pqueue);
-                                cout<<"applied rule p->pt\n";
-                        }
-             */
+        if (typeid (*extractedSym) == typeid (Plane))
+        {
+            extractedSym->resetNeighborIterator();
+            int index;
+            while (extractedSym->nextNeighborIndex(index))
+            {
+                Plane * plane=dynamic_cast<Plane*> (extractedSym);
+                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
+                addToPqueueIfNotDuplicate(newNT,pqueue);
+            }
+
         }
     }
 };
@@ -785,18 +821,19 @@ public:
         names.push_back(typeid (Terminal).name());
     }
 
-    NonTerminal* applyRule(Terminal *RHS_seg) {
+    NonTerminal* applyRule(Terminal *RHS_seg,vector<Terminal*> & terminals) {
         Plane * LHS = new Plane();
         LHS->addChild(RHS_seg);
         LHS->computeSetMembership();
+        LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
-        for (unsigned int i = 0; i < RHS_seg->getPointIndices().size(); i++) {
-                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(i)]));
-        }
+
+        LHS->setCost();
+                
         return LHS;
     }
 
-    void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
     }
 };
 
