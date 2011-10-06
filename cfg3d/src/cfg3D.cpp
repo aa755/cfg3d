@@ -709,14 +709,19 @@ public:
     }
 
     NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg) {
-        //lowest priority
-        assert(1 == 2); // avg. distance of points in RHS_seg to RHS_plane
         Plane * LHS = new Plane();
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
+        LHS->computeSetMembership();
+        LHS->computePlaneParams();
 
+        for (unsigned int i = 0; i < RHS_seg->getPointIndices().size(); i++) {
+                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(i)]));
+        }
         
-        LHS->setAdditionalCost(RHS_plane->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(1)]));
+        for (unsigned int i = 0; i < RHS_plane->getPointIndices().size(); i++) {
+                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_plane->getPointIndices().at(i)]));
+        }
         return LHS;
     }
 
@@ -739,6 +744,34 @@ public:
         }
     }
 };
+
+class RPlane_Seg : public Rule {
+public:
+
+    int get_Nof_RHS_symbols() {
+        return 1;
+    }
+
+    void get_typenames(vector<string> & names) {
+        names.push_back(typeid (Plane).name());
+        names.push_back(typeid (Terminal).name());
+    }
+
+    NonTerminal* applyRule(Terminal *RHS_seg) {
+        Plane * LHS = new Plane();
+        LHS->addChild(RHS_seg);
+        LHS->computeSetMembership();
+        LHS->computePlaneParams();
+        for (unsigned int i = 0; i < RHS_seg->getPointIndices().size(); i++) {
+                LHS->setAdditionalCost(LHS->costOfAddingPoint(scene.points[RHS_seg->getPointIndices().at(i)]));
+        }
+        return LHS;
+    }
+
+    void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
+    }
+};
+
 
 class Goal_S : public NonTerminal {
 protected:
