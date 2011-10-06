@@ -99,6 +99,11 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
     ColorRGB green(0,1,0);
     ColorRGB red(1,0,0);
         set<int> & nbrs=neighbors[segment];
+        cout<<"segment:"<<segment<<", neighbors:";
+        set<int>::iterator it;
+        for(it=nbrs.begin();it!=nbrs.end();it++)
+            cout<<*it<<",";
+        cout<<endl;
     
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
