@@ -637,6 +637,7 @@ cloud_seg.points.resize(cloud.size());
     for (size_t i = 0; i < cloud.size(); i++)
     {
         cloud_seg.points[i].clone(cloud.points[i]);
+        cloud_seg.points[i].segment=0;
 
     }
 
