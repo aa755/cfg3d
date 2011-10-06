@@ -353,6 +353,18 @@ public:
         cout << "ac: " << additionalCost << " tc: " << cost << endl;
     }
 
+    /**
+     * caution: use this only when you can prove that this cost
+     * larger than the cost of any children
+     * @param absoluteCost
+     */
+    void setAbsoluteCost(double absoluteCost) {
+        assert(absoluteCost >= 0);
+        cost = absoluteCost;
+        costSet = true;
+        cout << "absc: " << cost << endl;
+    }
+
     void addChild(Symbol * child) {
         assert(!costSet);
         children.push_back(child);
