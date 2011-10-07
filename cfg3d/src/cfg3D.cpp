@@ -998,12 +998,14 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     for(unsigned int i=0;i<scene.size();i++)
     {
         int segIndex=scene.points[i].segment;
+  //      cout<<"seg "<<segIndex<<endl;
         if(segIndex>0)
             terminals.at(segIndex-1)->addPointIndex(i);
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
+       // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
         assert(terminals[i]->getPointIndices().size()>0); // if this happens, delete this NT
     }
     
