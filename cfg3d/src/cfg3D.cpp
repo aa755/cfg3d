@@ -834,6 +834,12 @@ public:
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
+        if (typeid (*extractedSym) == typeid (Terminal))
+        {
+                Terminal * term=dynamic_cast<Terminal*> (extractedSym);
+                NonTerminal *newNT=applyRule(term,terminals);
+                addToPqueueIfNotDuplicate(newNT,pqueue);
+        }
     }
 };
 
