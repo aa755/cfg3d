@@ -268,7 +268,7 @@ class NonTerminal : public Symbol {
 protected:
     size_t numTerminals;
     //    vector<bool> setOfPoints;
-    boost::dynamic_bitset<> spanned_terminals;
+    AdvancedDynamicBitset spanned_terminals;
     vector<Symbol*> children;
     pcl::PointXYZ centroid;
     int id;
@@ -323,6 +323,21 @@ public:
         }
     }
 
+    /**
+     * is span(this) U span(nt) =all terminals 
+     * @param nt
+     * @return 
+     */
+    bool isMutuallyExhaustive(NonTerminal *nt)
+    {
+        
+        boost::dynamic_bitset<> span_union=spanned_terminals | nt->spanned_terminals;
+        //exhaustive <=> all 1s
+        span_union.flip();
+        //exhaustive <=> all 0's <=> none is 1
+        return(span_union.none());
+    }
+    
     vector<int> & getPointIndices() {
         assert(pointIndices.size() > 0);
         return pointIndices;
@@ -534,6 +549,7 @@ class FindNTsToCombineWith {
     long iterationNo;
     Symbol *extractedSym;
 
+public:
     FindNTsToCombineWith(Symbol * sym, vector<Terminal*> & allTerminals, long iterationNo_) {
         extractedSym = sym;
         iterationNo = iterationNo_;
@@ -674,7 +690,7 @@ public:
      * @param planeSet : set of all Non Terminals
      * @param terminals : set of all terminals
      */
-    virtual void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) = 0;
+    virtual void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
 
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
@@ -787,7 +803,7 @@ public:
         return LHS;
     }
 
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */)
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         set<int>::iterator it;
         //all terminals have cost=0, all NT's have cost>0,
@@ -833,7 +849,7 @@ public:
         return LHS;
     }
 
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */) {
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) {
         if (typeid (*extractedSym) == typeid (Terminal))
         {
                 Terminal * term=dynamic_cast<Terminal*> (extractedSym);
@@ -881,6 +897,47 @@ public:
     }
 };
 
+class RS_PlanePlane : public Rule
+{
+public:
+    
+    
+    NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
+    {
+        Goal_S * LHS=new Goal_S();
+        LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
+        cout<<"applied rule S->pp\n";        
+        cerr<<"applied rule S->pp: cost "<<LHS->cost<<"\n";        
+//        cerr<<RHS_plane1->set_membership<<"\n";        
+//        cerr<<RHS_plane2->set_membership<<"\n";        
+        return LHS;
+    }
+    
+     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+    {
+        
+        if(typeid(*extractedSym)==typeid(Plane))
+        {
+                    Plane * RHS_plane1=dynamic_cast<Plane *>(extractedSym);
+                FindNTsToCombineWith finder(extractedSym,terminals,iterationNo);
+                NonTerminal * nt=finder.nextEligibleNT();
+                
+                int count=0;
+                while(nt!=NULL)
+                {
+                    count++;
+                    if(typeid(*nt)==typeid(Plane) && nt->isMutuallyExhaustive(RHS_plane1))
+                    {
+                        Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
+                        addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
+                    }
+                    nt=finder.nextEligibleNT();
+                }
+                    
+                cout<<"nnc: "<<count<<endl;
+        }
+    }    
+};
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
