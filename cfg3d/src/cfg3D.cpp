@@ -112,9 +112,7 @@ public:
         return neighbors;
     }
 
-    virtual void printData() {
-
-    }
+    virtual void printData() =0;
 
     void resetNeighborIterator()
     {
@@ -241,7 +239,7 @@ public:
         assert(3 == 2); // need to be implemented
     }
 
-    virtual void printData() {
+    void printData() {
         cout << "t\t:" << index << endl;
     }
 
@@ -359,14 +357,14 @@ public:
     NonTerminal() {
         costSet = false;
         id = id_counter++;
-        cout << "new NT: " << id << endl;
+        cout << "nNT: " << id << endl;
         numTerminals = 0;
         lastIteration = 0;
     }
 
     friend class NTSetComparison;
 
-    virtual void printData() {
+    void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
     }
 
@@ -634,13 +632,14 @@ public:
      *
      */
     bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym) {
+        cout<<"type inside duplicate check: "<<typeid(*sym).name()<<endl;
         int numTerminals = sym->getNumTerminals();
         assert(numTerminals > 0);
         NTSet & bin = NTsetsExtracted[numTerminals];
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
         if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
-            //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            cout<<"duplicate:"<<typeid(*(*lb)).name()<<endl;
             return true;
         }
 
@@ -668,7 +667,7 @@ public:
         costSortedQueue.push(sym);
     }
 
-    Symbol * pop() {
+    Symbol * pop(bool & duplicate) {
         if(costSortedQueue.empty())
             return NULL;
         Symbol * top = costSortedQueue.top();
@@ -676,7 +675,8 @@ public:
         
         if (typeid (*top) != typeid (Terminal)) {
             NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
-            NTsetsExtracted[top->getNumTerminals()].insert(nt); // set => no duplicates
+            std::pair<NTSet::iterator, bool> res=NTsetsExtracted[top->getNumTerminals()].insert(nt); // set => no duplicates
+            duplicate=!res.second;
             NTsetsInPQ[top->getNumTerminals()].erase(nt);
         }
 
@@ -950,9 +950,9 @@ public:
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
-//    rules.push_back(RulePtr(new RPlane_Seg()));
+    rules.push_back(RulePtr(new RPlane_Seg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-//    rules.push_back(RulePtr(new RS_PlanePlane()));
+    rules.push_back(RulePtr(new RS_PlanePlane()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -990,9 +990,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
 
     Terminal * temp;
     for (int i = 1; i <= maxSegIndex; i++) {
-        temp = new Terminal(i); 
+        temp = new Terminal(i-1); // index is segment Number -1 
         terminals.push_back(temp);
-        pq.pushTerminal(temp);//terminals[i] represents the segment of index i+1
+        pq.pushTerminal(temp);
     }
 
     for(unsigned int i=0;i<scene.size();i++)
@@ -1004,15 +1004,16 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
-        assert(terminals.size()>0); // if this happens, delete this NT
+        assert(terminals[i]->getPointIndices().size()>0); // if this happens, delete this NT
     }
     
     Terminal::totalNumTerminals = terminals.size();
 
     Symbol *min;
     long count = 0;
+    bool alreadyExtracted=false;
     while (true) {
-        min = pq.pop();
+        min = pq.pop(alreadyExtracted);
 
         if(min==NULL)
         {
@@ -1020,14 +1021,14 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             exit(-1);
         }
         
-        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() << endl;
+        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<typeid(*min).name()<< endl;
 
         if (typeid (*min) == typeid (Goal_S)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
         }
-        if (typeid (*min) == typeid (Terminal) || !pq.CheckIfBetterDuplicateWasExtracted(dynamic_cast<NonTerminal *> (min))) {
+        if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal(terminals);
             min->printData();
 
