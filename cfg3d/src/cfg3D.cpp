@@ -966,7 +966,7 @@ void log(int iter, Symbol * sym) {
 
 }
 
-void runParse() {
+void runParse(map<int, set<int> > & neighbors) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
     int numPoints = scene.size();
@@ -1035,19 +1035,61 @@ void subsample(pcl::PointCloud<PointT> & inp, pcl::PointCloud<PointT> & out) {
     }
 }
 
+
+void parseNbrMap(char * file,map<int, set<int> > & neighbors)
+{
+        std::ifstream labelFile;
+    std::string line;
+    labelFile.open(file);
+
+    vector<int> nbrs;
+    
+    
+    if (labelFile.is_open()) {
+        while (labelFile.good()) {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0)
+                break;
+            
+            getTokens(line, nbrs);
+            int segIndex=nbrs.at(0);
+            set<int> temp;
+            neighbors[segIndex]=temp;
+            
+            for(size_t i=1;i<nbrs.size();i++)
+            {
+                neighbors[segIndex].insert(nbrs.at(i));
+                cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
+            }
+        }
+    } else {
+        cout << "could not open label file...exiting\n";
+        exit(-1);
+    }
+
+
+}
+
 int main(int argc, char** argv) 
 {
+    
+    if(argc!=3)
+    {
+        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+    }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
+        map<int, set<int> > neighbors;
 
     //    pcl::PointCloud<PointT> temp;
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
+        parseNbrMap(argv[2],neighbors);
     
     
-    
+        
     
     cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse();
+   runParse(neighbors);
     
     return 0;
 }

@@ -8,6 +8,9 @@
 #ifndef UTILS_H
 #define	UTILS_H
 #include <boost/dynamic_bitset.hpp>
+#include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
+#include <vector>
 
 struct null_deleter
 {
@@ -52,6 +55,20 @@ public:
         return position!=(int)npos;
     }
 };
+
+void getTokens(std::string str,std::vector<int> & out)
+{
+        boost::char_separator<char> sep(",");
+        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
+        
+        out.clear();
+
+        BOOST_FOREACH(std::string t, tokens) 
+        {
+		out.push_back(boost::lexical_cast<int>(t));
+        }
+        
+}
 
 #endif	/* UTILS_H */
 
