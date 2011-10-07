@@ -9,7 +9,7 @@
 #include <fstream>
 #include <vector>
 #include<typeinfo>
-#include<pcl/point_types.h>
+#include"point_types.h"
 #include "point_struct.h"
 #include<pcl/features/normal_3d.h>
 #include<pcl/sample_consensus/sac_model_plane.h>
@@ -28,7 +28,7 @@
 //sac_model_plane.h
 
 using namespace std;
-typedef pcl::PointXYZRGB PointT;
+typedef pcl::PointXYZRGBCamSL PointT;
 /*
  *
  */
@@ -201,6 +201,11 @@ public:
         return pointIndices;
     }
 
+    void addPointIndex(int index)
+    {
+        pointIndices.push_back(index);
+    }
+    
     int getId() {
         return 0;
     }
@@ -966,7 +971,7 @@ void log(int iter, Symbol * sym) {
 
 }
 
-void runParse(map<int, set<int> > & neighbors) {
+void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
     int numPoints = scene.size();
@@ -979,11 +984,24 @@ void runParse(map<int, set<int> > & neighbors) {
     vector<Terminal *> terminals;
 
     Terminal * temp;
-    for (int i = 0; i < numPoints; i++) {
-        temp = new Terminal(i);
+    for (int i = 1; i <= maxSegIndex; i++) {
+        temp = new Terminal(i); 
         terminals.push_back(temp);
-        pq.pushTerminal(temp);
+        pq.pushTerminal(temp);//terminals[i] represents the segment of index i+1
     }
+
+    for(unsigned int i=0;i<scene.size();i++)
+    {
+        int segIndex=scene.points[i].segment;
+        if(segIndex>0)
+            terminals.at(segIndex-1)->addPointIndex(i);
+    }
+    
+    for(unsigned int i=0;i<terminals.size();i++)
+    {
+        assert(terminals.size()>0); // if this happens, delete this NT
+    }
+    
     Terminal::totalNumTerminals = terminals.size();
 
     Symbol *min;
@@ -1035,8 +1053,13 @@ void subsample(pcl::PointCloud<PointT> & inp, pcl::PointCloud<PointT> & out) {
     }
 }
 
-
-void parseNbrMap(char * file,map<int, set<int> > & neighbors)
+/**
+ * 
+ * @param file
+ * @param neighbors
+ * @return : max segment index
+ */
+int parseNbrMap(char * file,map<int, set<int> > & neighbors)
 {
         std::ifstream labelFile;
     std::string line;
@@ -1044,7 +1067,7 @@ void parseNbrMap(char * file,map<int, set<int> > & neighbors)
 
     vector<int> nbrs;
     
-    
+    int max=0;
     if (labelFile.is_open()) {
         while (labelFile.good()) {
             getline(labelFile, line); //each line is a label
@@ -1055,7 +1078,8 @@ void parseNbrMap(char * file,map<int, set<int> > & neighbors)
             int segIndex=nbrs.at(0);
             set<int> temp;
             neighbors[segIndex]=temp;
-            
+            if(max<segIndex)
+                max=segIndex;
             for(size_t i=1;i<nbrs.size();i++)
             {
                 neighbors[segIndex].insert(nbrs.at(i));
@@ -1067,6 +1091,7 @@ void parseNbrMap(char * file,map<int, set<int> > & neighbors)
         exit(-1);
     }
 
+    return max;
 
 }
 
@@ -1083,13 +1108,13 @@ int main(int argc, char** argv)
     //    pcl::PointCloud<PointT> temp;
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
-        parseNbrMap(argv[2],neighbors);
+       int maxSegIndex= parseNbrMap(argv[2],neighbors);
     
     
         
     
     cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse(neighbors);
+   runParse(neighbors,maxSegIndex);
     
     return 0;
 }
