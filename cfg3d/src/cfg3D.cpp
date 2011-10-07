@@ -669,8 +669,11 @@ public:
     }
 
     Symbol * pop() {
+        if(costSortedQueue.empty())
+            return NULL;
         Symbol * top = costSortedQueue.top();
         costSortedQueue.pop();
+        
         if (typeid (*top) != typeid (Terminal)) {
             NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
             NTsetsExtracted[top->getNumTerminals()].insert(nt); // set => no duplicates
@@ -947,7 +950,9 @@ public:
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
+//    rules.push_back(RulePtr(new RPlane_Seg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+//    rules.push_back(RulePtr(new RS_PlanePlane()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1009,6 +1014,12 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     while (true) {
         min = pq.pop();
 
+        if(min==NULL)
+        {
+            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules\n";
+            exit(-1);
+        }
+        
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() << endl;
 
         if (typeid (*min) == typeid (Goal_S)) {
@@ -1022,7 +1033,6 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
 
             for (size_t i = 0; i < rules.size(); i++) {
 
-                assert(1 == 2); // combineAndPush needs to be reimplemented
                 rules[i]->combineAndPush(min, pq, terminals,count); // combine with the eligible NT's to form new NTs and add them to the priority queue
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
