@@ -144,7 +144,7 @@ public:
 
     virtual void getCentroid(pcl::PointXYZ & centroid) = 0;
 
-    virtual bool declareOptimal(vector<NTSet> & planeSet, vector<Terminal*> & terminals) = 0;
+    virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -240,7 +240,7 @@ public:
         cout << "t\t:" << index << endl;
     }
 
-    virtual bool declareOptimal(vector<NTSet> & planeSet, vector<Terminal*> & terminals) {
+    bool declareOptimal(vector<Terminal*> & terminals) {
         return true;
     }
 
@@ -439,8 +439,9 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal(vector<NTSet> & allNTs, vector<Terminal*> & terminals) {
+    bool declareOptimal( vector<Terminal*> & terminals) {
         vector<Symbol*>::iterator it;
+
         for (it = children.begin(); it != children.end(); ++it) {
             (*it)->appendOptimalParents(this);
         }
@@ -455,7 +456,6 @@ public:
                     assert(resIns.second);
                 }   */
 
-        allNTs[numTerminals].insert(this); // indexed by size
         // S wont ever be finalized , ... so it will only contain planes
 
         // computeCentroid();
@@ -987,11 +987,11 @@ void runParse() {
     Terminal::totalNumTerminals = terminals.size();
 
     Symbol *min;
-    int count = 0;
+    long count = 0;
     while (true) {
         min = pq.pop();
 
-        cout << "\n\n\niter: " << count++ << " cost was:" << min->getCost() << " id was " << min->getId() << endl;
+        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() << endl;
 
         if (typeid (*min) == typeid (Goal_S)) {
             cout << "goal reached!!" << endl;
@@ -999,20 +999,20 @@ void runParse() {
             return;
         }
         if (typeid (*min) == typeid (Terminal) || !pq.CheckIfBetterDuplicateWasExtracted(dynamic_cast<NonTerminal *> (min))) {
-            min->declareOptimal(allExtractedNTs, terminals);
+            min->declareOptimal(terminals);
             min->printData();
 
             for (size_t i = 0; i < rules.size(); i++) {
 
                 assert(1 == 2); // combineAndPush needs to be reimplemented
-                //rules[i]->combineAndPush(min, combineCandidates, pq, allExtractedNTs, terminals); // combine with the eligible NT's to form new NTs and add them to the priority queue
+                rules[i]->combineAndPush(min, pq, terminals,count); // combine with the eligible NT's to form new NTs and add them to the priority queue
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
 
         } else {
             delete min;
-            cout << "duplicate detected" << endl;
+            cout << "dup" << endl;
             // since there are no parent links, and it was not a child of anyone
             // deleting does not cause dangling pointers
 
