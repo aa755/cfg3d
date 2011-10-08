@@ -188,6 +188,22 @@ public:
         return neighbors;
     }
 
+    
+    /**
+     * initialize the neighbors vector
+     * @param nbrs : set of netgbor segment indices (terminal index=segIndex-1)
+     * @param numTerminals : total Number of terminals
+     */
+    void setNeighbors(set<int> & nbrs, int numTerminals)
+    {
+        neighbors.resize(numTerminals,false);
+        set<int>::iterator it;
+        for(it=nbrs.begin();it!=nbrs.end();it++)
+        {
+            neighbors.set((*it)-1, true);
+        }
+    }
+    
     bool isSpanExclusive(NonTerminal * nt);
 
     /**
@@ -303,7 +319,7 @@ protected:
 
 
     bool isSpanExclusive(NonTerminal * nt) {
-        return spanned_terminals.intersects(nt->spanned_terminals);
+        return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
 
     /**
@@ -449,6 +465,7 @@ public:
             (*it)->appendOptimalParents(this);
         }
 
+        computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
         computePointIndices(terminals);
         //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
@@ -529,7 +546,7 @@ bool Terminal::isSpanExclusive(NonTerminal * nt) {
 
 void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo)
 {
-    assert(1 == 2); // check duplicate
+//    assert(1 == 2); // check duplicate
     for (size_t i = 0; i < optimalParents.size(); i++)
     {
         if (optimalParents.at(i)->getLastIteration() < iterationNo && extractedSym->isSpanExclusive(optimalParents.at(i)))
@@ -913,7 +930,10 @@ public:
     NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
     {
         Goal_S * LHS=new Goal_S();
+        LHS->addChild(RHS_plane1);
+        LHS->addChild(RHS_plane2);
         LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
+        LHS->computeSetMembership();
         cout<<"applied rule S->pp\n";        
         cerr<<"applied rule S->pp: cost "<<LHS->cost<<"\n";        
 //        cerr<<RHS_plane1->set_membership<<"\n";        
@@ -991,6 +1011,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     Terminal * temp;
     for (int i = 1; i <= maxSegIndex; i++) {
         temp = new Terminal(i-1); // index is segment Number -1 
+        temp->setNeighbors( neighbors[i],maxSegIndex);
         terminals.push_back(temp);
         pq.pushTerminal(temp);
     }
@@ -1006,7 +1027,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     for(unsigned int i=0;i<terminals.size();i++)
     {
        // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
-        assert(terminals[i]->getPointIndices().size()>0); // if this happens, delete this NT
+        assert(terminals[i]->getPointIndices().size()>0); 
+        // if this happens, delete this NT. NEED TO CHANGE SIZE OF NEIGHBOR VECTOR
     }
     
     Terminal::totalNumTerminals = terminals.size();
