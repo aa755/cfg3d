@@ -776,7 +776,7 @@ public:
 
     void setCost()
     {
-        setAdditionalCost(sumDistancesSqredToPlane(this));
+        setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
     
     /**
@@ -791,7 +791,7 @@ public:
             double sum=0;
         for (unsigned int i = 0; i < t->getPointIndices().size(); i++) {
             PointT & p=scene.points[t->getPointIndices().at(i)];
-                sum+=pcl::pointToPlaneDistance<PointT > (p, planeParams);
+                sum+=sqr(pcl::pointToPlaneDistance<PointT > (p, planeParams));
         }
             return sum;
             
