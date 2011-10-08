@@ -891,7 +891,8 @@ public:
 
     }
 
-    void printData() {
+    // the printData below should be used only for the Goal NT type
+/*    void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut=scene;
         std::ofstream logFile;
@@ -911,6 +912,8 @@ public:
         logFile.close();
         pcl::io::savePCDFile("fridge_out.pcd", sceneOut, true);
     }
+ * 
+ */
 };
 
 class RPlanePair_PlanePlane : public Rule
@@ -946,7 +949,7 @@ public:
                 {
 //                    nt->printData(); //checked that duplicates not extracted, and exhaustive
                   //  count++;
-                    if(typeid(*nt)==typeid(Plane))
+                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
                     {
                         Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
                         addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
