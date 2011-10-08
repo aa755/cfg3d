@@ -803,6 +803,12 @@ public:
     }
 };
 
+
+class Floor :public NonTerminal
+{
+    
+};
+
 class RPlane_PlaneSeg : public Rule {
 public:
 
@@ -918,6 +924,8 @@ public:
 
 class RPlanePair_PlanePlane : public Rule
 {
+protected:
+    Eigen::Vector3d crossProduct;
 public:
     
     
@@ -935,6 +943,12 @@ public:
         return LHS;
     }
     
+    Eigen::Vector3d computeCrossProduct()
+    {
+        assert(1==2);
+    }
+    
+    
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
     {
         
@@ -950,7 +964,7 @@ public:
 //                    nt->printData(); //checked that duplicates not extracted, and exhaustive
                   //  count++;
 //                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
-                    if(typeid(*nt)==typeid(Plane))
+                    if(typeid(*nt)==typeid(Plane) )
                     {
                         Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
                         addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
@@ -960,7 +974,12 @@ public:
                     
               //  cout<<"nnc: "<<count<<endl;
         }
-    }    
+    }
+
+     Eigen::Vector3d getCrossProduct() const
+     {
+         return crossProduct;
+     }    
 };
 
 typedef boost::shared_ptr<Rule> RulePtr;
