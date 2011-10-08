@@ -949,7 +949,8 @@ public:
                 {
 //                    nt->printData(); //checked that duplicates not extracted, and exhaustive
                   //  count++;
-                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
+//                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
+                    if(typeid(*nt)==typeid(Plane))
                     {
                         Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
                         addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
