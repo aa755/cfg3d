@@ -895,14 +895,7 @@ public:
 
     void printData() {
         pcl::PointCloud<pcl::PointXYZRGBIndex> sceneOut;
-        sceneOut.points.resize(scene.size());
-        for (size_t i = 0; i < scene.size(); i++) {
-            sceneOut.points[i].x = scene.points[i].x;
-            sceneOut.points[i].y = scene.points[i].y;
-            sceneOut.points[i].z = scene.points[i].z;
-            sceneOut.points[i].rgb = scene.points[i].rgb;
-        }
-
+        sceneOut=scene;
         std::ofstream logFile;
         logFile.open("log.txt", ios::out);
         NonTerminal *plane1 = dynamic_cast<NonTerminal *> (children[0]);
@@ -953,6 +946,7 @@ public:
                 int count=0;
                 while(nt!=NULL)
                 {
+//                    nt->printData(); //checked that duplicates not extracted, and exhaustive
                     count++;
                     if(typeid(*nt)==typeid(Plane) && nt->isMutuallyExhaustive(RHS_plane1))
                     {
