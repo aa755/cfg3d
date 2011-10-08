@@ -894,7 +894,7 @@ public:
     }
 
     void printData() {
-        pcl::PointCloud<pcl::PointXYZRGBIndex> sceneOut;
+        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut=scene;
         std::ofstream logFile;
         logFile.open("log.txt", ios::out);
@@ -902,12 +902,12 @@ public:
         NonTerminal *plane2 = dynamic_cast<NonTerminal *> (children[1]);
         for (size_t i = 0; i < plane1->pointIndices.size(); i++) {
             logFile << "," << plane1->pointIndices[i];
-            sceneOut.points[plane1->pointIndices[i]].index = 1;
+            sceneOut.points[plane1->pointIndices[i]].label = 1;
         }
         logFile << endl;
         for (size_t i = 0; i < plane2->pointIndices.size(); i++) {
             logFile << "," << plane2->pointIndices[i];
-            sceneOut.points[plane2->pointIndices[i]].index = 2;
+            sceneOut.points[plane2->pointIndices[i]].label = 2;
         }
         logFile << endl;
         logFile.close();
