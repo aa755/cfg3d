@@ -327,7 +327,7 @@ protected:
      * leaves of children */
     bool costSet;
 public:
-    friend class RS_PlanePlane;
+    friend class RPlanePair_PlanePlane;
     friend class Terminal;
     vector<int> pointIndices; // can be replaced with any sufficient statistic
 
@@ -418,7 +418,7 @@ public:
         children.push_back(child);
     }
 
-    void computeSetMembership() {
+    void computeSpannedTerminals() {
         spanned_terminals.resize(Terminal::totalNumTerminals, false);
         for (size_t i = 0; i < children.size(); i++) {
             children[i]->unionMembership(spanned_terminals);
@@ -565,7 +565,7 @@ int NonTerminal::id_counter = 0;
  * later to ignore all the parents of an (bad)NT
  */
 class FindNTsToCombineWith {
-    stack<NonTerminal*> elibibleNTs;
+    stack<NonTerminal*> eligibleNTs;
     long iterationNo;
     Symbol *extractedSym;
 
@@ -575,23 +575,23 @@ public:
         iterationNo = iterationNo_;
         for (int i = 0; i < Terminal::totalNumTerminals; i++) {
             if (sym->isNeighbor(i)) {
-                allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, elibibleNTs,iterationNo);
+                allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, eligibleNTs,iterationNo);
             }
         }
 
     }
 
     NonTerminal * nextEligibleNT() {
-        if (elibibleNTs.empty())   
+        if (eligibleNTs.empty())   
             return NULL;
 
-        NonTerminal *ret = elibibleNTs.top(); // only unvisited and eligible items were pushed to stack
-        elibibleNTs.pop();
+        NonTerminal *ret = eligibleNTs.top(); // only unvisited and eligible items were pushed to stack
+        eligibleNTs.pop();
 
         //push it's parents which are eligible
         // to add a possibility of ignoring all it's ancestors, postpone
         //next step to nest call by temporarily storing return value
-        ret->pushEligibleNonDuplicateOptimalParents(extractedSym, elibibleNTs,iterationNo);
+        ret->pushEligibleNonDuplicateOptimalParents(extractedSym, eligibleNTs,iterationNo);
         return ret;
     }
 };
@@ -709,13 +709,11 @@ public:
 class Rule {
 public:
     /**
-     * @param sym : the extracted Symbol
-     * @param neighbosTerminals : it's neighbors : needs to be deleted ... use sym->getNeigborBitset()
+     * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
      * @param pqueue : the priority queue
-     * @param planeSet : set of all Non Terminals
      * @param terminals : set of all terminals
      */
-    virtual void combineAndPush(Symbol * sym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
+    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
 
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
@@ -821,7 +819,7 @@ public:
         Plane * LHS = new Plane();
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
-        LHS->computeSetMembership();
+        LHS->computeSpannedTerminals();
         LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
         LHS->setCost();
@@ -865,7 +863,7 @@ public:
     NonTerminal* applyRule(Terminal *RHS_seg,vector<Terminal*> & terminals) {
         Plane * LHS = new Plane();
         LHS->addChild(RHS_seg);
-        LHS->computeSetMembership();
+        LHS->computeSpannedTerminals();
         LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
 
@@ -885,11 +883,11 @@ public:
 };
 
 
-class Goal_S : public NonTerminal {
+class PlanePair : public NonTerminal {
 protected:
 public:
 
-    Goal_S() : NonTerminal() {
+    PlanePair() : NonTerminal() {
 
     }
 
@@ -915,18 +913,18 @@ public:
     }
 };
 
-class RS_PlanePlane : public Rule
+class RPlanePair_PlanePlane : public Rule
 {
 public:
     
     
     NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
     {
-        Goal_S * LHS=new Goal_S();
+        PlanePair * LHS=new PlanePair();
         LHS->addChild(RHS_plane1);
         LHS->addChild(RHS_plane2);
         LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
-        LHS->computeSetMembership();
+        LHS->computeSpannedTerminals();
         cout<<"applied rule S->pp\n";        
         cerr<<"applied rule S->pp: cost "<<LHS->cost<<"\n";        
 //        cerr<<RHS_plane1->set_membership<<"\n";        
@@ -943,12 +941,12 @@ public:
                 FindNTsToCombineWith finder(extractedSym,terminals,iterationNo);
                 NonTerminal * nt=finder.nextEligibleNT();
                 
-                int count=0;
+                //int count=0;
                 while(nt!=NULL)
                 {
 //                    nt->printData(); //checked that duplicates not extracted, and exhaustive
-                    count++;
-                    if(typeid(*nt)==typeid(Plane) && nt->isMutuallyExhaustive(RHS_plane1))
+                  //  count++;
+                    if(typeid(*nt)==typeid(Plane))
                     {
                         Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
                         addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
@@ -956,7 +954,7 @@ public:
                     nt=finder.nextEligibleNT();
                 }
                     
-                cout<<"nnc: "<<count<<endl;
+              //  cout<<"nnc: "<<count<<endl;
         }
     }    
 };
@@ -966,7 +964,7 @@ typedef boost::shared_ptr<Rule> RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlane_Seg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-    rules.push_back(RulePtr(new RS_PlanePlane()));
+    rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1041,7 +1039,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<typeid(*min).name()<< endl;
 
-        if (typeid (*min) == typeid (Goal_S)) {
+        if (typeid (*min) == typeid (PlanePair)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
