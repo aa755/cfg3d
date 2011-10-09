@@ -978,6 +978,67 @@ public:
      }    
 };
 
+
+class Corner : public NonTerminal
+{
+    
+};
+
+class Scene : public NonTerminal
+{
+    
+};
+
+class RScene_FloorCorner : public Rule
+{
+public:
+    
+    
+    NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
+    {
+        PlanePair * LHS=new PlanePair();
+        LHS->addChild(RHS_plane1);
+        LHS->addChild(RHS_plane2);
+        LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
+        LHS->computeSpannedTerminals();
+        cout<<"applied rule S->pp\n";        
+        cerr<<"applied rule S->pp: cost "<<LHS->getCost()<<"\n";        
+//        cerr<<RHS_plane1->set_membership<<"\n";        
+//        cerr<<RHS_plane2->set_membership<<"\n";        
+        return LHS;
+    }
+    
+    
+    
+     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+    {
+        
+        if(typeid(*extractedSym)==typeid(Plane))
+        {
+                    Plane * RHS_plane1=dynamic_cast<Plane *>(extractedSym);
+                FindNTsToCombineWith finder(extractedSym,terminals,iterationNo);
+                NonTerminal * nt=finder.nextEligibleNT();
+                
+                //int count=0;
+                while(nt!=NULL)
+                {
+//                    nt->printData(); //checked that duplicates not extracted, and exhaustive
+                  //  count++;
+//                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
+                    if(typeid(*nt)==typeid(Plane) )
+                    {
+                        Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
+                        addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
+                    }
+                    nt=finder.nextEligibleNT();
+                }
+                    
+              //  cout<<"nnc: "<<count<<endl;
+        }
+    }
+
+};
+
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
