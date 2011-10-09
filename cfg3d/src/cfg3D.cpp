@@ -543,8 +543,7 @@ bool Terminal::isSpanExclusive(NonTerminal * nt) {
     return !(nt->spanned_terminals.test(index));
 }
 
-void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo)
-{
+void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo) {
 //    assert(1 == 2); // check duplicate
     for (size_t i = 0; i < optimalParents.size(); i++)
     {
@@ -810,8 +809,7 @@ public:
     }
 };
 
-class Floor : public NonTerminal
-{
+class Floor : public NonTerminal {
 //    void setCost()
 //    {
 //        setAbsoluteCost();
@@ -953,8 +951,7 @@ public:
  */
 };
 
-class RPlanePair_PlanePlane : public Rule
-{
+class RPlanePair_PlanePlane : public Rule {
 public:
     NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
     {
@@ -993,8 +990,7 @@ public:
 
 };
 
-class Corner : public NonTerminal
-{
+class Corner : public NonTerminal {
     
 };
 
@@ -1026,6 +1022,9 @@ public:
      * @param iterationNo
      */
     void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, 
+        /**
+         * We can definitely try to reduce redundancy in code here.
+         */
         vector<Terminal*>& terminals, long iterationNo) {
         if(typeid(*extractedSym) == typeid(PlanePair)) {
             PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(extractedSym);
@@ -1055,13 +1054,11 @@ public:
     }
 };
 
-class Scene : public NonTerminal
-{
+class Scene : public NonTerminal {
     
 };
 
-class RScene_FloorCorner : public Rule 
-{
+class RScene_FloorCorner : public Rule {
     template<typename TypeExtracted, typename TypeCombinee>
     void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
 
@@ -1252,8 +1249,7 @@ void subsample(pcl::PointCloud<PointT> & inp, pcl::PointCloud<PointT> & out) {
  * @param neighbors
  * @return : max segment index
  */
-int parseNbrMap(char * file,map<int, set<int> > & neighbors)
-{
+int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
         std::ifstream labelFile;
     std::string line;
     labelFile.open(file);
@@ -1288,8 +1284,7 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors)
 
 }
 
-int main(int argc, char** argv) 
-{
+int main(int argc, char** argv) {
 
 //    if(argc!=3)
 //    {
