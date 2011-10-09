@@ -946,13 +946,13 @@ public:
     /***
      Computes the cross product between two planes.
      */
-    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
+    void computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
     {
         Eigen::Vector4f aNormal = RHS_plane1->getPlaneParams();
         Eigen::Vector4f bNormal = RHS_plane2->getPlaneParams();
         Vector3d v(aNormal[0],aNormal[1],aNormal[2]);
         Vector3d w(bNormal[0],bNormal[1],bNormal[2]);
-        return v.cross(w);
+        crossProduct=v.cross(w);
     }
     
     
