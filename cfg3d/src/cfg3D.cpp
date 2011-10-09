@@ -57,7 +57,7 @@ void setIntersection(std::set<T> & set_1, std::set<T> & set_2) {
 }
 
 template<typename T>
-void setDiffernce(std::set<T> & set_1, std::set<T> & set_2) {
+void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
     typename set<T>::iterator it1 = set_1.begin();
     typename set<T>::iterator it2 = set_2.begin();
     while ((it1 != set_1.end()) && (it2 != set_2.end())) {
@@ -73,7 +73,6 @@ void setDiffernce(std::set<T> & set_1, std::set<T> & set_2) {
     }
 
 }
-
 
 class NonTerminal;
 class Terminal;
@@ -166,7 +165,6 @@ public:
         return lhs->getCost() > rhs->getCost();
     }
 };
-
 
 //typedef priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> SymbolPriorityQueue;
 /**
@@ -803,7 +801,6 @@ public:
     }
 };
 
-
 class Floor :public NonTerminal
 {
     
@@ -887,7 +884,6 @@ public:
         }
     }
 };
-
 
 class PlanePair : public NonTerminal {
 protected:
