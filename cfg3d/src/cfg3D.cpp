@@ -809,6 +809,10 @@ public:
 
 class Floor : public Plane {
 public: 
+    /**
+     * The cost of considering a Plane as the Floor is simply the distance of the Plane
+     * to the canonical z = 0 Plane.
+     */
     void setCost() {
         vector<int> pointIndices = getPointIndices();
         int costSum = 0;
@@ -1072,6 +1076,23 @@ public:
         LHS->computePointIndices(terminals);
         LHS->setCost();
         return LHS;
+    }
+    
+        /**
+     * Simply checks if extractedSym is of type Plane and creates a Plane object 
+         * assigning to the Plane object the cost of considering the Plane as a Floor.
+     * @param extractedSym
+     * @param pqueue
+     * @param terminals
+     * @param iterationNo
+     */
+    void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, 
+        vector<Terminal*>& terminals, long iterationNo) {
+        if(typeid(*extractedSym) == typeid(Plane)) {
+            Plane* RHS_plane = dynamic_cast<Plane*>(extractedSym);
+            applyRule(RHS_plane);
+            addToPqueueIfNotDuplicate(applyRule(RHS_plane, terminals), pqueue);
+        } 
     }
 };
 
