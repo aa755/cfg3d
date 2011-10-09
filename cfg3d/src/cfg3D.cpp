@@ -27,6 +27,7 @@
 
 //sac_model_plane.h
 
+using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 /*
@@ -946,13 +947,17 @@ public:
         return LHS;
     }
     
-//    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
-//    {
-//        RHS_plane1->
-//    }    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
-//    {
-//        RHS_plane1->
-//    }
+    /***
+     Computes the cross product between two planes.
+     */
+    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
+    {
+        Eigen::Vector4f aNormal = RHS_plane1->getPlaneParams();
+        Eigen::Vector4f bNormal = RHS_plane2->getPlaneParams();
+        Vector3d v(aNormal[0],aNormal[1],aNormal[2]);
+        Vector3d w(bNormal[0],bNormal[1],bNormal[2]);
+        return v.cross(w);
+    }
     
     
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
@@ -1225,12 +1230,9 @@ int main(int argc, char** argv)
 //    subsample(scene,temp);
 //    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
-    
-    
-        
-    
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
     
     return 0;
+    
 }
