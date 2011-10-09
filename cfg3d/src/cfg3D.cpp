@@ -953,8 +953,6 @@ public:
 class RPlanePair_PlanePlane : public Rule
 {
 public:
-    
-    
     NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
     {
         PlanePair * LHS=new PlanePair();
@@ -965,11 +963,8 @@ public:
         return LHS;
     }
     
-    
-    
-     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
     {
-        
         if(typeid(*extractedSym)==typeid(Plane))
         {
                     Plane * RHS_plane1=dynamic_cast<Plane *>(extractedSym);
@@ -989,7 +984,6 @@ public:
                     }
                     nt=finder.nextEligibleNT();
                 }
-                    
               //  cout<<"nnc: "<<count<<endl;
         }
     }
@@ -1001,6 +995,10 @@ class Corner : public NonTerminal
     
 };
 
+class RCorner_PlanePairPlane : public Rule {
+
+};
+
 class Scene : public NonTerminal
 {
     
@@ -1008,7 +1006,6 @@ class Scene : public NonTerminal
 
 class RScene_FloorCorner : public Rule 
 {
-
     template<typename TypeExtracted, typename TypeCombinee>
     void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
 
