@@ -409,8 +409,6 @@ public:
         cout << "absc: " << cost << endl;
     }
 
-
-    
     void addChild(Symbol * child) {
         assert(!costSet);
         children.push_back(child);
@@ -486,11 +484,17 @@ public:
     }
 
     /**
-     * subclasses can override this method to do compute and store additional statistic
+     * For a NonTerminal node X, we only need to call additionalFinalize() if the cost 
+     * of X is not dependent on this statistic in a Rule X->YZ but is required in a Rule
+     * A->XB where the cost of A is dependent on this statistic of X. 
+     * 
+     * In creating X->YZ, X is not necessarily optimal and statistic is not needed in creating X, 
+     * but in A->XB, X is optimal and is needed in creating A, so we calculate the statistic when 
+     * we declare X optimal.
+     * 
+     * Only when X is declared optimal and used to combine with other NTs is it necessary to use this statistic.
      */
-    virtual void additionalFinalize() {
-
-    }
+    virtual void additionalFinalize() {}
 
     bool checkDuplicate(NonTerminal * sym) {
         assert(spanned_terminals.size()>0);
@@ -725,7 +729,6 @@ double sqr(double d) {
 
 class Plane : public NonTerminal {
 protected:
-    //    friend class RPlane_PlanePoint;
     float curvature;
     bool planeParamsComputed;
     Eigen::Vector4f planeParams;
@@ -811,7 +814,7 @@ class Floor : public Plane {
 public: 
     /**
      * The cost of considering a Plane as the Floor is simply the distance of the Plane
-     * to the canonical z = 0 Plane.
+     * to the canonical z = 0 Plane. How are we calculating Segment to Plane "distances"?
      */
     void setCost() {
         vector<int> pointIndices = getPointIndices();
@@ -906,11 +909,10 @@ class PlanePair : public NonTerminal {
 protected:
     Eigen::Vector3d crossProduct;
 public:
-    /***
-     Computes the cross product between two planes.
+    /**
+     * Computes the cross product between two planes.
      */
-    void computeCrossProduct()
-    {
+    void computeCrossProduct() {
         Plane * RHS_plane1=dynamic_cast<Plane *>(children.at(0));
         Plane * RHS_plane2=dynamic_cast<Plane *>(children.at(1));
                 
@@ -925,13 +927,17 @@ public:
 
     }
 
-     Eigen::Vector3d getCrossProduct() const
-     {
+     Eigen::Vector3d getCrossProduct() const {
          return crossProduct;
      }
      
-     void additionalFinalize()
-     {
+     /**
+      * The cross product of PlanePair needed for calculating cost of applying Rule: 
+      * Corner->PlanePair Plane (only need to calculate cost(Corner) if PlanePair
+      * is optimal so we call additionalFinalize() only when we have declared PlanePair optimal
+      * to reduce unnecessary computation.
+      */
+     void additionalFinalize() {
          computeCrossProduct();
      }
     // the printData below should be used only for the Goal NT type
@@ -999,7 +1005,7 @@ public:
 };
 
 class Corner : public NonTerminal {
-    
+    // TODO: Do we need anything in here? This class feels cold and empty inside.
 };
 
 class RCorner_PlanePairPlane : public Rule {
@@ -1063,8 +1069,8 @@ public:
 };
 
 class RFloor_Plane : public Rule {
-public:
     
+public:
     /**
      * Creates a new Floor object, setting Floor's absolute cost to equal 
      * the Plane's points' distances to the canonical z-plane.
