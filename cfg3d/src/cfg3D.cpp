@@ -83,7 +83,7 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 
-typedef set<NonTerminal *, NTSetComparison> NTSet;
+typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
 
@@ -860,13 +860,16 @@ public:
      */
     void setCost() {
         vector<int> pointIndices = getPointIndices();
-        int costSum = 0;
+        double costSum = 0;
         // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
         //sum of squares
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            costSum += sqr(scene.points[*it].z);
+            costSum = costSum + sqr(scene.points[*it].z);
+//            cout<<*it<<"th z Coordinate: "<<scene.points[*it].z<<endl;
+//            cout<<*it<<"th Cost Sum: "<<costSum<<endl;
         }
         setAbsoluteCost(costSum);
+        
     }
 };
 
