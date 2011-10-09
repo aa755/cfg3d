@@ -801,7 +801,7 @@ public:
     }
 };
 
-class Floor :public NonTerminal
+class Floor : public NonTerminal
 {
     
 };
