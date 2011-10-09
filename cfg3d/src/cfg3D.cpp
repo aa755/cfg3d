@@ -640,7 +640,7 @@ class SymbolPriorityQueue {
         vector<NTSet> & typeBin=bins[string(typeid(*sym).name())];
 
         if(typeBin.size()==0)
-            typeBin.resize(numTerminals,NTSet()); // first time => allocate bins
+            typeBin.resize(totalNumTerminals,NTSet()); // first time => allocate bins
         
         return typeBin[numTerminals];
         
@@ -676,12 +676,14 @@ class SymbolPriorityQueue {
         return false;
     }
 
+    int totalNumTerminals;
 public:
 
     
     
-    SymbolPriorityQueue(size_t numTerminals) //: NTsetsExtracted(numTerminals, NTSet()), NTsetsInPQ(numTerminals, NTSet()) {
+    SymbolPriorityQueue(int totalNumTerminals_) //: NTsetsExtracted(numTerminals, NTSet()), NTsetsInPQ(numTerminals, NTSet()) {
     {
+        totalNumTerminals=totalNumTerminals_;
     }
 
 
@@ -859,7 +861,7 @@ public:
      * to the canonical z = 0 Plane. How are we calculating Segment to Plane "distances"?
      */
     void setCost() {
-        vector<int> pointIndices = getPointIndices();
+        vector<int> & pointIndices = getPointIndices();
         double costSum = 0;
         // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
         //sum of squares
