@@ -316,7 +316,6 @@ protected:
         centroid.z /= pointIndices.size();
     }
 
-
     bool isSpanExclusive(NonTerminal * nt) {
         return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
@@ -780,8 +779,7 @@ public:
             assert(4 == 2);
     }
 
-    void setCost()
-    {
+    void setCost() {
         setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
     
@@ -809,11 +807,17 @@ public:
     }
 };
 
-class Floor : public NonTerminal {
-//    void setCost()
-//    {
-//        setAbsoluteCost();
-//    }
+class Floor : public Plane {
+public: 
+    void setCost() {
+        vector<int> pointIndices = getPointIndices();
+        int costSum = 0;
+        // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            costSum += sqr(scene.points[*it].z);
+        }
+        setAbsoluteCost(costSum);
+    }
 };
 
 class RPlane_PlaneSeg : public Rule {
@@ -1051,6 +1055,23 @@ public:
                 nt = finder.nextEligibleNT();
             }
         }
+    }
+};
+
+class RFloor_Plane : public Rule {
+public:
+    
+    /**
+     * Creates a new Floor object, setting Floor's absolute cost to equal 
+     * the Plane's points' distances to the canonical z-plane.
+     */
+    NonTerminal* applyRule(Plane* RHS_plane, vector<Terminal*>& terminals) {
+        Floor* LHS = new Floor();
+        LHS->addChild(RHS_plane);
+        LHS->computeSpannedTerminals();
+        LHS->computePointIndices(terminals);
+        LHS->setCost();
+        return LHS;
     }
 };
 
