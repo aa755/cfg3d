@@ -441,7 +441,6 @@ public:
         set_membership |= this->spanned_terminals;
     }
 
-
     /**
      * do some book-keeping
      * for efficiency it is not done when a new NT is created, but only when it is extracted
@@ -496,6 +495,12 @@ public:
      */
     virtual void additionalFinalize() {}
 
+    /**
+     * We check that sym is not the same type as this NonTerminal nor spanning 
+     * the same terminals as this NonTerminal.
+     * @param sym
+     * @return 
+     */
     bool checkDuplicate(NonTerminal * sym) {
         assert(spanned_terminals.size()>0);
         assert(sym->spanned_terminals.size()>0);
@@ -542,7 +547,12 @@ bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const
     return false; // actually they are equal
 }
 
-bool Terminal::isSpanExclusive(NonTerminal * nt) {
+/**
+ * Check that the Terminal nodes spanned by both NonTerminals are disjoint.
+ * @param nt
+ * @return 
+ */
+bool Terminal::isSpanExclusive(NonTerminal* nt) {
     return !(nt->spanned_terminals.test(index));
 }
 
