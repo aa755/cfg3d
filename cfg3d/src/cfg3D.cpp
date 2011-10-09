@@ -1004,7 +1004,7 @@ public:
      * Creates a new Corner object, setting Corner's additional cost to equal the dot product
      * of PlanePair's cross product and Plane's normal.
      */
-    NonTerminal* applyRule(PlanePair* RHS_planePair, Plane* RHS_plane, vector<Terminal*> & terminals) {
+    NonTerminal* applyRule(PlanePair* RHS_planePair, Plane* RHS_plane, vector<Terminal*>& terminals) {
         Corner* LHS=new Corner();
         LHS->addChild(RHS_planePair);
         LHS->addChild(RHS_plane);
@@ -1025,16 +1025,17 @@ public:
      * @param terminals
      * @param iterationNo
      */
-    void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, vector<Terminal*> & terminals, long iterationNo) {
+    void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, 
+        vector<Terminal*>& terminals, long iterationNo) {
         if(typeid(*extractedSym) == typeid(PlanePair)) {
             PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(extractedSym);
             FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
             NonTerminal* nt = finder.nextEligibleNT();
 
-            while(nt! = NULL) {
+            while(nt != NULL) {
                 if(typeid(*nt) == typeid(Plane)) {
                     Plane* RHS_plane = dynamic_cast<Plane*>(nt);
-                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair,RHS_plane), pqueue);
+                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
                 }
                 nt = finder.nextEligibleNT();
             }
@@ -1043,10 +1044,10 @@ public:
             FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
             NonTerminal* nt = finder.nextEligibleNT();
 
-            while(nt! = NULL) {
+            while(nt != NULL) {
                 if(typeid(*nt) == typeid(Plane)) {
-                    Plane* RHS_planePair = dynamic_cast<PlanePair*>(nt);
-                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair,RHS_plane), pqueue);
+                    PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(nt);
+                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
                 }
                 nt = finder.nextEligibleNT();
             }
