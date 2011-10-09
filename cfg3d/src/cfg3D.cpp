@@ -895,12 +895,36 @@ public:
 
 class PlanePair : public NonTerminal {
 protected:
+    Eigen::Vector3d crossProduct;
 public:
+    /***
+     Computes the cross product between two planes.
+     */
+    void computeCrossProduct()
+    {
+        Plane * RHS_plane1=dynamic_cast<Plane *>(children.at(0));
+        Plane * RHS_plane2=dynamic_cast<Plane *>(children.at(1));
+                
+        Eigen::Vector4f aNormal = RHS_plane1->getPlaneParams();
+        Eigen::Vector4f bNormal = RHS_plane2->getPlaneParams();
+        Vector3d v(aNormal[0],aNormal[1],aNormal[2]);
+        Vector3d w(bNormal[0],bNormal[1],bNormal[2]);
+        crossProduct=v.cross(w);
+    }
 
     PlanePair() : NonTerminal() {
 
     }
 
+     Eigen::Vector3d getCrossProduct() const
+     {
+         return crossProduct;
+     }
+     
+     void additionalFinalize()
+     {
+         computeCrossProduct();
+     }
     // the printData below should be used only for the Goal NT type
 /*    void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
@@ -928,8 +952,6 @@ public:
 
 class RPlanePair_PlanePlane : public Rule
 {
-protected:
-    Eigen::Vector3d crossProduct;
 public:
     
     
@@ -943,17 +965,6 @@ public:
         return LHS;
     }
     
-    /***
-     Computes the cross product between two planes.
-     */
-    void computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
-    {
-        Eigen::Vector4f aNormal = RHS_plane1->getPlaneParams();
-        Eigen::Vector4f bNormal = RHS_plane2->getPlaneParams();
-        Vector3d v(aNormal[0],aNormal[1],aNormal[2]);
-        Vector3d w(bNormal[0],bNormal[1],bNormal[2]);
-        crossProduct=v.cross(w);
-    }
     
     
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
@@ -983,10 +994,6 @@ public:
         }
     }
 
-     Eigen::Vector3d getCrossProduct() const
-     {
-         return crossProduct;
-     }    
 };
 
 class Corner : public NonTerminal
