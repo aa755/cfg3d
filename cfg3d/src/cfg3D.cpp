@@ -792,7 +792,7 @@ public:
             assert(4 == 2);
     }
 
-    void setCost() {
+    virtual void setCost() {
         setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
     
@@ -830,6 +830,7 @@ public:
         vector<int> pointIndices = getPointIndices();
         int costSum = 0;
         // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
+        //sum of squares
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             costSum += sqr(scene.points[*it].z);
         }
@@ -1032,7 +1033,7 @@ public:
         Vector3d planeNormal(RHS_plane->getPlaneNormal());
         LHS->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
         LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
+       // LHS->computePointIndices(terminals);
         return LHS;
     }
 
@@ -1068,7 +1069,7 @@ public:
             NonTerminal* nt = finder.nextEligibleNT();
 
             while(nt != NULL) {
-                if(typeid(*nt) == typeid(Plane)) {
+                if(typeid(*nt) == typeid(PlanePair)) {
                     PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(nt);
                     addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
                 }
@@ -1187,6 +1188,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
+    rules.push_back(RulePtr(new RScene_FloorCorner()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1345,20 +1347,16 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
 
 int main(int argc, char** argv) {
 
-//    if(argc!=3)
-//    {
-//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
-//    }
-//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-//        map<int, set<int> > neighbors;
-//
-//    //    pcl::PointCloud<PointT> temp;
-////    subsample(scene,temp);
-////    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
-//       int maxSegIndex= parseNbrMap(argv[2],neighbors);
-//    cout<<"scene has "<<scene.size()<<" points"<<endl;
-//   runParse(neighbors,maxSegIndex);
-//    
-//    return 0;
+    if(argc!=3)
+    {
+        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+    }
+    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+        map<int, set<int> > neighbors;
+       int maxSegIndex= parseNbrMap(argv[2],neighbors);
+    cout<<"scene has "<<scene.size()<<" points"<<endl;
+   runParse(neighbors,maxSegIndex);
+    
+    return 0;
     
 }
