@@ -625,9 +625,13 @@ public:
  *
  */
 class SymbolPriorityQueue {
-    priority_queue<Symbol *, vector<Symbol *>, SymbolComparison> costSortedQueue;
+    /**these 2 contain same elements ... stored in a different way
+     */
+    priority_queue<Symbol *, vector<Symbol *>, SymbolComparison> costSortedQueue; // optimized to give least cost
+    map<string,vector<NTSet> > NTsetsInPQ; // optimized for duplicate check
+    
+   
     map<string,vector<NTSet> > NTsetsExtracted;
-    map<string,vector<NTSet> > NTsetsInPQ;
 
     NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > bins)
     {
