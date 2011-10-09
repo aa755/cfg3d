@@ -1090,7 +1090,6 @@ public:
         vector<Terminal*>& terminals, long iterationNo) {
         if(typeid(*extractedSym) == typeid(Plane)) {
             Plane* RHS_plane = dynamic_cast<Plane*>(extractedSym);
-            applyRule(RHS_plane);
             addToPqueueIfNotDuplicate(applyRule(RHS_plane, terminals), pqueue);
         } 
     }
