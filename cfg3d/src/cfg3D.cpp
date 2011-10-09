@@ -751,6 +751,10 @@ public:
         planeParamsComputed = true;
     }
 
+    Eigen::Vector3d getPlaneNormal() {
+        return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
+    }
+    
     Eigen::Vector4f getPlaneParams() {
         return planeParams;
     }
@@ -877,7 +881,6 @@ public:
         LHS->computeSpannedTerminals();
         LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
-
         LHS->setCost();
                 
         return LHS;
@@ -996,7 +999,22 @@ class Corner : public NonTerminal
 };
 
 class RCorner_PlanePairPlane : public Rule {
-
+public:
+    /**
+     * Creates a new Corner object, setting Corner's additional cost to equal the dot product
+     * of PlanePair's cross product and Plane's normal
+     */
+    NonTerminal* applyRule(PlanePair* RHS_planePair, Plane* RHS_plane, vector<Terminal*> & terminals) {
+        Corner* LHS=new Corner();
+        LHS->addChild(RHS_planePair);
+        LHS->addChild(RHS_plane);
+        Vector3d planePairCrossProduct = RHS_planePair->getCrossProduct();
+        Vector3d planeNormal(RHS_plane->getPlaneNormal());
+        LHS->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
+        LHS->computeSpannedTerminals();
+        LHS->computePointIndices(terminals);
+        return LHS;
+    }
 };
 
 class Scene : public NonTerminal
@@ -1234,21 +1252,21 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors)
 
 int main(int argc, char** argv) 
 {
-    
-    if(argc!=3)
-    {
-        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
-    }
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-        map<int, set<int> > neighbors;
 
-    //    pcl::PointCloud<PointT> temp;
-//    subsample(scene,temp);
-//    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
-       int maxSegIndex= parseNbrMap(argv[2],neighbors);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse(neighbors,maxSegIndex);
-    
-    return 0;
+//    if(argc!=3)
+//    {
+//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+//    }
+//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+//        map<int, set<int> > neighbors;
+//
+//    //    pcl::PointCloud<PointT> temp;
+////    subsample(scene,temp);
+////    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
+//       int maxSegIndex= parseNbrMap(argv[2],neighbors);
+//    cout<<"scene has "<<scene.size()<<" points"<<endl;
+//   runParse(neighbors,maxSegIndex);
+//    
+//    return 0;
     
 }
