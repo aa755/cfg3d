@@ -750,6 +750,10 @@ public:
         planeParamsComputed = true;
     }
 
+    Eigen::Vector4f getPlaneParams() {
+        return planeParams;
+    }
+    
     double coplanarity(Plane * plane2) {
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
@@ -803,7 +807,10 @@ public:
 
 class Floor : public NonTerminal
 {
-    
+//    void setCost()
+//    {
+//        setAbsoluteCost();
+//    }
 };
 
 class RPlane_PlaneSeg : public Rule {
@@ -939,10 +946,13 @@ public:
         return LHS;
     }
     
-    Eigen::Vector3d computeCrossProduct()
-    {
-        assert(1==2);
-    }
+//    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
+//    {
+//        RHS_plane1->
+//    }    Eigen::Vector3d computeCrossProduct(Plane * RHS_plane1, Plane * RHS_plane2)
+//    {
+//        RHS_plane1->
+//    }
     
     
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
@@ -977,7 +987,6 @@ public:
          return crossProduct;
      }    
 };
-
 
 class Corner : public NonTerminal
 {
