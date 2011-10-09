@@ -1250,12 +1250,10 @@ void log(int iter, Symbol * sym) {
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
-    int numPoints = scene.size();
-    SymbolPriorityQueue pq(numPoints);
 
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
-    vector<NTSet> allExtractedNTs(numPoints, NTSet());
+    SymbolPriorityQueue pq(maxSegIndex);
 
     vector<Terminal *> terminals;
 
@@ -1274,6 +1272,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if(segIndex>0)
             terminals.at(segIndex-1)->addPointIndex(i);
     }
+    
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
