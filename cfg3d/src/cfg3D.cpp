@@ -988,29 +988,6 @@ public:
      void additionalFinalize() {
          computeCrossProduct();
      }
-    // the printData below should be used only for the Goal NT type
-/*    void printData() {
-        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
-        sceneOut=scene;
-        std::ofstream logFile;
-        logFile.open("log.txt", ios::out);
-        NonTerminal *plane1 = dynamic_cast<NonTerminal *> (children[0]);
-        NonTerminal *plane2 = dynamic_cast<NonTerminal *> (children[1]);
-        for (size_t i = 0; i < plane1->pointIndices.size(); i++) {
-            logFile << "," << plane1->pointIndices[i];
-            sceneOut.points[plane1->pointIndices[i]].label = 1;
-        }
-        logFile << endl;
-        for (size_t i = 0; i < plane2->pointIndices.size(); i++) {
-            logFile << "," << plane2->pointIndices[i];
-            sceneOut.points[plane2->pointIndices[i]].label = 2;
-        }
-        logFile << endl;
-        logFile.close();
-        pcl::io::savePCDFile("fridge_out.pcd", sceneOut, true);
-    }
- * 
- */
 };
 
 class RPlanePair_PlanePlane : public Rule {
@@ -1150,6 +1127,27 @@ public:
 };
 
 class Scene : public NonTerminal {
+    // the printData below should be used only for the Goal NT type
+    void printData() {
+        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
+        sceneOut=scene;
+        std::ofstream logFile;
+        logFile.open("log.txt", ios::out);
+        NonTerminal *child1 = dynamic_cast<NonTerminal *> (children[0]);
+        NonTerminal *child2 = dynamic_cast<NonTerminal *> (children[1]);
+        for (size_t i = 0; i < child1->pointIndices.size(); i++) {
+            logFile << "," << child1->pointIndices[i];
+            sceneOut.points[child1->pointIndices[i]].label = 1;
+        }
+        logFile << endl;
+        for (size_t i = 0; i < child2->pointIndices.size(); i++) {
+            logFile << "," << child2->pointIndices[i];
+            sceneOut.points[child2->pointIndices[i]].label = 2;
+        }
+        logFile << endl;
+        logFile.close();
+        pcl::io::savePCDFile("fridge_out.pcd", sceneOut, true);
+    }
     
 };
 
