@@ -1149,7 +1149,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<typeid(*min).name()<< endl;
 
-        if (typeid (*min) == typeid (PlanePair)) {
+        if (typeid (*min) == typeid (Scene)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
