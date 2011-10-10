@@ -647,7 +647,7 @@ class SymbolPriorityQueue {
    
     map<string,vector<NTSet> > NTsetsExtracted;
 
-    NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > bins)
+    NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > & bins)
     {
         int numTerminals = sym->getNumTerminals();
         assert(numTerminals > 0);
@@ -656,7 +656,7 @@ class SymbolPriorityQueue {
         if(typeBin.size()==0)
             typeBin.resize(totalNumTerminals,NTSet()); // first time => allocate bins
         
-        return typeBin[numTerminals];
+        return typeBin.at(numTerminals-1);
         
     }
 
@@ -706,14 +706,10 @@ public:
      *
      */
     bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym) {
-//        cout<<"type inside duplicate check: "<<typeid(*sym).name()<<endl;
-//        int numTerminals = sym->getNumTerminals();
-//        assert(numTerminals > 0);
         NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
         if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
-            //cout<<"duplicate:"<<typeid(*(*lb)).name()<<endl;
             return true;
         }
 
