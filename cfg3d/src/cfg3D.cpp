@@ -884,6 +884,7 @@ public:
     }
     
     void additionalFinalize() {
+        computeZSquaredSum();
        // if (pointIndices.size() >= 3)
          //   computePlaneParams();
     }
@@ -896,17 +897,8 @@ public:
      * to the canonical z = 0 Plane. How are we calculating Segment to Plane "distances"?
      */
     void setCost() {
-        vector<int> & pointIndices = getPointIndices();
-        double costSum = 0;
-        // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
-        //sum of squares
-        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            costSum = costSum + sqr(scene.points[*it].z);
-//            cout<<*it<<"th z Coordinate: "<<scene.points[*it].z<<endl;
-//            cout<<*it<<"th Cost Sum: "<<costSum<<endl;
-        }
-        setAbsoluteCost(costSum);
-        
+        Plane* plane = dynamic_cast<Plane*> (children.at(0));
+        setAbsoluteCost(plane->getZSquaredSum());
     }
 };
 
