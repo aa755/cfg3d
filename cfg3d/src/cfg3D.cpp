@@ -179,10 +179,11 @@ protected:
      */
     size_t index;
     vector<int> pointIndices;
+    double zSquaredSum;
 public:
 
     static int totalNumTerminals;
-
+    
     boost::dynamic_bitset<> & getNeighbors() {
         return neighbors;
     }
@@ -213,7 +214,20 @@ public:
     vector<int> & getPointIndices() {
         return pointIndices;
     }
-
+    
+    void computeZSquaredSum() {
+        vector<int>& pointIndices = getPointIndices();
+        double costSum = 0;
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            costSum = costSum + scene.points[*it].z  * scene.points[*it].z;
+        }
+        zSquaredSum = costSum;
+    }
+    
+    double getZSquaredSum() {
+        return zSquaredSum;
+    }
+    
     void addPointIndex(int index)
     {
         pointIndices.push_back(index);
@@ -779,6 +793,7 @@ protected:
     Eigen::Vector4f planeParams;
 public:
 
+    double zSquaredSum;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Plane() : NonTerminal() {
         planeParamsComputed = false;
@@ -788,6 +803,10 @@ public:
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
 
+    double getZSquaredSum() {
+        return zSquaredSum;
+    }
+    
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
@@ -797,6 +816,21 @@ public:
         planeParamsComputed = true;
     }
 
+    void computeZSquaredSum() {
+        double sum = 0;
+        vector<Symbol*>::iterator it;
+        for(it = children.begin(); it != children.end(); it++) {
+            if (typeid (*it) == typeid (Plane)) {
+                Plane* plane = dynamic_cast<Plane*> (*it);
+                sum = sum + plane->getZSquaredSum();
+            } else if (typeid (*it) == typeid (Terminal)) {
+                Terminal* terminal = dynamic_cast<Terminal*> (*it);
+                sum = sum + terminal->getZSquaredSum();
+            }
+        }
+        zSquaredSum = sum;
+    }
+    
     Eigen::Vector3d getPlaneNormal() {
         return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
     }
