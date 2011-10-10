@@ -626,18 +626,35 @@ public:
  */
 class SymbolPriorityQueue {
     priority_queue<Symbol *, vector<Symbol *>, SymbolComparison> costSortedQueue;
-    vector<NTSet> NTsetsExtracted;
-    vector<NTSet> NTsetsInPQ;
-public:
+    map<string,vector<NTSet> > NTsetsExtracted;
+    map<string,vector<NTSet> > NTsetsInPQ;
 
-    SymbolPriorityQueue(size_t numTerminals) : NTsetsExtracted(numTerminals, NTSet()), NTsetsInPQ(numTerminals, NTSet()) {
+    NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > bins)
+    {
+        int numTerminals = sym->getNumTerminals();
+        assert(numTerminals > 0);
+        vector<NTSet> & typeBin=bins[string(typeid(*sym).name())];
 
+        if(typeBin.size()==0)
+            typeBin.resize(numTerminals,NTSet()); // first time => allocate bins
+        
+        return typeBin[numTerminals];
+        
+    }
+
+    NTSet & getBinOfExtractedSymbols(NonTerminal * sym)
+    {
+        return getBin(sym,NTsetsExtracted);
+    }
+    
+    NTSet & getBinOfPQSymbols(NonTerminal * sym)
+    {
+        return getBin(sym,NTsetsInPQ);        
     }
 
     bool CheckIfBetterDuplicateExists(NonTerminal * sym) {
-        int numTerminals = sym->getNumTerminals();
-        assert(numTerminals > 0);
-        NTSet & bin = NTsetsExtracted[numTerminals];
+        assert(4==2); //not used for now
+        NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
         if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
@@ -645,7 +662,7 @@ public:
             return true;
         }
 
-        NTSet & bin1 = NTsetsExtracted[numTerminals];
+        NTSet & bin1 = getBinOfPQSymbols(sym);
         lb = bin1.lower_bound(sym);
         if (lb != bin1.end() && (*lb)->checkDuplicate(sym)) {
             //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
@@ -655,19 +672,28 @@ public:
         return false;
     }
 
+public:
+
+    
+    
+    SymbolPriorityQueue(size_t numTerminals) //: NTsetsExtracted(numTerminals, NTSet()), NTsetsInPQ(numTerminals, NTSet()) {
+    {
+    }
+
+
     /**
      * extracted before => was better or same cost
      *
      */
     bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym) {
-        cout<<"type inside duplicate check: "<<typeid(*sym).name()<<endl;
-        int numTerminals = sym->getNumTerminals();
-        assert(numTerminals > 0);
-        NTSet & bin = NTsetsExtracted[numTerminals];
+//        cout<<"type inside duplicate check: "<<typeid(*sym).name()<<endl;
+//        int numTerminals = sym->getNumTerminals();
+//        assert(numTerminals > 0);
+        NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
         if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
-            cout<<"duplicate:"<<typeid(*(*lb)).name()<<endl;
+            //cout<<"duplicate:"<<typeid(*(*lb)).name()<<endl;
             return true;
         }
 
@@ -677,14 +703,16 @@ public:
     /**
      * also check for duplicate and don't add if a duplicate with smaller cost
      * exists
+     * @param sym
+     * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExists(NonTerminal * sym) {
-        if (CheckIfBetterDuplicateExists(sym))
+        if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
 
         costSortedQueue.push(sym);
-        NTsetsInPQ[sym->getNumTerminals()].insert(sym);
-        return true;
+        std::pair<NTSet::iterator, bool> ret =getBinOfPQSymbols(sym).insert(sym); // will be inserted only if not duplicate
+        return ret.second; // true if inserted, else duplicate
     }
 
     /**
@@ -703,9 +731,9 @@ public:
         
         if (typeid (*top) != typeid (Terminal)) {
             NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
-            std::pair<NTSet::iterator, bool> res=NTsetsExtracted[top->getNumTerminals()].insert(nt); // set => no duplicates
+            std::pair<NTSet::iterator, bool> res=getBinOfExtractedSymbols(nt).insert(nt); // set => no duplicates
             duplicate=!res.second;
-            NTsetsInPQ[top->getNumTerminals()].erase(nt);
+            getBinOfPQSymbols(nt).erase(nt);
         }
 
         return top;
@@ -792,7 +820,7 @@ public:
             assert(4 == 2);
     }
 
-    void setCost() {
+    virtual void setCost() {
         setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
     
@@ -830,6 +858,7 @@ public:
         vector<int> pointIndices = getPointIndices();
         double costSum = 0;
         // TODO: Are we setting the cost as the sum of squares of z or the sqrt of the sums of squares of z's?
+        //sum of squares
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             costSum = costSum + sqr(scene.points[*it].z);
 //            cout<<*it<<"th z Coordinate: "<<scene.points[*it].z<<endl;
@@ -1035,7 +1064,7 @@ public:
         Vector3d planeNormal(RHS_plane->getPlaneNormal());
         LHS->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
         LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
+       // LHS->computePointIndices(terminals);
         return LHS;
     }
 
@@ -1071,7 +1100,7 @@ public:
             NonTerminal* nt = finder.nextEligibleNT();
 
             while(nt != NULL) {
-                if(typeid(*nt) == typeid(Plane)) {
+                if(typeid(*nt) == typeid(PlanePair)) {
                     PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(nt);
                     addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
                 }
@@ -1190,6 +1219,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
+    rules.push_back(RulePtr(new RScene_FloorCorner()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1354,10 +1384,6 @@ int main(int argc, char** argv) {
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
         map<int, set<int> > neighbors;
-
-    //    pcl::PointCloud<PointT> temp;
-//    subsample(scene,temp);
-//    pcl::io::savePCDFile("fridge_sub500.pcd",temp,true);
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
