@@ -1300,6 +1300,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             terminals.at(segIndex-1)->addPointIndex(i);
     }
     
+    for(unsigned int i=0;i<terminals.size();i++)
+    {
+        terminals[i]->computeZSquaredSum();
+    }
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
