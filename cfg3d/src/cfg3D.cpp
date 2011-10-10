@@ -716,8 +716,9 @@ public:
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
 
-        costSortedQueue.push(sym);
         std::pair<NTSet::iterator, bool> ret =getBinOfPQSymbols(sym).insert(sym); // will be inserted only if not duplicate
+        if(ret.second)
+            costSortedQueue.push(sym);
         return ret.second; // true if inserted, else duplicate
     }
 
