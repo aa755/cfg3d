@@ -219,7 +219,8 @@ public:
         vector<int>& pointIndices = getPointIndices();
         double costSum = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            costSum = costSum + scene.points[*it].z  * scene.points[*it].z;
+            cout<<scene.points[*it].z<<endl;
+            costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
         }
         zSquaredSum = costSum;
     }
@@ -818,10 +819,10 @@ public:
         for(it = children.begin(); it != children.end(); it++) {
             if (typeid (*it) == typeid (Plane)) {
                 Plane* plane = dynamic_cast<Plane*> (*it);
-                sum = sum + plane->getZSquaredSum();
+                sum = sum + (plane->getZSquaredSum() * plane->getZSquaredSum());
             } else if (typeid (*it) == typeid (Terminal)) {
                 Terminal* terminal = dynamic_cast<Terminal*> (*it);
-                sum = sum + terminal->getZSquaredSum();
+                sum = sum + (terminal->getZSquaredSum() * terminal->getZSquaredSum());
             }
         }
         zSquaredSum = sum;
@@ -1128,7 +1129,7 @@ public:
         LHS->addChild(RHS_plane);
         LHS->computeSpannedTerminals();
         LHS->computePointIndices(terminals);
-        LHS->setCost();
+        LHS->setAbsoluteCost(RHS_plane->getZSquaredSum());
         return LHS;
     }
     
