@@ -298,6 +298,7 @@ int Terminal::totalNumTerminals = 0;
 
 class NonTerminal : public Symbol {
 protected:
+    bool duplicate;
     size_t numTerminals;
     //    vector<bool> setOfPoints;
     AdvancedDynamicBitset spanned_terminals;
@@ -388,6 +389,7 @@ public:
         cout << "nNT: " << id << endl;
         numTerminals = 0;
         lastIteration = 0;
+        duplicate=false;
     }
 
     friend class NTSetComparison;
@@ -534,6 +536,16 @@ public:
     long getLastIteration() const
     {
         return lastIteration;
+    }
+
+    void markDuplicate()
+    {
+        this->duplicate = true;
+    }
+
+    bool isMarkDuplicate() const
+    {
+        return duplicate;
     }
 
     /*    void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
@@ -737,6 +749,7 @@ public:
                 // duplicate of higher cost already exixted => update
                 //PQ order can't be updated so add an duplicate pointer to the same object
                 // when this object will be extracted, set the optimal field
+                (*lb)->markDuplicate();
                 bin1.erase(lb);
                 bin1.insert(--lb,sym);
                 //(*lb)=sym; // the set is not sorted by cost, it is sorted by bitset => order is same
@@ -773,11 +786,19 @@ public:
             return NULL;
         Symbol * top = costSortedQueue.top();
         costSortedQueue.pop();
-        
+        duplicate=false;
         if (typeid (*top) != typeid (Terminal)) {
             NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
+            
+            if(nt->isMarkDuplicate())
+            {
+                duplicate=true;
+                //cout<<"mdup"<<endl;
+                return top;
+            }
+            
             std::pair<NTSet::iterator, bool> res=getBinOfExtractedSymbols(nt).insert(nt); // set => no duplicates
-            duplicate=!res.second;
+            assert(res.second);
             getBinOfPQSymbols(nt).erase(nt);
         }
 
