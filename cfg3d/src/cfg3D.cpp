@@ -515,7 +515,7 @@ public:
      * @param sym
      * @return 
      */
-    bool checkDuplicate(NonTerminal * sym) {
+    bool isDuplicate(NonTerminal * sym) {
         assert(spanned_terminals.size()>0);
         assert(sym->spanned_terminals.size()>0);
         
@@ -675,20 +675,21 @@ class SymbolPriorityQueue {
         NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
-        if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
+        if (lb != bin.end() && (*lb)->isDuplicate(sym)) {
             //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
             return true;
         }
 
         NTSet & bin1 = getBinOfPQSymbols(sym);
         lb = bin1.lower_bound(sym);
-        if (lb != bin1.end() && (*lb)->checkDuplicate(sym)) {
+        if (lb != bin1.end() && (*lb)->isDuplicate(sym)) {
             //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
             if (sym->getCost() >= (*lb)->getCost())
                 return true;
         }
         return false;
     }
+
 
     int totalNumTerminals;
 public:
@@ -709,7 +710,7 @@ public:
         NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
-        if (lb != bin.end() && (*lb)->checkDuplicate(sym)) {
+        if (lb != bin.end() && (*lb)->isDuplicate(sym)) {
             return true;
         }
 
@@ -722,14 +723,41 @@ public:
      * @param sym
      * @return true if inserted
      */
-    bool pushIfNoBetterDuplicateExists(NonTerminal * sym) {
+    bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
 
-        std::pair<NTSet::iterator, bool> ret =getBinOfPQSymbols(sym).insert(sym); // will be inserted only if not duplicate
-        if(ret.second)
+        NTSet & bin1 = getBinOfPQSymbols(sym);
+        NTSet::iterator lb;
+        lb = bin1.lower_bound(sym);
+        if (lb != bin1.end() && (*lb)->isDuplicate(sym)) {
+            //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            if (sym->getCost() < (*lb)->getCost())
+            {
+                // duplicate of higher cost already exixted => update
+                //PQ order can't be updated so add an duplicate pointer to the same object
+                // when this object will be extracted, set the optimal field
+                bin1.erase(lb);
+                bin1.insert(--lb,sym);
+                //(*lb)=sym; // the set is not sorted by cost, it is sorted by bitset => order is same
+                costSortedQueue.push(sym);
+                return true;
+            }
+            
+            //else there is already a duplicate of lower cost => no change required
+            return false ; //in both cases, the pointer should be deleted
+        }
+        else
+        {
+            bin1.insert(sym);
             costSortedQueue.push(sym);
-        return ret.second; // true if inserted, else duplicate
+            return true;
+        }
+
+//        std::pair<NTSet::iterator, bool> ret =getBinOfPQSymbols(sym).insert(sym); // will be inserted only if not duplicate
+//        if(ret.second)
+//            costSortedQueue.push(sym);
+//        return ret.second; // true if inserted, else duplicate
     }
 
     /**
@@ -773,7 +801,7 @@ public:
 
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
-        if (!pqueue.pushIfNoBetterDuplicateExists(newNT))
+        if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
 };
@@ -1316,6 +1344,18 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     while (true) {
         min = pq.pop(alreadyExtracted);
 
+        if(alreadyExtracted)
+        {
+            delete min;
+            cout << "dup" << endl;
+            // since there are no parent links yet(not yet declared optimal),
+            // and it was not a child of anyone (not yet combined)
+            // and it was repoved from PQ
+            // and it was not in NTSetsExtracted,
+            // deleting does not cause dangling pointers
+            continue;
+        }
+        
         if(min==NULL)
         {
             cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules\n";
@@ -1339,12 +1379,6 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
-
-        } else {
-            delete min;
-            cout << "dup" << endl;
-            // since there are no parent links, and it was not a child of anyone
-            // deleting does not cause dangling pointers
 
         }
 
