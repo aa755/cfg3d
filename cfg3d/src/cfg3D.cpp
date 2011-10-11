@@ -219,7 +219,7 @@ public:
         vector<int>& pointIndices = getPointIndices();
         double costSum = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            costSum = costSum + scene.points[*it].z  * scene.points[*it].z;
+            costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
         }
         zSquaredSum = costSum;
     }
@@ -844,12 +844,12 @@ public:
         double sum = 0;
         vector<Symbol*>::iterator it;
         for(it = children.begin(); it != children.end(); it++) {
-            if (typeid (*it) == typeid (Plane)) {
+            if (typeid (**it) == typeid (Plane)) {
                 Plane* plane = dynamic_cast<Plane*> (*it);
-                sum = sum + plane->getZSquaredSum();
-            } else if (typeid (*it) == typeid (Terminal)) {
+                sum = sum + (plane->getZSquaredSum() * plane->getZSquaredSum());
+            } else if (typeid (**it) == typeid (Terminal)) {
                 Terminal* terminal = dynamic_cast<Terminal*> (*it);
-                sum = sum + terminal->getZSquaredSum();
+                sum = sum + (terminal->getZSquaredSum() * terminal->getZSquaredSum());
             }
         }
         zSquaredSum = sum;
@@ -1002,6 +1002,8 @@ public:
                 addToPqueueIfNotDuplicate(newNT,pqueue);
         }
     }
+
+    
 };
 
 class PlanePair : public NonTerminal {
@@ -1156,7 +1158,7 @@ public:
         LHS->addChild(RHS_plane);
         LHS->computeSpannedTerminals();
         LHS->computePointIndices(terminals);
-        LHS->setCost();
+        LHS->setAbsoluteCost(RHS_plane->getZSquaredSum());
         return LHS;
     }
     
