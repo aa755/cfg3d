@@ -827,6 +827,62 @@ public:
     }
 };
 
+template<typename OutType, typename Param1Type, typename Param2Type >
+class DoubleRule : Rule{
+    template<typename TypeExtracted, typename TypeCombinee>
+    void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+
+        TypeExtracted * RHS_extracted = dynamic_cast<TypeExtracted *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL) {
+            if (typeid (*nt) == typeid (TypeCombinee)) {
+                TypeCombinee * RHS_combinee = dynamic_cast<TypeCombinee *> (nt);
+                addToPqueueIfNotDuplicate(applyRule<TypeExtracted,TypeCombinee>(RHS_extracted, RHS_combinee), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+    }
+
+    template<typename RHS_Type1, typename RHS_Type2>
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+        if(typeid(*extractedSym)==typeid(RHS_Type1))
+        {
+            combineAndPushGivenTypes<RHS_Type1,RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
+        }
+        else if(typeid(*extractedSym)==typeid(RHS_Type2))
+        {
+            combineAndPushGivenTypes<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
+        }
+            
+        
+    }
+
+public:
+    
+    
+    template<typename RHS_Type1, typename RHS_Type2>
+    NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
+    {
+        OutType * LHS=new OutType();
+        LHS->addChild(RHS_unordered1);
+        LHS->addChild(RHS_unordered2);
+        LHS->setAdditionalCost(0);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+    
+    
+    
+     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+    {
+         combineAndPushGeneric<Param1Type,Param2Type>(extractedSym,pqueue,terminals,iterationNo);
+    }
+    
+}; 
+   
 double sqr(double d) {
     return d*d;
 }
@@ -995,14 +1051,6 @@ public:
 class RPlane_Seg : public Rule {
 public:
 
-    int get_Nof_RHS_symbols() {
-        return 1;
-    }
-
-    void get_typenames(vector<string> & names) {
-        names.push_back(typeid (Plane).name());
-        names.push_back(typeid (Terminal).name());
-    }
 
     NonTerminal* applyRule(Terminal *RHS_seg,vector<Terminal*> & terminals) {
         Plane * LHS = new Plane();
@@ -1167,6 +1215,11 @@ public:
     }
 };
 
+//template<typename LHS_Type, typename RHS1_Type >
+//class SingleRule : Rule{    
+//}; 
+
+
 class RFloor_Plane : public Rule {
     
 public:
@@ -1183,7 +1236,7 @@ public:
         return LHS;
     }
     
-        /**
+        /** 
      * Simply checks if extractedSym is of type Plane and creates a Plane object 
          * assigning to the Plane object the cost of considering the Plane as a Floor.
      * @param extractedSym
@@ -1463,9 +1516,35 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
 
 }
 
+template<typename numt>
+class increment
+{
+public:
+    numt increment1(numt inp)
+    {
+        return inp+1;
+    }
+    numt dment1(numt inp)
+    {
+        return inp-1;
+    }
+};
+
+template<>
+float increment<float>::increment1(float inp)
+    {
+        return inp+0.1;
+    }
+
 int main(int argc, char** argv) {
 
-    if(argc!=3)
+    increment<int> num;
+    cout<<num.dment1(2)<<endl;
+
+    increment<float> numf;
+    cout<<numf.dment1(2.0)<<endl;
+    
+  /*  if(argc!=3)
     {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
@@ -1474,7 +1553,7 @@ int main(int argc, char** argv) {
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
-    
+    */
     return 0;
     
 }
