@@ -827,77 +827,92 @@ public:
     }
 };
 
-template<typename OutType, typename Param1Type, typename Param2Type >
-class DoubleRule : Rule{
-    template<typename RHS_Type1, typename RHS_Type2>
-    void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
+class DoubleRule : public Rule
+{
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
 
         RHS_Type1 * RHS_extracted = dynamic_cast<RHS_Type1 *> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
         NonTerminal * nt = finder.nextEligibleNT();
 
         //int count=0;
-        while (nt != NULL) {
-            if (typeid (*nt) == typeid (RHS_Type2)) {
+        while (nt != NULL)
+        {
+            if (typeid (*nt) == typeid (RHS_Type2))
+            {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule<RHS_Type1,RHS_Type2>(RHS_extracted, RHS_combinee), pqueue);
+                addToPqueueIfNotDuplicate(applyRule (RHS_extracted, RHS_combinee), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
     }
 
-    template<typename RHS_Type1, typename RHS_Type2>
-    void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
 
         RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
         NonTerminal * nt = finder.nextEligibleNT();
 
         //int count=0;
-        while (nt != NULL) {
-            if (typeid (*nt) == typeid (RHS_Type1)) {
-                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule<RHS_Type1,RHS_Type2>(RHS_extracted, RHS_combinee), pqueue);
+        while (nt != NULL)
+        {
+            if (typeid (*nt) == typeid (RHS_Type1))
+            {
+                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                addToPqueueIfNotDuplicate(applyRule(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
     }
-    
-    template<typename RHS_Type1, typename RHS_Type2>
-    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
-        if(typeid(*extractedSym)==typeid(RHS_Type1))
+
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (RHS_Type1))
         {
-            combineAndPushForParam1<RHS_Type1,RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
+            combineAndPushForParam1(extractedSym, pqueue, terminals, iterationNo);
         }
-        else if(typeid(*extractedSym)==typeid(RHS_Type2))
+        else if (typeid (*extractedSym) == typeid (RHS_Type2))
         {
-            combineAndPushForParam2<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
+            combineAndPushForParam2(extractedSym, pqueue, terminals, iterationNo);
         }
-            
-        
+
+
     }
 
 public:
-    
-    
-    template<typename RHS_Type1, typename RHS_Type2>
+
+
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
     NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
-        OutType * LHS=new OutType();
+        LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS_unordered1);
         LHS->addChild(RHS_unordered2);
         LHS->setAdditionalCost(0);
         LHS->computeSpannedTerminals();
         return LHS;
     }
-    
-    
-    
-     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+
+    void setCost(LHS_Type output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
-         combineAndPushGeneric<Param1Type,Param2Type>(extractedSym,pqueue,terminals,iterationNo);
+        assert(3 == 2); // needs specialization
     }
-    
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
+    }
+
 }; 
    
 double sqr(double d) {
@@ -1377,6 +1392,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
     rules.push_back(RulePtr(new RScene_FloorCorner()));
+//    rules.push_back(RulePtr(new DoubleRule<Floor,Floor,Floor>()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1565,13 +1581,8 @@ float increment<float>::increment1(float inp)
 
 int main(int argc, char** argv) {
 
-    increment<int> num;
-    cout<<num.dment1(2)<<endl;
-
-    increment<float> numf;
-    cout<<numf.dment1(2.0)<<endl;
     
-  /*  if(argc!=3)
+    if(argc!=3)
     {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
@@ -1580,7 +1591,7 @@ int main(int argc, char** argv) {
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
-    */
+    
     return 0;
     
 }
