@@ -829,32 +829,49 @@ public:
 
 template<typename OutType, typename Param1Type, typename Param2Type >
 class DoubleRule : Rule{
-    template<typename TypeExtracted, typename TypeCombinee>
-    void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+    template<typename RHS_Type1, typename RHS_Type2>
+    void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
 
-        TypeExtracted * RHS_extracted = dynamic_cast<TypeExtracted *> (extractedSym);
+        RHS_Type1 * RHS_extracted = dynamic_cast<RHS_Type1 *> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
         NonTerminal * nt = finder.nextEligibleNT();
 
         //int count=0;
         while (nt != NULL) {
-            if (typeid (*nt) == typeid (TypeCombinee)) {
-                TypeCombinee * RHS_combinee = dynamic_cast<TypeCombinee *> (nt);
-                addToPqueueIfNotDuplicate(applyRule<TypeExtracted,TypeCombinee>(RHS_extracted, RHS_combinee), pqueue);
+            if (typeid (*nt) == typeid (RHS_Type2)) {
+                RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
+                addToPqueueIfNotDuplicate(applyRule<RHS_Type1,RHS_Type2>(RHS_extracted, RHS_combinee), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
     }
 
     template<typename RHS_Type1, typename RHS_Type2>
+    void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+
+        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL) {
+            if (typeid (*nt) == typeid (RHS_Type1)) {
+                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
+                addToPqueueIfNotDuplicate(applyRule<RHS_Type1,RHS_Type2>(RHS_extracted, RHS_combinee), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+    }
+    
+    template<typename RHS_Type1, typename RHS_Type2>
     void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
         if(typeid(*extractedSym)==typeid(RHS_Type1))
         {
-            combineAndPushGivenTypes<RHS_Type1,RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
+            combineAndPushForParam1<RHS_Type1,RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
         }
         else if(typeid(*extractedSym)==typeid(RHS_Type2))
         {
-            combineAndPushGivenTypes<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
+            combineAndPushForParam2<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
         }
             
         
