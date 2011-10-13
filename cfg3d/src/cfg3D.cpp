@@ -893,28 +893,29 @@ public:
 
     //    template<typename RHS_Type1, typename RHS_Type2>
 
-    NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
+    NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS_unordered1);
-        LHS->addChild(RHS_unordered2);
-        LHS->setAdditionalCost(0);
+        LHS->addChild(RHS1);
+        LHS->addChild(RHS2);
         LHS->computeSpannedTerminals();
+        setCost(LHS,RHS1,RHS2);
         return LHS;
     }
 
-    void setCost(LHS_Type output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
+    void setCost(LHS_Type * output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
         assert(3 == 2); // needs specialization
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
+//        cerr<<"called"<<endl;
         combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
     }
 
 }; 
-   
+
 double sqr(double d) {
     return d*d;
 }
@@ -1383,6 +1384,14 @@ class Wall : public NonTerminal
     
 };
 
+template<>
+    void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
+    {
+ //       cerr<<"correct cost"; // needs specialization
+        output->setAdditionalCost(0);
+    }
+
+
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
@@ -1458,6 +1467,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
 
     Symbol *min;
     long count = 0;
+    long rulecount = 0;
     bool alreadyExtracted=false;
     while (true) {
         min = pq.pop(alreadyExtracted);
@@ -1493,7 +1503,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
 
             for (size_t i = 0; i < rules.size(); i++) {
 
-                rules[i]->combineAndPush(min, pq, terminals,count); // combine with the eligible NT's to form new NTs and add them to the priority queue
+                rules[i]->combineAndPush(min, pq, terminals,rulecount++); // combine with the eligible NT's to form new NTs and add them to the priority queue
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
