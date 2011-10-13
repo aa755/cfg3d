@@ -828,7 +828,7 @@ public:
 };
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
-class DoubleRule : Rule
+class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
@@ -1383,6 +1383,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
     rules.push_back(RulePtr(new RScene_FloorCorner()));
+//    rules.push_back(RulePtr(new DoubleRule<Floor,Floor,Floor>()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1570,13 +1571,8 @@ float increment<float>::increment1(float inp)
 
 int main(int argc, char** argv) {
 
-    increment<int> num;
-    cout<<num.dment1(2)<<endl;
-
-    increment<float> numf;
-    cout<<numf.dment1(2.0)<<endl;
     
-  /*  if(argc!=3)
+    if(argc!=3)
     {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
@@ -1585,7 +1581,7 @@ int main(int argc, char** argv) {
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
-    */
+    
     return 0;
     
 }
