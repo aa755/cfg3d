@@ -884,15 +884,19 @@ class DoubleRule : public Rule
         {
             combineAndPushForParam2(extractedSym, pqueue, terminals, iterationNo);
         }
-
-
     }
 
 public:
-
-
-    //    template<typename RHS_Type1, typename RHS_Type2>
-
+    /**
+     * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
+     * @param output
+     * @param input
+     */
+    void setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    {
+        assert(3 == 2); // needs specialization
+    }
+        
     NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         LHS_Type * LHS = new LHS_Type();
@@ -903,19 +907,60 @@ public:
         return LHS;
     }
 
-    void setCost(LHS_Type * output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-        assert(3 == 2); // needs specialization
+        combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
     }
+}; 
+
+template<typename LHS_Type, typename RHS_Type>
+class SingleRule : public Rule
+{
+    void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
+        addToPqueueIfNotDuplicate(applyRule(RHS_extracted), pqueue);
+    }
+
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (RHS_Type))
+        {
+            combineAndPushForParam(extractedSym, pqueue, terminals, iterationNo);
+        }
+    }
+
+public:
+    
+     /**
+     * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
+     * @param output
+     * @param input
+     */
+    void setCost(LHS_Type* output, RHS_Type* input)
+    {
+        assert(3 == 2);
+    }
+        
+    NonTerminal* applyRule(RHS_Type* RHS)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS);
+        LHS->computeSpannedTerminals();
+        setCost(LHS, RHS);
+        return LHS;
+    }
+
+
+
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-//        cerr<<"called"<<endl;
-        combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
+        combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
     }
-
 }; 
 
+   
 double sqr(double d) {
     return d*d;
 }
