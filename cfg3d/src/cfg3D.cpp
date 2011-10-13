@@ -1358,6 +1358,15 @@ public:
     }
 
 };
+class Boundary : public NonTerminal
+{
+    
+};
+
+class Wall : public NonTerminal
+{
+    
+};
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
@@ -1532,6 +1541,7 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
+
 
 template<typename numt>
 class increment
