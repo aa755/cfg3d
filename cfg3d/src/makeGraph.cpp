@@ -243,6 +243,7 @@ public:
     static void convertToXYZ(const pcl::PointCloud<PointOutT> &cloud, pcl::PointCloud<pcl::PointXYZ> & cloudxyz)
     {
         cloudxyz.points.resize(cloud.size());
+        cloudxyz.sensor_origin_=cloud.sensor_origin_;
         for (size_t i = 0; i < cloud.size(); i++)
         {
             cloudxyz.points[i].x = cloud.points[i].x;
@@ -261,6 +262,7 @@ public:
         cloudSeg=& cloud;
         resolution = resolution_;
         convertToXYZ(cloud, xyzcloud);
+        cout<<"Computing Occupancy Map using origin as: "<<cloud.sensor_origin_<<endl;
         tree.insertScan(xyzcloud, convertFromVector(cloud.sensor_origin_), -1, true);
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
         
@@ -633,6 +635,7 @@ int main(int argc, char** argv)
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
 cloud_seg.points.resize(cloud.size());
+cloud_seg.sensor_origin_=cloud_temp.sensor_origin_;
 
     for (size_t i = 0; i < cloud.size(); i++)
     {
