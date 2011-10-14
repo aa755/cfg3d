@@ -1454,6 +1454,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
     rules.push_back(RulePtr(new RScene_FloorCorner()));
     rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
+    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
 }
 
 void log(int iter, Symbol * sym) {
