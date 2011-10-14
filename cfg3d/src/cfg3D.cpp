@@ -83,6 +83,10 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 
+double infinity() {
+    return numeric_limits<double>::infinity();
+}
+
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
@@ -94,6 +98,7 @@ protected:
      *  required for being a superior CFG
      */
     double cost;
+    double maxZ;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
 
@@ -147,6 +152,10 @@ public:
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
+    virtual double getMaxZ() {
+        return maxZ;
+    }
+    
     virtual int getId() = 0;
 
     /**
@@ -226,6 +235,19 @@ public:
     
     double getZSquaredSum() {
         return zSquaredSum;
+    }
+    
+    void computeMaxZ() {
+        vector<int>& pointIndices = getPointIndices();
+        double greatestMaxZ = -infinity();
+        double itMaxZ = 0;
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            itMaxZ = scene.points[*it].z;
+            if (itMaxZ > greatestMaxZ) {
+                greatestMaxZ = itMaxZ;
+            }
+        }
+        maxZ = greatestMaxZ;
     }
     
     void addPointIndex(int index)
@@ -391,7 +413,7 @@ public:
         lastIteration = 0;
         duplicate=false;
     }
-
+    
     friend class NTSetComparison;
 
     void printData() {
@@ -1010,6 +1032,19 @@ public:
         zSquaredSum = sum;
     }
     
+    void computeMaxZ() {
+        vector<Symbol*>::iterator it;
+        double greatestMaxZ = -infinity();
+        double itMaxZ;
+        for (it = children.begin(); it != children.end(); ++it) {
+            itMaxZ = (*it)->getMaxZ();
+            if (itMaxZ > greatestMaxZ) {
+                greatestMaxZ = itMaxZ;
+            }
+        }
+        maxZ = greatestMaxZ;
+    }
+    
     Eigen::Vector3d getPlaneNormal() {
         return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
     }
@@ -1064,6 +1099,7 @@ public:
     
     void additionalFinalize() {
         computeZSquaredSum();
+        computeMaxZ();
        // if (pointIndices.size() >= 3)
          //   computePlaneParams();
     }
@@ -1429,6 +1465,11 @@ public:
 
 };
 
+class Leg : public NonTerminal
+{
+    
+};
+
 template<>
     void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
     {
@@ -1443,6 +1484,12 @@ template<>
         output->setAdditionalCost(fabs(planeParams[2]));
     }
 
+//template<>
+//    void SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
+//    {
+//        Vector4f planeParams = input->getPlaneParams();
+//        output->setAdditionalCost(fabs(planeParams[2]));
+//    }
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
@@ -1507,6 +1554,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     for(unsigned int i=0;i<terminals.size();i++)
     {
         terminals[i]->computeZSquaredSum();
+        terminals[i]->computeMaxZ();
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
