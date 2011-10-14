@@ -1473,11 +1473,68 @@ class Leg : public NonTerminal
 class Table : public NonTerminal {
 };
 
-class TableTop: public NonTerminal {
-};
-
 class Legs: public NonTerminal {
 };
+
+class TableTop: public Plane {
+    /*
+     * TODO: add fields to store convex hull
+     */
+    
+    /**
+     * computes the convex hull of 2D points obtained by gettign rid of Z 
+     * coordinates
+     */
+    void compute2DConvexHull()
+    {
+        // getPointIndices() gives all the indices of points in this tabletop
+        // scene.points[i]  gives you the ith point
+        //compute their convex hull
+    }
+    
+    /*
+     * TODO: add fields to store rectangle
+     */
+    void computeRectangleParams()
+    {
+        compute2DConvexHull();
+        // use the computed convex hull to compute rectangle and store it
+    }
+    
+    
+        
+    /**
+     * here, we are trying to find out whether the input tableTopCandidate is
+     * a good candidate for being a tableTop
+     * 
+     * use the rectangle params and convex hull
+     * @param tableTopCandidate
+     */
+    double computeSelfCost(Plane *tableTopCandidate)
+    {
+        computeRectangleParams();
+        return 0;
+        
+    }
+    
+    
+    /**
+     * here, we are trying to find out whether the given legs fit this top 
+     * use the convex hull of this tableTop(guaranteed to be already computed)
+     * compute convex of legs
+     * compute areas increase 
+     * @param tableTopCandidate
+     * @param legs
+     * @return 
+     */
+    double computeCostOfAddingLegs(Legs *legs)
+    {
+        computeRectangleParams();
+        return 0;
+        
+    }
+};
+
 
 template<>
     void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
