@@ -148,6 +148,10 @@ public:
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
+    virtual double getMaxZ() {
+        assert(3==2);
+    }
+    
     virtual int getId() = 0;
 
     /**
@@ -227,6 +231,19 @@ public:
     
     double getZSquaredSum() {
         return zSquaredSum;
+    }
+    
+    void computeMaxZ() {
+        vector<int>& pointIndices = getPointIndices();
+        double greatestMaxZ = -3;
+        double itMaxZ = 0;
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            itMaxZ = scene.points[*it].z;
+            if (itMaxZ > greatestMaxZ) {
+                greatestMaxZ = itMaxZ;
+            }
+        }
+        maxZ = greatestMaxZ;
     }
     
     void addPointIndex(int index)
@@ -392,7 +409,7 @@ public:
         lastIteration = 0;
         duplicate=false;
     }
-
+    
     friend class NTSetComparison;
 
     void printData() {
@@ -1011,6 +1028,23 @@ public:
         zSquaredSum = sum;
     }
     
+    double getMaxZ() {
+        return maxZ;
+    }
+    
+    void computeMaxZ() {
+        vector<Symbol*>::iterator it;
+        double greatestMaxZ = 0;
+        double itMaxZ;
+        for (it = children.begin(); it != children.end(); ++it) {
+            itMaxZ = (*it)->getMaxZ();
+            if (itMaxZ > greatestMaxZ) {
+                greatestMaxZ = itMaxZ;
+            }
+        }
+        maxZ = greatestMaxZ;
+    }
+    
     Eigen::Vector3d getPlaneNormal() {
         return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
     }
@@ -1519,6 +1553,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     for(unsigned int i=0;i<terminals.size();i++)
     {
         terminals[i]->computeZSquaredSum();
+        terminals[i]->computeMaxZ();
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
