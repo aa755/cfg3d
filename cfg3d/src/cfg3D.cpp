@@ -94,6 +94,7 @@ protected:
      *  required for being a superior CFG
      */
     double cost;
+    double maxZ;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
 
@@ -1429,6 +1430,11 @@ class Wall : public NonTerminal
     
 };
 
+class Leg : public NonTerminal
+{
+    
+};
+
 template<>
     void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
     {
@@ -1443,6 +1449,12 @@ template<>
         output->setAdditionalCost(fabs(planeParams[2]));
     }
 
+//template<>
+//    void SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
+//    {
+//        Vector4f planeParams = input->getPlaneParams();
+//        output->setAdditionalCost(fabs(planeParams[2]));
+//    }
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
