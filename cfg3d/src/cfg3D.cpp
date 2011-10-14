@@ -889,19 +889,20 @@ class DoubleRule : public Rule
 public:
     //    template<typename RHS_Type1, typename RHS_Type2>
 
+    
+    void setCost(LHS_Type* output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
+    {
+        assert(3 == 2); // needs specialization
+    }
+        
     NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS_unordered1);
         LHS->addChild(RHS_unordered2);
-        LHS->setAdditionalCost(0);
+        setCost(LHS, RHS_unordered1, RHS_unordered2);
         LHS->computeSpannedTerminals();
         return LHS;
-    }
-
-    void setCost(LHS_Type output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
-    {
-        assert(3 == 2); // needs specialization
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
@@ -928,19 +929,28 @@ class SingleRule : public Rule
     }
 
 public:
-    NonTerminal* applyRule(RHS_Type* RHS)
-    {
-        LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS);
-        LHS->setCost(LHS, RHS);
-        LHS->computeSpannedTerminals();
-        return LHS;
-    }
-
+    
+     /**
+     * This must be overriden by the inheriting class as each SingleRule will have its own specific cost function.
+     * @param output
+     * @param input
+     */
     void setCost(LHS_Type* output, RHS_Type* input)
     {
         assert(3 == 2);
     }
+        
+    NonTerminal* applyRule(RHS_Type* RHS)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS);
+        setCost(LHS, RHS);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+
+
+
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
