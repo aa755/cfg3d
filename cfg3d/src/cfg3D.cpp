@@ -1407,6 +1407,15 @@ public:
     }
 
 };
+class Boundary : public NonTerminal
+{
+    
+};
+
+class Wall : public NonTerminal
+{
+    
+};
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
@@ -1417,7 +1426,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
     rules.push_back(RulePtr(new RScene_FloorCorner()));
-//    rules.push_back(RulePtr(new DoubleRule<Floor,Floor,Floor>()));
+    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1582,6 +1591,7 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
+
 
 template<typename numt>
 class increment
