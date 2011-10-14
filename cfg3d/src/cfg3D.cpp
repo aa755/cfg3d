@@ -83,6 +83,10 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 
+double infinity() {
+    return numeric_limits<double>::infinity();
+}
+
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
@@ -149,7 +153,7 @@ public:
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
     virtual double getMaxZ() {
-        assert(3==2);
+        return maxZ;
     }
     
     virtual int getId() = 0;
@@ -235,7 +239,7 @@ public:
     
     void computeMaxZ() {
         vector<int>& pointIndices = getPointIndices();
-        double greatestMaxZ = -3;
+        double greatestMaxZ = -infinity();
         double itMaxZ = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             itMaxZ = scene.points[*it].z;
@@ -1028,13 +1032,9 @@ public:
         zSquaredSum = sum;
     }
     
-    double getMaxZ() {
-        return maxZ;
-    }
-    
     void computeMaxZ() {
         vector<Symbol*>::iterator it;
-        double greatestMaxZ = 0;
+        double greatestMaxZ = -infinity();
         double itMaxZ;
         for (it = children.begin(); it != children.end(); ++it) {
             itMaxZ = (*it)->getMaxZ();
@@ -1099,6 +1099,7 @@ public:
     
     void additionalFinalize() {
         computeZSquaredSum();
+        computeMaxZ();
        // if (pointIndices.size() >= 3)
          //   computePlaneParams();
     }
