@@ -1439,8 +1439,8 @@ template<>
 template<>
     void SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input)
     {
- //       cerr<<"correct cost"; // needs specialization
-        output->setAdditionalCost(0);
+        Vector4f planeParams = input->getPlaneParams();
+        output->setAdditionalCost(fabs(planeParams[2]));
     }
 
 
