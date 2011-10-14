@@ -1436,6 +1436,13 @@ template<>
         output->setAdditionalCost(0);
     }
 
+template<>
+    void SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input)
+    {
+ //       cerr<<"correct cost"; // needs specialization
+        output->setAdditionalCost(0);
+    }
+
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
