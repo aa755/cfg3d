@@ -887,9 +887,11 @@ class DoubleRule : public Rule
     }
 
 public:
-    //    template<typename RHS_Type1, typename RHS_Type2>
-
-    
+    /**
+     * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
+     * @param output
+     * @param input
+     */
     void setCost(LHS_Type* output, RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
         assert(3 == 2); // needs specialization
@@ -931,7 +933,7 @@ class SingleRule : public Rule
 public:
     
      /**
-     * This must be overriden by the inheriting class as each SingleRule will have its own specific cost function.
+     * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
      * @param output
      * @param input
      */
