@@ -1632,7 +1632,7 @@ template<>
 template<>
     void SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
     {
-        output->setAdditionalCost(input->getCost());
+        output->setAdditionalCost(0);
     }
 
 
@@ -1642,9 +1642,9 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
     Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
     Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
     double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
-    if (0 <= cosine || cosine <= .1) {
+    if (cosine <= .1) {
         return 0;
-    } else if (.1 < cosine || cosine <= .8) {
+    } else if (.1 < cosine && cosine <= .8) {
         return 1000000;
     } else {
         pcl::PointXYZ leg1Centroid;
@@ -1656,7 +1656,7 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
         
         double coplanarity = (vectorBetweenCentroids).dot(leg1PlaneNormal);
         if (coplanarity > .2) {
-            return coplanarity;
+            return 1.0/coplanarity;
         } else {
             return 1000000;
         }
