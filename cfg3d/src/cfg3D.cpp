@@ -364,6 +364,22 @@ protected:
 public:
     friend class RPlanePair_PlanePlane;
     friend class Terminal;
+    
+    size_t getNumChildren()
+    {
+        return children.size();
+    }
+    
+    Symbol * getChild(int i)
+    {
+        return children.at(i);
+    }
+    
+    string getName()
+    {
+        return string(typeid(*this).name()+1)+boost::lexical_cast<std::string>(id);
+    }
+    
     vector<int> pointIndices; // can be replaced with any sufficient statistic
 
     void computePointIndices(vector<Terminal*> & terminals) {
@@ -1372,22 +1388,53 @@ class Scene : public NonTerminal {
     void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut=scene;
-        std::ofstream logFile;
-        logFile.open("log.txt", ios::out);
-        NonTerminal *child1 = dynamic_cast<NonTerminal *> (children[0]);
-        NonTerminal *child2 = dynamic_cast<NonTerminal *> (children[1]);
-        for (size_t i = 0; i < child1->pointIndices.size(); i++) {
-            logFile << "," << child1->pointIndices[i];
-            sceneOut.points[child1->pointIndices[i]].label = 1;
+        std::ofstream graphvizFile;
+        std::ofstream NTmembershipFile;
+        graphvizFile.open("tree.dot", ios::out);
+        NTmembershipFile.open("membership.txt", ios::out);
+        stack<NonTerminal*> parseTreeNodes;
+        parseTreeNodes.push(this);
+        
+        graphvizFile<<"digraph g{\n";
+        while(!parseTreeNodes.empty())
+        {
+            NonTerminal *curNode=parseTreeNodes.top();
+            string curName=curNode->getName();
+            parseTreeNodes.pop();
+            printNodeData(NTmembershipFile,curNode);
+            for(size_t i=0;i<curNode->getNumChildren();i++)
+            {
+                if(typeid(*(curNode->getChild(i)))!=typeid(Terminal))
+                {
+                    NonTerminal * child=dynamic_cast<NonTerminal*>(curNode->getChild(i));
+                    graphvizFile<<curName<<" -> "<<child->getName()<<" ;\n";
+                    parseTreeNodes.push(child);
+                }
+            }
+            
         }
-        logFile << endl;
-        for (size_t i = 0; i < child2->pointIndices.size(); i++) {
-            logFile << "," << child2->pointIndices[i];
-            sceneOut.points[child2->pointIndices[i]].label = 2;
+        
+        
+        graphvizFile <<"}\n";
+        graphvizFile.close();
+        NTmembershipFile.close();
+        
+    }
+    
+    void printNodeData(std::ofstream & membershipFile, NonTerminal *node)
+    {
+        if(node==this) // will always cover full scene
+            return;
+        
+        membershipFile<<node->getId();
+        
+        node->resetNeighborIterator();
+        int index;
+        while(node->nextNeighborIndex(index))
+        {
+            membershipFile<<","<<index;
         }
-        logFile << endl;
-        logFile.close();
-        pcl::io::savePCDFile("fridge_out.pcd", sceneOut, true);
+        membershipFile<<endl;
     }
     
 };
@@ -1741,27 +1788,6 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
-
-
-template<typename numt>
-class increment
-{
-public:
-    numt increment1(numt inp)
-    {
-        return inp+1;
-    }
-    numt dment1(numt inp)
-    {
-        return inp-1;
-    }
-};
-
-template<>
-float increment<float>::increment1(float inp)
-    {
-        return inp+0.1;
-    }
 
 int main(int argc, char** argv) {
 
