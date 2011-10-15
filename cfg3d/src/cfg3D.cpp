@@ -1470,6 +1470,15 @@ class Leg : public NonTerminal
     
 };
 
+class Table : public NonTerminal {
+};
+
+class TableTop: public NonTerminal {
+};
+
+class Legs: public NonTerminal {
+};
+
 template<>
     void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
     {
