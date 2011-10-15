@@ -1557,6 +1557,12 @@ template<>
         output->setAdditionalCost(fabs(planeParams[2]) + fabs(input->getMaxZ() - 1));
     }
 
+template<>
+    void SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
+    {
+        output->setAdditionalCost(input->getCost());
+    }
+
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
