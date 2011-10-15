@@ -104,6 +104,7 @@ protected:
 
     //    vector<NonTerminal*> parents;
 public:
+    virtual string getName()=0;
 
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
@@ -197,6 +198,10 @@ public:
         return neighbors;
     }
 
+    string getName()
+    {
+        return boost::lexical_cast<std::string>(index+1);
+    }
     
     /**
      * initialize the neighbors vector
@@ -365,6 +370,17 @@ public:
     friend class RPlanePair_PlanePlane;
     friend class Terminal;
     
+     void resetTerminalIterator()
+    {
+        assert(spanned_terminals.size()>0);
+        spanned_terminals.iteratorReset();
+    }
+    
+    bool nextTerminalIndex( int & index)
+    {
+        return spanned_terminals.nextOnBit(index);
+    }
+   
     size_t getNumChildren()
     {
         return children.size();
@@ -1404,10 +1420,12 @@ class Scene : public NonTerminal {
             printNodeData(NTmembershipFile,curNode);
             for(size_t i=0;i<curNode->getNumChildren();i++)
             {
-                if(typeid(*(curNode->getChild(i)))!=typeid(Terminal))
+                Symbol * childs=curNode->getChild(i);
+                
+                graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
+                if(typeid(*childs)!=typeid(Terminal))
                 {
-                    NonTerminal * child=dynamic_cast<NonTerminal*>(curNode->getChild(i));
-                    graphvizFile<<curName<<" -> "<<child->getName()<<" ;\n";
+                    NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
                     parseTreeNodes.push(child);
                 }
             }
@@ -1428,11 +1446,12 @@ class Scene : public NonTerminal {
         
         membershipFile<<node->getId();
         
-        node->resetNeighborIterator();
+
+        node->resetTerminalIterator();
         int index;
-        while(node->nextNeighborIndex(index))
+        while(node->nextTerminalIndex(index))
         {
-            membershipFile<<","<<index;
+            membershipFile<<","<<index+1;
         }
         membershipFile<<endl;
     }
