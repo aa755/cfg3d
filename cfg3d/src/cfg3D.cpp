@@ -1391,8 +1391,17 @@ class Scene : public NonTerminal {
     }
     
 };
+class Boundary : public NonTerminal
+{
+    
+};
 
-class RScene_FloorCorner : public Rule {
+class Wall : public NonTerminal
+{
+    
+};
+
+class RScene_BoundaryCorner : public Rule {
     template<typename TypeExtracted, typename TypeCombinee>
     void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
 
@@ -1451,18 +1460,9 @@ public:
     
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
     {
-         combineAndPushGeneric<Corner,Floor>(extractedSym,pqueue,terminals,iterationNo);
+         combineAndPushGeneric<Corner,Boundary>(extractedSym,pqueue,terminals,iterationNo);
     }
 
-};
-class Boundary : public NonTerminal
-{
-    
-};
-
-class Wall : public NonTerminal
-{
-    
 };
 
 class Leg : public NonTerminal
@@ -1508,7 +1508,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
     rules.push_back(RulePtr(new RFloor_Plane()));
     rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
-    rules.push_back(RulePtr(new RScene_FloorCorner()));
+    rules.push_back(RulePtr(new RScene_BoundaryCorner()));
     rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
 }
