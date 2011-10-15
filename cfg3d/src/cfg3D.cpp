@@ -21,6 +21,7 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
+#define TABLE_HEIGHT .75
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
@@ -1477,6 +1478,11 @@ class TableTop: public NonTerminal {
 };
 
 class Legs: public NonTerminal {
+    vector<Leg*> legs;
+public: 
+    vector<Leg*> getLegs() {
+        return legs;
+    }
 };
 
 template<>
@@ -1497,7 +1503,7 @@ template<>
     void SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
     {
         Vector4f planeParams = input->getPlaneParams();
-        output->setAdditionalCost(fabs(planeParams[2]) + fabs(input->getMaxZ() - 1));
+        output->setAdditionalCost(fabs(planeParams[2]) + fabs(input->getMaxZ() - TABLE_HEIGHT));
     }
 
 template<>
@@ -1506,6 +1512,22 @@ template<>
         output->setAdditionalCost(input->getCost());
     }
 
+
+double computeLegLegCost(Leg* leg1, Leg* leg2) {
+    return 0.0;
+}
+
+template<>
+    void DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2)
+    {
+        vector<Leg*> legs = input1->getLegs();
+        vector<Leg*>::iterator it;
+        double costCount = 0;
+        for (it = legs.begin(); it != legs.end(); it++) {
+            costCount = costCount + computeLegLegCost(*it, input2);
+        }
+        output->setAdditionalCost(costCount);
+    }
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
