@@ -325,7 +325,7 @@ protected:
     size_t numTerminals;
     //    vector<bool> setOfPoints;
     AdvancedDynamicBitset spanned_terminals;
-    vector<Symbol*> children;
+    
     pcl::PointXYZ centroid;
     int id;
     /**
@@ -363,6 +363,7 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    vector<Symbol*> children;
     friend class RPlanePair_PlanePlane;
     friend class Terminal;
     vector<int> pointIndices; // can be replaced with any sufficient statistic
@@ -1514,7 +1515,30 @@ template<>
 
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
-    return 0.0;
+    Plane* leg1Plane = dynamic_cast<Plane*>(leg1->children.at(0));
+    Vector3d leg1PlaneNormal = leg1Plane->getPlaneNormal();
+    Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
+    Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
+    double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
+    if (0 <= cosine || cosine <= .1) {
+        return 0;
+    } else if (.1 < cosine || cosine <= .8) {
+        return 1000000;
+    } else {
+        pcl::PointXYZ leg1Centroid;
+        leg1Plane->getCentroid(leg1Centroid);
+        pcl::PointXYZ leg2Centroid;
+        leg2Plane->getCentroid(leg2Centroid);
+        Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
+                leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
+        
+        double coplanarity = (vectorBetweenCentroids).dot(leg1PlaneNormal);
+        if (coplanarity > .2) {
+            return coplanarity;
+        } else {
+            return 1000000;
+        }
+    }
 }
 
 template<>
