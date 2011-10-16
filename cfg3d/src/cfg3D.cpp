@@ -1687,14 +1687,26 @@ template<>
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
+    //rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
+    //rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
+    
+    //forming Planes
     rules.push_back(RulePtr(new RPlane_Seg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-    rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
+    
+    //Floor and Wall = Boundary
     rules.push_back(RulePtr(new RFloor_Plane()));
-    rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
-    rules.push_back(RulePtr(new RScene<Corner,Boundary>()));
-    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
+
+    // rules for table
+    rules.push_back(RulePtr(new SingleRule<TableTop, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+
+    //whole scene
+    rules.push_back(RulePtr(new RScene<Table,Boundary>()));
 }
 
 void log(int iter, Symbol * sym) {
