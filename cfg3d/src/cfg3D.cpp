@@ -99,6 +99,7 @@ protected:
      * =max(cost  deriving any child) + cost of applying the rule that gave this
      *  required for being a superior CFG
      */
+    bool featuresComputed;
     double cost;
     double maxZ;
     double zSquaredSum;
@@ -111,6 +112,10 @@ protected:
 public:
     virtual string getName()=0;
 
+    Symbol()
+    {
+        featuresComputed=false;
+    }
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
     virtual bool isSpanExclusive(NonTerminal * nt) = 0;
@@ -123,7 +128,7 @@ public:
         return neighbors;
     }
     
-    virtual void computeCentroid()=0 ;
+    virtual void computeCentroidAndNumPoints()=0 ;
 
     virtual void printData() =0;
     
@@ -157,6 +162,7 @@ public:
 
     virtual void getCentroid(pcl::PointXYZ & centroid_)
     {
+        assert(featuresComputed);
         centroid_=centroid;
     }
 
@@ -166,25 +172,29 @@ public:
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
     virtual double getMaxZ() {
+        assert(featuresComputed);
         return maxZ;
     }
     
     virtual void computeZSquaredSum() = 0;
     
     virtual double getZSquaredSum() {
+        assert(featuresComputed);
         return zSquaredSum;
     }
         
     double computeZMinusCSquared(double c) 
     {
+        assert(featuresComputed);
         return zSquaredSum - 2 * centroid.z * numPoints * c + numPoints * c*c;
     }
     
     void computeFeatures()
     {
+        featuresComputed=true;
         computeZSquaredSum();
         computeMaxZ();
-        computeCentroid();
+        computeCentroidAndNumPoints();
     }
     
     virtual int getId() = 0;
@@ -199,6 +209,7 @@ public:
     
     long getNumPoints() const
     {
+        assert(featuresComputed);
         return numPoints;
     }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
@@ -284,7 +295,7 @@ public:
         maxZ = greatestMaxZ;
     }
     
-    void computeCentroid() {
+    void computeCentroidAndNumPoints() {
         centroid.x = 0;
         centroid.y = 0;
         centroid.z = 0;
@@ -318,7 +329,8 @@ public:
         set_membership.set(index, true);
     }
 
-    Terminal() {
+    Terminal() : Symbol()
+    {
         index = -1; /// for safety;
         cost = 0;
     }
@@ -383,7 +395,7 @@ protected:
      */
     //will be populated only when extracted as min
 
-    void computeCentroid() {
+    void computeCentroidAndNumPoints() {
         pcl::PointXYZ childCent;
         numPoints=0;
         centroid.x = 0;
@@ -483,7 +495,8 @@ public:
         return id;
     }
 
-    NonTerminal() {
+    NonTerminal() : Symbol()
+    {
         costSet = false;
         id = id_counter++;
         cout << "nNT: " << id << endl;
@@ -1686,9 +1699,9 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
         leg2Plane->getCentroid(leg2Centroid);
         Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
                 leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
-        double coplanarity = (vectorBetweenCentroids).dot(leg1PlaneNormal);
+        double coplanarity = fabs((vectorBetweenCentroids).dot(leg1PlaneNormal));
         if (coplanarity > .2) {
-            return 1.0/coplanarity;
+            return 0.01/coplanarity;
         } else {
             return HIGH_COST;
         }
@@ -1823,7 +1836,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             exit(-1);
         }
         
-        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<min->getName()<< endl;
+        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
         if (typeid (*min) == typeid (Scene)) {
             cout << "goal reached!!" << endl;
@@ -1833,7 +1846,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal(terminals);
             min->printData();
-
+            cout<<"mz"<<min->getMaxZ()<<endl;
+            
             for (size_t i = 0; i < rules.size(); i++) {
 
                 rules[i]->combineAndPush(min, pq, terminals,rulecount++); // combine with the eligible NT's to form new NTs and add them to the priority queue
