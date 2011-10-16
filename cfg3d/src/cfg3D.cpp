@@ -1765,7 +1765,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         pq.pushTerminal(temp);
     }
 
-    for(unsigned int i=0;i<scene.size();i++)
+    for(unsigned int i=0;i<scene.size();i+=10)
     {
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
