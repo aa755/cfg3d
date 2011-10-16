@@ -1554,6 +1554,14 @@ public:
     vector<Leg*> getLegs() {
         return legs;
     }
+    
+    void setLegs(vector<Leg*> newLegs) {
+        legs = newLegs;
+    }
+    
+    void appendLeg(Leg* leg) {
+        legs.push_back(leg);
+    }
 };
 
 class TableTop: public Plane {
@@ -1638,6 +1646,7 @@ template<>
 template<>
     void SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
     {
+        output->appendLeg(input);
         output->setAdditionalCost(0);
     }
 
@@ -1680,6 +1689,8 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
 template<>
     void DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2)
     {
+        output->setLegs(input1->getLegs());
+        output->appendLeg(input2);
         vector<Leg*> legs = input1->getLegs();
         vector<Leg*>::iterator it;
         double costCount = 0;
@@ -1707,6 +1718,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     // rules for table
     rules.push_back(RulePtr(new SingleRule<TableTop, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
 
