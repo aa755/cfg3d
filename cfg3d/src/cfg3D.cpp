@@ -22,7 +22,7 @@
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .75
-#define HIGH_COST 10000
+#define HIGH_COST 10
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
@@ -439,7 +439,7 @@ public:
     
     string getName()
     {
-        return string(typeid(*this).name()+1)+boost::lexical_cast<std::string>(id);
+        return string(typeid(*this).name()+1)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id);
     }
     
     vector<int> pointIndices; // can be replaced with any sufficient statistic
@@ -550,7 +550,7 @@ public:
     void computeNeighborTerminalSet() {
         neighbors.resize (Terminal::totalNumTerminals,false);
         vector<Symbol*>::iterator it;
-        for (it = children.begin(); it != children.end(); ++it) {
+        for (it = children.begin(); it != children.end(); it++) {
             neighbors |= (*it)->getNeigborTerminalBitset();
         }
         neighbors -= spanned_terminals;
@@ -560,7 +560,7 @@ public:
         vector<Symbol*>::iterator it;
         double greatestMaxZ = -infinity();
         double itMaxZ;
-        for (it = children.begin(); it != children.end(); ++it) {
+        for (it = children.begin(); it != children.end(); it++) {
             itMaxZ = (*it)->getMaxZ();
             if (itMaxZ > greatestMaxZ) {
                 greatestMaxZ = itMaxZ;
@@ -598,7 +598,7 @@ public:
     bool declareOptimal( vector<Terminal*> & terminals) {
         vector<Symbol*>::iterator it;
 
-        for (it = children.begin(); it != children.end(); ++it) {
+        for (it = children.begin(); it != children.end(); it++) {
             (*it)->appendOptimalParents(this);
         }
 
@@ -1823,7 +1823,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             exit(-1);
         }
         
-        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<typeid(*min).name()<< endl;
+        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() << " id: " << min->getId() <<" typ:"<<min->getName()<< endl;
 
         if (typeid (*min) == typeid (Scene)) {
             cout << "goal reached!!" << endl;
