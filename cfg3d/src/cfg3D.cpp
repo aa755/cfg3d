@@ -1657,7 +1657,7 @@ template<>
 
 template<>
     void DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
-        output->setAbsoluteCost(0);
+        output->setAdditionalCost(0);
     }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
@@ -1765,8 +1765,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         pq.pushTerminal(temp);
     }
 
-    for(unsigned int i=0;i<scene.size();i+=10)
+    for(unsigned int i=0;i<scene.size();i++)
     {
+        if(rand()%10 != 1)
+            continue;
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
         if(segIndex>0)
