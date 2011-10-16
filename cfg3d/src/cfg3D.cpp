@@ -862,7 +862,7 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-        if (sym->getCost() >= HIGH_COST) {
+        if (sym->getCost() >= 6.65) {
             return false;
         }
         
@@ -1049,7 +1049,12 @@ class SingleRule : public Rule
     void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        addToPqueueIfNotDuplicate(applyRule(RHS_extracted), pqueue);
+        NonTerminal * newNT=applyRule(RHS_extracted);
+        
+        if(newNT!=NULL)
+        {
+                addToPqueueIfNotDuplicate(newNT, pqueue);
+        }
     }
 
     void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
@@ -1067,7 +1072,7 @@ public:
      * @param output
      * @param input
      */
-    void setCost(LHS_Type* output, RHS_Type* input)
+    bool setCost(LHS_Type* output, RHS_Type* input)
     {
         assert(3 == 2);
     }
@@ -1077,8 +1082,13 @@ public:
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);
         LHS->computeSpannedTerminals();
-        setCost(LHS, RHS);
-        return LHS;
+        if(setCost(LHS, RHS))
+             return LHS;
+        else
+        {
+            delete LHS;
+            return NULL;
+        }
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
@@ -1396,39 +1406,6 @@ public:
     }
 };
 
-class RFloor_Plane : public Rule {
-    
-public:
-    /**
-     * Creates a new Floor object, setting Floor's absolute cost to equal 
-     * the Plane's points' distances to the canonical z-plane.
-     */
-    NonTerminal* applyRule(Plane* RHS_plane, vector<Terminal*>& terminals) {
-        Floor* LHS = new Floor();
-        LHS->addChild(RHS_plane);
-        LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
-        LHS->setAbsoluteCost(RHS_plane->getZSquaredSum());
-        return LHS;
-    }
-    
-        /** 
-     * Simply checks if extractedSym is of type Plane and creates a Plane object 
-         * assigning to the Plane object the cost of considering the Plane as a Floor.
-     * @param extractedSym
-     * @param pqueue
-     * @param terminals
-     * @param iterationNo
-     */
-    void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, 
-        vector<Terminal*>& terminals, long iterationNo) {
-        if(typeid(*extractedSym) == typeid(Plane)) {
-            Plane* RHS_plane = dynamic_cast<Plane*>(extractedSym);
-            addToPqueueIfNotDuplicate(applyRule(RHS_plane, terminals), pqueue);
-        } 
-    }
-};
-
 class Scene : public NonTerminal {
     // the printData below should be used only for the Goal NT type
     void printData() {
@@ -1652,30 +1629,66 @@ template<>
     }
 
 template<>
-    void SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input)
+    bool SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input)
     {
         Vector4f planeParams = input->getPlaneParams();
-        output->setAdditionalCost(fabs(planeParams[2]));
+        double additionalCost=fabs(planeParams[2]);
+        if(additionalCost>0.2)
+            return false;
+        else 
+        {
+            output->setAdditionalCost(additionalCost);
+            return true;
+        }           
     }
 
 template<>
-    void SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
+    bool SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
     {
     //cerr<<"called"<<fabs(input->getMaxZ() - TABLE_HEIGHT)<<","<<(input->getMaxZ())<<endl;
         Vector4f planeParams = input->getPlaneParams();
-        output->setAdditionalCost(fabs(planeParams[2]) + fabs(input->getMaxZ() - TABLE_HEIGHT));
+        double normalZ=fabs(planeParams[2]);
+        double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
+
+        if(normalZ>0.2 || maxZDiff >0.2)
+            return false;
+        else 
+        {
+            output->setAdditionalCost(normalZ + maxZDiff);
+            return true;
+        }
     }
 
 template<>
-    void SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
+    bool SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
     {
         output->appendLeg(input);
         output->setAdditionalCost(0);
+        return true;
     }
 
 template<>
-    void SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
-        output->setAbsoluteCost(input->computeZMinusCSquared(TABLE_HEIGHT));
+    bool SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
+        double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
+        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+            return false;
+        else 
+        {
+            output->setAdditionalCost(additionalCost);
+            return true;
+        }                   
+    }
+
+template<>
+    bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input) {
+        double additionalCost=input->getZSquaredSum();
+        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+            return false;
+        else 
+        {
+            output->setAdditionalCost(additionalCost);
+            return true;
+        }                   
     }
 
 template<>
@@ -1734,7 +1747,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
     
     //Floor and Wall = Boundary
-    rules.push_back(RulePtr(new RFloor_Plane()));
+    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
     rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
 
