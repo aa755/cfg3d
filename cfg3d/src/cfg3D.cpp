@@ -1625,7 +1625,7 @@ class TableTop: public Plane {
 };
 
 template<>
-    void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * RHS_unordered1, Wall * RHS_unordered2)
+    void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2)
     {
  //       cerr<<"correct cost"; // needs specialization
         output->setAdditionalCost(0);
@@ -1654,6 +1654,11 @@ template<>
 template<>
     void SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
         output->setAbsoluteCost(input->computeZMinusCSquared(TABLE_HEIGHT));
+    }
+
+template<>
+    void DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
+        output->setAbsoluteCost(0);
     }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
