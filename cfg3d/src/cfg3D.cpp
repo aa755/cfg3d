@@ -519,6 +519,10 @@ public:
      */
     void setAbsoluteCost(double absoluteCost) {
         assert(absoluteCost >= 0);
+        vector<Symbol*>::iterator it;
+        for (it = children.begin(); it != children.end(); it++) {
+            assert(absoluteCost >= (*it)->getCost());
+        }
         cost = absoluteCost;
         costSet = true;
         cout << "absc: " << cost << endl;
@@ -1657,7 +1661,7 @@ template<>
 
 template<>
     void DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
-        output->setAbsoluteCost(0);
+        output->setAdditionalCost(0);
     }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
