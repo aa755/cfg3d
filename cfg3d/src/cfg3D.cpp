@@ -519,6 +519,10 @@ public:
      */
     void setAbsoluteCost(double absoluteCost) {
         assert(absoluteCost >= 0);
+        vector<Symbol*>::iterator it;
+        for (it = children.begin(); it != children.end(); it++) {
+            assert(absoluteCost >= (*it)->getCost());
+        }
         cost = absoluteCost;
         costSet = true;
         cout << "absc: " << cost << endl;
