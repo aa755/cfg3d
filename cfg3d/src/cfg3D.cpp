@@ -100,6 +100,7 @@ protected:
      */
     double cost;
     double maxZ;
+    double zSquaredSum;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
 
@@ -120,6 +121,8 @@ public:
     }
 
     virtual void printData() =0;
+    
+    virtual void computeMaxZ()=0;
 
     void resetNeighborIterator()
     {
@@ -190,9 +193,8 @@ protected:
      */
     size_t index;
     vector<int> pointIndices;
-    double zSquaredSum;
+    
 public:
-
     static int totalNumTerminals;
     
     boost::dynamic_bitset<> & getNeighbors() {
@@ -508,6 +510,19 @@ public:
         neighbors -= spanned_terminals;
     }
 
+    void computeMaxZ() {
+        vector<Symbol*>::iterator it;
+        double greatestMaxZ = -infinity();
+        double itMaxZ;
+        for (it = children.begin(); it != children.end(); ++it) {
+            itMaxZ = (*it)->getMaxZ();
+            if (itMaxZ > greatestMaxZ) {
+                greatestMaxZ = itMaxZ;
+            }
+        }
+        maxZ = greatestMaxZ;
+    }
+    
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
         //        assert(pointIndices.size()>0);
         set_membership |= this->spanned_terminals;
@@ -1066,19 +1081,6 @@ public:
         zSquaredSum = sum;
     }
     
-    void computeMaxZ() {
-        vector<Symbol*>::iterator it;
-        double greatestMaxZ = -infinity();
-        double itMaxZ;
-        for (it = children.begin(); it != children.end(); ++it) {
-            itMaxZ = (*it)->getMaxZ();
-            if (itMaxZ > greatestMaxZ) {
-                greatestMaxZ = itMaxZ;
-            }
-        }
-        maxZ = greatestMaxZ;
-    }
-    
     Eigen::Vector3d getPlaneNormal() {
         return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
     }
@@ -1363,11 +1365,6 @@ public:
     }
 };
 
-//template<typename LHS_Type, typename RHS1_Type >
-//class SingleRule : Rule{    
-//}; 
-
-
 class RFloor_Plane : public Rule {
     
 public:
@@ -1549,7 +1546,6 @@ public:
     }
 };
 
-
 class TableTop: public Plane {
     /*
      * TODO: add fields to store convex hull
@@ -1635,6 +1631,10 @@ template<>
         output->setAdditionalCost(0);
     }
 
+template<>
+    void SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
+        output->setAdditionalCost(0);
+    }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
     Plane* leg1Plane = dynamic_cast<Plane*>(leg1->children.at(0));
@@ -1653,7 +1653,6 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
         leg2Plane->getCentroid(leg2Centroid);
         Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
                 leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
-        
         double coplanarity = (vectorBetweenCentroids).dot(leg1PlaneNormal);
         if (coplanarity > .2) {
             return 1.0/coplanarity;
