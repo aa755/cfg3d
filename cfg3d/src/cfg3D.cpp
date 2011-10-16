@@ -179,6 +179,12 @@ public:
         return zSquaredSum - 2 * centroid.z * numPoints * c + numPoints * c*c;
     }
     
+    void computeFeatures()
+    {
+        computeZSquaredSum();
+        computeMaxZ();
+        computeCentroid();
+    }
     
     virtual int getId() = 0;
 
@@ -594,17 +600,7 @@ public:
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
         computePointIndices(terminals);
-        //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
-
-        /*        for(size_t i=0;i<pointIndices.size();i++)
-                {
-                    resIns=ancestors[pointIndices[i]].insert(this); // too many duplicate inserts
-                    assert(resIns.second);
-                }   */
-
-        // S wont ever be finalized , ... so it will only contain planes
-
-        // computeCentroid();
+        computeFeatures();
         additionalFinalize();
         return true;
     }
@@ -1152,12 +1148,6 @@ public:
             
     }
     
-    void additionalFinalize() {
-        computeZSquaredSum();
-        computeMaxZ();
-       // if (pointIndices.size() >= 3)
-         //   computePlaneParams();
-    }
 };
 
 class Floor : public Plane {
@@ -1702,14 +1692,26 @@ template<>
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
+    //rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
+    //rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
+    
+    //forming Planes
     rules.push_back(RulePtr(new RPlane_Seg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-    rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
+    
+    //Floor and Wall = Boundary
     rules.push_back(RulePtr(new RFloor_Plane()));
-    rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
-    rules.push_back(RulePtr(new RScene<Corner,Boundary>()));
-    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
+
+    // rules for table
+    rules.push_back(RulePtr(new SingleRule<TableTop, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+
+    //whole scene
+    rules.push_back(RulePtr(new RScene<Table,Boundary>()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1761,8 +1763,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
-        terminals[i]->computeZSquaredSum();
-        terminals[i]->computeMaxZ();
+        terminals[i]->computeFeatures();
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
