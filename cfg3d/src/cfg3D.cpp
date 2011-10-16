@@ -103,6 +103,8 @@ protected:
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
+    pcl::PointXYZ centroid;
+    long numPoints; // later, pointIndices might not be computed;
 
     //    vector<NonTerminal*> parents;
 public:
@@ -119,6 +121,8 @@ public:
     boost::dynamic_bitset<> & getNeigborTerminalBitset() {
         return neighbors;
     }
+    
+    virtual void computeCentroid()=0 ;
 
     virtual void printData() =0;
     
@@ -150,7 +154,10 @@ public:
 
     virtual size_t getNumTerminals() = 0;
 
-    virtual void getCentroid(pcl::PointXYZ & centroid) = 0;
+    virtual void getCentroid(pcl::PointXYZ & centroid_)
+    {
+        centroid_=centroid;
+    }
 
     virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
 
@@ -169,6 +176,11 @@ public:
      */
     void appendOptimalParents(NonTerminal* node) {
         optimalParents.push_back(node);
+    }
+    
+    long getNumPoints() const
+    {
+        return numPoints;
     }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
@@ -232,8 +244,8 @@ public:
         return pointIndices;
     }
     
-    void computeZSquaredSum() {
-        vector<int>& pointIndices = getPointIndices();
+    void computeZSquaredSum() 
+    {
         double costSum = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
@@ -246,7 +258,6 @@ public:
     }
     
     void computeMaxZ() {
-        vector<int>& pointIndices = getPointIndices();
         double greatestMaxZ = -infinity();
         double itMaxZ = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
@@ -257,6 +268,23 @@ public:
         }
         maxZ = greatestMaxZ;
     }
+    
+    void computeCentroid() {
+        centroid.x = 0;
+        centroid.y = 0;
+        centroid.z = 0;
+        for (size_t i = 0; i < pointIndices.size(); i++) {
+            PointT & point = scene.points[pointIndices[i]];
+            centroid.x += point.x;
+            centroid.y += point.y;
+            centroid.z += point.z;
+        }
+        numPoints=pointIndices.size();
+        centroid.x /= numPoints;
+        centroid.y /= numPoints;
+        centroid.z /= numPoints;
+    }
+    
     
     void addPointIndex(int index)
     {
@@ -294,9 +322,6 @@ public:
         return index;
     }
 
-    void getCentroid(pcl::PointXYZ & centroid) {
-        assert(3 == 2); // need to be implemented
-    }
 
     void printData() {
         cout << "t\t:" << index << endl;
@@ -333,7 +358,6 @@ protected:
     //    vector<bool> setOfPoints;
     AdvancedDynamicBitset spanned_terminals;
     
-    pcl::PointXYZ centroid;
     int id;
     /**
      * version number
@@ -345,20 +369,23 @@ protected:
     //will be populated only when extracted as min
 
     void computeCentroid() {
-        assert(pointIndices.size() > 0);
-        PointT point;
+        pcl::PointXYZ childCent;
+        numPoints=0;
         centroid.x = 0;
         centroid.y = 0;
         centroid.z = 0;
-        for (size_t i = 0; i < pointIndices.size(); i++) {
-            point = scene.points[pointIndices[i]];
-            centroid.x += point.x;
-            centroid.y += point.y;
-            centroid.z += point.z;
+        
+        for (size_t i = 0; i < children.size(); i++) {
+            children.at(i)->getCentroid(childCent);
+            long numPointsInChild=children.at(i)->getNumPoints();
+            numPoints+=numPointsInChild;
+            centroid.x += numPointsInChild*childCent.x;
+            centroid.y += numPointsInChild*childCent.y;
+            centroid.z += numPointsInChild*childCent.z;
         }
-        centroid.x /= pointIndices.size();
-        centroid.y /= pointIndices.size();
-        centroid.z /= pointIndices.size();
+        centroid.x /= numPoints;
+        centroid.y /= numPoints;
+        centroid.z /= numPoints;
     }
 
     bool isSpanExclusive(NonTerminal * nt) {
@@ -565,9 +592,6 @@ public:
         return true;
     }
 
-    void getCentroid(pcl::PointXYZ & centroid1) {
-        centroid1 = centroid;
-    }
 
     /**
      * For a NonTerminal node X, we only need to call additionalFinalize() if the cost 
