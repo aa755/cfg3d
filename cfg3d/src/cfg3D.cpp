@@ -160,7 +160,7 @@ public:
 
     virtual size_t getNumTerminals() = 0;
 
-    virtual void getCentroid(pcl::PointXYZ & centroid_)
+    void getCentroid(pcl::PointXYZ & centroid_)
     {
         assert(featuresComputed);
         centroid_=centroid;
@@ -171,14 +171,14 @@ public:
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
-    virtual double getMaxZ() {
+    double getMaxZ() {
         assert(featuresComputed);
         return maxZ;
     }
     
     virtual void computeZSquaredSum() = 0;
     
-    virtual double getZSquaredSum() {
+    double getZSquaredSum() {
         assert(featuresComputed);
         return zSquaredSum;
     }
@@ -1661,6 +1661,7 @@ template<>
 template<>
     void SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
     {
+    //cerr<<"called"<<fabs(input->getMaxZ() - TABLE_HEIGHT)<<","<<(input->getMaxZ())<<endl;
         Vector4f planeParams = input->getPlaneParams();
         output->setAdditionalCost(fabs(planeParams[2]) + fabs(input->getMaxZ() - TABLE_HEIGHT));
     }
