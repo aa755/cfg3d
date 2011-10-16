@@ -1653,7 +1653,7 @@ template<>
 
 template<>
     void SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
-        output->setAdditionalCost(0);
+        output->setAbsoluteCost(input->computeZMinusCSquared(TABLE_HEIGHT));
     }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
