@@ -179,6 +179,12 @@ public:
         return zSquaredSum - 2 * centroid.z * numPoints * c + numPoints * c*c;
     }
     
+    void computeFeatures()
+    {
+        computeZSquaredSum();
+        computeMaxZ();
+        computeCentroid();
+    }
     
     virtual int getId() = 0;
 
@@ -594,17 +600,7 @@ public:
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
         computePointIndices(terminals);
-        //     std::pair< set<NonTerminal*>::iterator , bool > resIns;
-
-        /*        for(size_t i=0;i<pointIndices.size();i++)
-                {
-                    resIns=ancestors[pointIndices[i]].insert(this); // too many duplicate inserts
-                    assert(resIns.second);
-                }   */
-
-        // S wont ever be finalized , ... so it will only contain planes
-
-        // computeCentroid();
+        computeFeatures();
         additionalFinalize();
         return true;
     }
@@ -1152,12 +1148,6 @@ public:
             
     }
     
-    void additionalFinalize() {
-        computeZSquaredSum();
-        computeMaxZ();
-       // if (pointIndices.size() >= 3)
-         //   computePlaneParams();
-    }
 };
 
 class Floor : public Plane {
@@ -1756,8 +1746,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
-        terminals[i]->computeZSquaredSum();
-        terminals[i]->computeMaxZ();
+        terminals[i]->computeFeatures();
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
