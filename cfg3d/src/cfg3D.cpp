@@ -22,6 +22,7 @@
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .75
+#define HIGH_COST 10000
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
@@ -848,6 +849,10 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
+        if (sym->getCost() >= HIGH_COST) {
+            return false;
+        }
+        
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
 
@@ -1673,7 +1678,7 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
     if (cosine <= .1) {
         return 0;
     } else if (.1 < cosine && cosine <= .8) {
-        return 1000000;
+        return HIGH_COST;
     } else {
         pcl::PointXYZ leg1Centroid;
         leg1Plane->getCentroid(leg1Centroid);
@@ -1685,7 +1690,7 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
         if (coplanarity > .2) {
             return 1.0/coplanarity;
         } else {
-            return 1000000;
+            return HIGH_COST;
         }
     }
 }
