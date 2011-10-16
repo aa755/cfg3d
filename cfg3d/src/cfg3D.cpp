@@ -168,6 +168,18 @@ public:
         return maxZ;
     }
     
+    virtual void computeZSquaredSum() = 0;
+    
+    virtual double getZSquaredSum() {
+        return zSquaredSum;
+    }
+        
+    double computeZMinusCSquared(double c) 
+    {
+        return zSquaredSum - 2 * centroid.z * numPoints * c + numPoints * c*c;
+    }
+    
+    
     virtual int getId() = 0;
 
     /**
@@ -251,10 +263,6 @@ public:
             costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
         }
         zSquaredSum = costSum;
-    }
-    
-    double getZSquaredSum() {
-        return zSquaredSum;
     }
     
     void computeMaxZ() {
@@ -548,6 +556,15 @@ public:
             }
         }
         maxZ = greatestMaxZ;
+    }
+    
+    void computeZSquaredSum() {
+        double sum = 0;
+        vector<Symbol*>::iterator it;
+        for(it = children.begin(); it != children.end(); it++) {
+                sum = sum + (*it)->getZSquaredSum();
+        }
+        zSquaredSum = sum;
     }
     
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
@@ -1046,9 +1063,6 @@ public:
         return LHS;
     }
 
-
-
-
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
@@ -1077,10 +1091,6 @@ public:
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
 
-    double getZSquaredSum() {
-        return zSquaredSum;
-    }
-    
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
@@ -1088,21 +1098,6 @@ public:
      //   double norm = getNorm();
      //   planeParams /= norm;
         planeParamsComputed = true;
-    }
-
-    void computeZSquaredSum() {
-        double sum = 0;
-        vector<Symbol*>::iterator it;
-        for(it = children.begin(); it != children.end(); it++) {
-            if (typeid (**it) == typeid (Plane)) {
-                Plane* plane = dynamic_cast<Plane*> (*it);
-                sum = sum + (plane->getZSquaredSum() * plane->getZSquaredSum());
-            } else if (typeid (**it) == typeid (Terminal)) {
-                Terminal* terminal = dynamic_cast<Terminal*> (*it);
-                sum = sum + (terminal->getZSquaredSum() * terminal->getZSquaredSum());
-            }
-        }
-        zSquaredSum = sum;
     }
     
     Eigen::Vector3d getPlaneNormal() {
