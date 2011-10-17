@@ -5,18 +5,24 @@
  * Created on July 26, 2011, 7:41 PM
  */
 
+#include <opencv/cv.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include<typeinfo>
-#include"point_types.h"
+#include <typeinfo>
+#include "point_types.h"
 #include "point_struct.h"
-#include<pcl/features/normal_3d.h>
-#include<pcl/sample_consensus/sac_model_plane.h>
-#include<queue>
-#include<pcl/io/pcd_io.h>
-#include<pcl/io/io.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/sample_consensus/sac_model_plane.h>
+#include <queue>
+#include <pcl/io/pcd_io.h>
+#include <pcl/io/io.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/surface/convex_hull.h>
 #include <stdlib.h>
 #include <time.h>
 #include <boost//lexical_cast.hpp>
@@ -1587,31 +1593,94 @@ public:
 };
 
 class TableTop: public Plane {
-    /*
-     * TODO: add fields to store convex hull
-     */
-    
+
+public:
+
+    TableTop()
+    {
+
+        compute2DConvexHull();
+        _rosToOpenCv(rectConvexHull, cv2dConvexHull);
+        computeRectangleParams();
+    }
+
+    vector<pcl::PointXY> getCorners()
+    {
+        return corners;
+    }
+
+    float getAngle()
+    {
+        return angle;
+    }
+
+    float getWidth()
+    {
+        return width;
+    }
+
+    float getHeight()
+    {
+        return height;
+    }
+
+    pcl::PointXY getCenter()
+    {
+        return center;
+    }
+
+    float getRectArea()
+    {
+        return width * height;
+    }
+
+    float getConvexHullArea()
+    {
+        return convexHullArea;
+    }
+
+
     /**
      * computes the convex hull of 2D points obtained by gettign rid of Z 
      * coordinates
      */
     void compute2DConvexHull()
     {
-        // getPointIndices() gives all the indices of points in this tabletop
-        // scene.points[i]  gives you the ith point
-        //compute their convex hull
+        assert(false);
+        // TODO: check if scene2D is initialized
+        rectConvexHull.points.clear();  // TODO: is this the right way?
+        pcl::PointCloud<pcl::PointXY> scene2D;  // TODO: this should be global
+        // TODO: find out why this copy does not work.
+        // pcl::copyPointCloud(scene, scene2D);
+        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        computeConvexHull.setInputCloud(scene2D.makeShared());
+        computeConvexHull.setIndices(getPointIndices());
+
+        computeConvexHull.reconstruct(rectConvexHull);
     }
-    
-    /*
-     * TODO: add fields to store rectangle
-     */
+
     void computeRectangleParams()
     {
-        compute2DConvexHull();
-        // use the computed convex hull to compute rectangle and store it
+        corners.clear();
+        cv::RotatedRect rect = cv::minAreaRect(cv::Mat(cv2dConvexHull));
+        angle = rect.angle;
+        cv::Point2f cvCorners[4];
+        rect.points(cvCorners);
+        for (int i = 0; i < 4; ++i) {
+            pcl::PointXY pt;
+            pt.x = cvCorners[i].x;
+            pt.y = cvCorners[i].y;
+            corners.push_back(pt);
+        }
+
+        center.x = rect.center.x;
+        center.y = rect.center.y;
+
+        height = rect.size.height;
+        width = rect.size.width;
+
+        convexHullArea = _getPolygonArea(cv2dConvexHull);
     }
-    
-    
         
     /**
      * here, we are trying to find out whether the input tableTopCandidate is
@@ -1622,9 +1691,34 @@ class TableTop: public Plane {
      */
     double computeSelfCost(Plane *tableTopCandidate)
     {
-        computeRectangleParams();
-        return 0;
-        
+        // Define height and width cost
+        float heightCost = 0;
+        float widthCost = 0;
+
+        if (height < 0.5)
+        {
+            heightCost = 0.5 - height;
+        }
+        else if (height > 1.5)
+        {
+            heightCost = height - 1.5;
+        }
+
+        if (width < 1)
+        {
+            widthCost = 1 - width;
+        }
+        else if (width > 3)
+        {
+            widthCost = width - 3;
+        }
+
+        // To get the error rate of the fitting rectangle, get the ratio
+        // of the area of the fitting rectangle to the plane's convex hull.
+        float fittingCost = getRectArea() / convexHullArea;
+
+        float cost = heightCost + widthCost + fittingCost;
+        return cost;
     }
     
     
@@ -1639,9 +1733,70 @@ class TableTop: public Plane {
      */
     double computeCostOfAddingLegs(Legs *legs)
     {
-        computeRectangleParams();
-        return 0;
+        // Get the ratio of the area of the new convex hull to the plane's
+        // convex hull. We define the new convex hull as the original plane's
+        // points plus the legs' points.
+      
+        // Compute the convex hull for legs first
+        pcl::PointCloud<pcl::PointXY> legConvexHull;
+        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        computeConvexHull.setInputCloud(scene2D.makeShared());
+        computeConvexHull.setIndices(legs->getPointIndices());
+        computeConvexHull.reconstruct(legConvexHull);
+
+        // Combine the convex hull of legs and tabletop
+        pcl::PointCloud<pcl::PointXY> combinedPoints;
+        pcl::concatenatePointCloud(legCOnvexHull, rectConvexHull, combinedPoints);
+
+        // Compute the new convex hull of the combined convex hull.
+        pcl::PointCloud<pcl::PointXY> combinedConvexHull;
+        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        computeConvexHull.setInputCloud(combinedPoints.makeShared());
+        computeConvexHull.reconstruct(combinedConvexHull);
+
+        // Transform the convex hull to OpenCV and get the area
+        vector<cv::Point2f> combined2dCv;
+        _rosToOpenCv(combinedConvexHull, combined2dCv);
+        float combinedArea = _getPolygonArea(combined2dCv);
+
+        float cost = combinedArea / getRectArea();
+        return cost;
     }
+
+private:
+
+    vector<pcl::PointXY> corners;
+    float angle;
+    pcl::PointXY center;
+    float width;
+    float height;
+    float convexHullArea;
+
+    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
+    vector<cv::Point2f> cv2dConvexHull;  // The convex hull points in openCV.
+
+    /*
+     * Convert ros 2D point cloud to CV Mat.
+    */
+    void _rosToOpenCv(const pcl::PointCloud<pcl::PointXY>& pc2D, vector<cv::Point2f> cv2D)
+    {
+        cv2D.clear();
+        pcl::PointCloud<pcl::PointXY>::const_iterator pc;
+        for (pc = pc2D.begin(); pc != pc2D.end(); ++pc)
+        {
+            cv::Point2f curr(pc->x, pc->y);
+            cv2D.push_back(curr);
+        }
+    }
+
+    /* Get Area */
+    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
+    {
+        vector<cv::Point2f> contour;
+        cv::approxPolyDP(cv::Mat(cv2D), contour, 0.001, true);
+        return fabs(cv::contourArea(cv::Mat(contour)));
+    }
+
 };
 
 template<>
