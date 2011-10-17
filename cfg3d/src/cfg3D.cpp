@@ -229,7 +229,8 @@ public:
  */
 class SymbolPriorityQueue;
 
-class Terminal : public Symbol {
+class Terminal : public Symbol 
+{
 protected:
     /** segment index
      */
@@ -425,7 +426,6 @@ protected:
     bool costSet;
 public:
     vector<Symbol*> children;
-    friend class RPlanePair_PlanePlane;
     friend class Terminal;
     
      void resetTerminalIterator()
@@ -1194,78 +1194,6 @@ public:
     }
 };
 
-class RPlane_PlaneSeg : public Rule {
-public:
-
-    int get_Nof_RHS_symbols() {
-        return 2;
-    }
-
-    void get_typenames(vector<string> & names) {
-        names.push_back(typeid (Plane).name());
-        names.push_back(typeid (Terminal).name());
-    }
-
-    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
-        Plane * LHS = new Plane();
-        LHS->addChild(RHS_plane);
-        LHS->addChild(RHS_seg);
-        LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
-        LHS->computePlaneParams();
-        LHS->setCost();
-        return LHS;
-    }
-
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
-    {
-        set<int>::iterator it;
-        //all terminals have cost=0, all NT's have cost>0,
-        //so when a terminal is extracted, no non-terminal(plane)
-        //has been extracted yet
-        //so, if sym is of type Terminal, it cannot be combined with a plane
-        if (typeid (*extractedSym) == typeid (Plane))
-        {
-            extractedSym->resetNeighborIterator();
-            int index;
-            while (extractedSym->nextNeighborIndex(index))
-            {
-                Plane * plane=dynamic_cast<Plane*> (extractedSym);
-                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
-                addToPqueueIfNotDuplicate(newNT,pqueue);
-            }
-
-        }
-    }
-};
-
-class RPlane_Seg : public Rule {
-public:
-
-
-    NonTerminal* applyRule(Terminal *RHS_seg,vector<Terminal*> & terminals) {
-        Plane * LHS = new Plane();
-        LHS->addChild(RHS_seg);
-        LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
-        LHS->computePlaneParams();
-        LHS->setCost();
-                
-        return LHS;
-    }
-
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) {
-        if (typeid (*extractedSym) == typeid (Terminal))
-        {
-                Terminal * term=dynamic_cast<Terminal*> (extractedSym);
-                NonTerminal *newNT=applyRule(term,terminals);
-                addToPqueueIfNotDuplicate(newNT,pqueue);
-        }
-    }
-
-    
-};
-
 class PlanePair : public NonTerminal {
 protected:
     Eigen::Vector3d crossProduct;
@@ -1303,107 +1231,8 @@ public:
      }
 };
 
-class RPlanePair_PlanePlane : public Rule {
-public:
-    NonTerminal* applyRule(Plane * RHS_plane1, Plane * RHS_plane2)
-    {
-        PlanePair * LHS=new PlanePair();
-        LHS->addChild(RHS_plane1);
-        LHS->addChild(RHS_plane2);
-        LHS->setAdditionalCost(RHS_plane1->coplanarity(RHS_plane2)/*+exp(10*deficit)*/); // more coplanar => bad
-        LHS->computeSpannedTerminals();
-        return LHS;
-    }
-    
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
-    {
-        if(typeid(*extractedSym)==typeid(Plane))
-        {
-                    Plane * RHS_plane1=dynamic_cast<Plane *>(extractedSym);
-                FindNTsToCombineWith finder(extractedSym,terminals,iterationNo);
-                NonTerminal * nt=finder.nextEligibleNT();
-                
-                //int count=0;
-                while(nt!=NULL)
-                {
-//                    nt->printData(); //checked that duplicates not extracted, and exhaustive
-                  //  count++;
-//                    if(typeid(*nt)==typeid(Plane) &&  nt->isMutuallyExhaustive(RHS_plane1))
-                    if(typeid(*nt)==typeid(Plane) )
-                    {
-                        Plane * RHS_plane2=dynamic_cast<Plane *>(nt);
-                        addToPqueueIfNotDuplicate(applyRule(RHS_plane1,RHS_plane2),pqueue);
-                    }
-                    nt=finder.nextEligibleNT();
-                }
-              //  cout<<"nnc: "<<count<<endl;
-        }
-    }
-
-};
-
 class Corner : public NonTerminal {
     // TODO: Do we need anything in here? This class feels cold and empty inside.
-};
-
-class RCorner_PlanePairPlane : public Rule {
-public:
-    /**
-     * Creates a new Corner object, setting Corner's additional cost to equal the dot product
-     * of PlanePair's cross product and Plane's normal.
-     */
-    NonTerminal* applyRule(PlanePair* RHS_planePair, Plane* RHS_plane, vector<Terminal*>& terminals) {
-        Corner* LHS=new Corner();
-        LHS->addChild(RHS_planePair);
-        LHS->addChild(RHS_plane);
-        Vector3d planePairCrossProduct = RHS_planePair->getCrossProduct();
-        Vector3d planeNormal(RHS_plane->getPlaneNormal());
-        LHS->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
-        LHS->computeSpannedTerminals();
-       // LHS->computePointIndices(terminals);
-        return LHS;
-    }
-
-    /**
-     * Iterates through all possible NTs to combine with and combines 
-     * extractedSym with Plane if extractedSym is PlanePair and combines
-     * extractedSym with PlanePair if extractedSym is Plane.
-     * @param extractedSym
-     * @param pqueue
-     * @param terminals
-     * @param iterationNo
-     */
-    void combineAndPush(Symbol* extractedSym, SymbolPriorityQueue& pqueue, 
-        /**
-         * We can definitely try to reduce redundancy in code here.
-         */
-        vector<Terminal*>& terminals, long iterationNo) {
-        if(typeid(*extractedSym) == typeid(PlanePair)) {
-            PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(extractedSym);
-            FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
-            NonTerminal* nt = finder.nextEligibleNT();
-
-            while(nt != NULL) {
-                if(typeid(*nt) == typeid(Plane)) {
-                    Plane* RHS_plane = dynamic_cast<Plane*>(nt);
-                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
-                }
-                nt = finder.nextEligibleNT();
-            }
-        } else if (typeid(*extractedSym) == typeid(Plane)) {
-            Plane* RHS_plane = dynamic_cast<Plane*>(extractedSym);
-            FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
-            NonTerminal* nt = finder.nextEligibleNT();
-
-            while(nt != NULL) {
-                if(typeid(*nt) == typeid(PlanePair)) {
-                    PlanePair* RHS_planePair = dynamic_cast<PlanePair*>(nt);
-                    addToPqueueIfNotDuplicate(applyRule(RHS_planePair, RHS_plane, terminals), pqueue);
-                }
-                nt = finder.nextEligibleNT();
-            }
-        }
-    }
 };
 
 class Scene : public NonTerminal {
@@ -1622,10 +1451,37 @@ class TableTop: public Plane {
 };
 
 template<>
+    void DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2)
+    {
+        output->setCost();
+    }
+
+template<>
+    void DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2)
+    {
+        output->setAdditionalCost(input1->coplanarity(input2));
+    }
+
+template<>
+    void DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2)
+    {
+        Vector3d planePairCrossProduct = input1->getCrossProduct();
+        Vector3d planeNormal(input2->getPlaneNormal());
+        output->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
+    }
+
+template<>
     void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2)
     {
  //       cerr<<"correct cost"; // needs specialization
         output->setAdditionalCost(0);
+    }
+
+template<>
+    bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input)
+    {
+        output->setCost();
+        return true;
     }
 
 template<>
@@ -1739,12 +1595,12 @@ template<>
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
-    //rules.push_back(RulePtr(new RPlanePair_PlanePlane()));
-    //rules.push_back(RulePtr(new RCorner_PlanePairPlane()));
+    //rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+    //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
     //forming Planes
-    rules.push_back(RulePtr(new RPlane_Seg()));
-    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+    rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
+    rules.push_back(RulePtr(new DoubleRule<Plane,Plane,Terminal>()));
     
     //Floor and Wall = Boundary
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
@@ -1757,6 +1613,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+
 
     //whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
