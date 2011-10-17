@@ -39,6 +39,22 @@ class ColorRGB{
        b+=other.b;
    }
 
+   void operator /=(const int & num)
+   {
+       r/=num;
+       g/=num;
+       b/=num;
+   }
+   
+   ColorRGB operator *(const int & num)
+   {
+       float nr,ng,nb;
+       nr=r*num;
+       ng=g*num;
+       nb=b*num;
+       return ColorRGB(nr,ng,nb);
+   }
+   
    ColorRGB(int rgbi)
    {
        parseColorRGB(rgbi);

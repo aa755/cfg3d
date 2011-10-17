@@ -318,6 +318,7 @@ public:
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
+        avgColor/=numPoints;
         avgColor=avg.getFloatRep();
     }
     
@@ -407,6 +408,7 @@ protected:
 
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
+        ColorRGB avg(0,0,0);
         numPoints=0;
         centroid.x = 0;
         centroid.y = 0;
@@ -419,10 +421,13 @@ protected:
             centroid.x += numPointsInChild*childCent.x;
             centroid.y += numPointsInChild*childCent.y;
             centroid.z += numPointsInChild*childCent.z;
+            avg+=(children.at(i)->getAvgColor()*numPointsInChild);
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
+        avg/=numPoints;
+        avgColor=avg.getFloatRep();
     }
 
     bool isSpanExclusive(NonTerminal * nt) {
