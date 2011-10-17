@@ -1457,7 +1457,6 @@ public:
 };
 
 class TableTop: public Plane {
-//
 //public:
 //
 //    TableTop()
@@ -1610,7 +1609,7 @@ class TableTop: public Plane {
 //
 //        // Combine the convex hull of legs and tabletop
 //        pcl::PointCloud<pcl::PointXY> combinedPoints;
-//        pcl::concatenatePointCloud(legConvexHull, rectConvexHull, combinedPoints);
+//        pcl::concatenatePointCloud(legCOnvexHull, rectConvexHull, combinedPoints);
 //
 //        // Compute the new convex hull of the combined convex hull.
 //        pcl::PointCloud<pcl::PointXY> combinedConvexHull;
@@ -1662,15 +1661,61 @@ class TableTop: public Plane {
 //    }
 };
 
-template<>
-    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
-    {
-        output->computePointIndices(terminals);
-        output->computePlaneParams();
-        output->setCost();
-        cout<<"COST OF PLANE->PLANESEG: "<<output->getCost()<<endl;
-        return true;
+//template<>
+//    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
+//    {
+//        output->computePointIndices(terminals);
+//        output->computePlaneParams();
+//        output->setCost();
+//        cout<<"COST OF PLANE->PLANESEG: "<<output->getCost()<<endl;
+//        return true;
+//    }
+
+class RPlane_PlaneSeg : public Rule {
+public:
+
+    int get_Nof_RHS_symbols() {
+        return 2;
     }
+
+    void get_typenames(vector<string> & names) {
+        names.push_back(typeid (Plane).name());
+        names.push_back(typeid (Terminal).name());
+    }
+
+    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
+        Plane * LHS = new Plane();
+        LHS->addChild(RHS_plane);
+        LHS->addChild(RHS_seg);
+        LHS->computeSpannedTerminals();
+        LHS->computePointIndices(terminals);
+        LHS->computePlaneParams();
+        LHS->setCost();
+        return LHS;
+    }
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        set<int>::iterator it;
+        //all terminals have cost=0, all NT's have cost>0,
+        //so when a terminal is extracted, no non-terminal(plane)
+        //has been extracted yet
+        //so, if sym is of type Terminal, it cannot be combined with a plane
+        if (typeid (*extractedSym) == typeid (Plane))
+        {
+            extractedSym->resetNeighborIterator();
+            int index;
+            while (extractedSym->nextNeighborIndex(index))
+            {
+                Plane * plane=dynamic_cast<Plane*> (extractedSym);
+                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
+                addToPqueueIfNotDuplicate(newNT,pqueue);
+            }
+
+        }
+    }
+};
+
 
 template<>
     bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
@@ -1825,7 +1870,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     //forming Planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
-    rules.push_back(RulePtr(new DoubleRule<Plane,Plane,Terminal>()));
+    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
     
     //Floor and Wall = Boundary
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
