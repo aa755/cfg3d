@@ -968,6 +968,8 @@ public:
 
     virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
+        if(newNT==NULL)
+            return;
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
@@ -991,7 +993,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type2))
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule (RHS_extracted, RHS_combinee), pqueue);
+                addToPqueueIfNotDuplicate(applyRule (RHS_extracted, RHS_combinee,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -1012,7 +1014,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type1))
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule(RHS_combinee, RHS_extracted), pqueue);
+                addToPqueueIfNotDuplicate(applyRule(RHS_combinee, RHS_extracted,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -1038,19 +1040,24 @@ public:
      * @param output
      * @param input
      */
-    bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(3 == 2); // needs specialization
     }
         
-    NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS1);
         LHS->addChild(RHS2);
         LHS->computeSpannedTerminals();
-        setCost(LHS,RHS1,RHS2);
-        return LHS;
+        if(setCost(LHS,RHS1,RHS2, terminals))
+            return LHS;
+        else
+        {
+            delete LHS;
+            return NULL;
+        }
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
@@ -1065,7 +1072,7 @@ class SingleRule : public Rule
     void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRule(RHS_extracted);
+        NonTerminal * newNT=applyRule(RHS_extracted,terminals);
         
         if(newNT!=NULL)
         {
@@ -1088,17 +1095,17 @@ public:
      * @param output
      * @param input
      */
-    bool setCost(LHS_Type* output, RHS_Type* input)
+    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
     {
         assert(3 == 2);
     }
         
-    NonTerminal* applyRule(RHS_Type* RHS)
+    NonTerminal* applyRule(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);
         LHS->computeSpannedTerminals();
-        if(setCost(LHS, RHS))
+        if(setCost(LHS, RHS,terminals))
              return LHS;
         else
         {
@@ -1467,21 +1474,23 @@ class TableTop: public Plane {
 };
 
 template<>
-    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2)
+    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
     {
+        output->computePointIndices(terminals);
+        output->computePlaneParams();
         output->setCost();
         return true;
     }
 
 template<>
-    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2)
+    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
     {
         output->setAdditionalCost(input1->coplanarity(input2));
         return true;
     }
 
 template<>
-    bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2)
+    bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
     {
         Vector3d planePairCrossProduct = input1->getCrossProduct();
         Vector3d planeNormal(input2->getPlaneNormal());
@@ -1490,7 +1499,7 @@ template<>
     }
 
 template<>
-    bool DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2)
+    bool DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2, vector<Terminal*> & terminals)
     {
  //       cerr<<"correct cost"; // needs specialization
         output->setAdditionalCost(0);
@@ -1498,14 +1507,16 @@ template<>
     }
 
 template<>
-    bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input)
+    bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
+        output->computePointIndices(terminals);
+        output->computePlaneParams();
         output->setCost();
         return true;
     }
 
 template<>
-    bool SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input)
+    bool SingleRule<Wall, Plane> :: setCost(Wall* output, Plane* input, vector<Terminal*> & terminals)
     {
         Vector4f planeParams = input->getPlaneParams();
         double additionalCost=fabs(planeParams[2]);
@@ -1519,7 +1530,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input)
+    bool SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input, vector<Terminal*> & terminals)
     {
     //cerr<<"called"<<fabs(input->getMaxZ() - TABLE_HEIGHT)<<","<<(input->getMaxZ())<<endl;
         Vector4f planeParams = input->getPlaneParams();
@@ -1536,7 +1547,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input)
+    bool SingleRule<Legs, Leg> :: setCost(Legs* output, Leg* input, vector<Terminal*> & terminals)
     {
         output->appendLeg(input);
         output->setAdditionalCost(0);
@@ -1544,7 +1555,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input) {
+    bool SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
         if(additionalCost>(0.2*0.2)*input->getNumPoints())
             return false;
@@ -1556,7 +1567,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input) {
+    bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->getZSquaredSum();
         if(additionalCost>(0.2*0.2)*input->getNumPoints())
             return false;
@@ -1568,8 +1579,9 @@ template<>
     }
 
 template<>
-    bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
+    bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
         output->setAdditionalCost(0);
+        return true;
     }
 
 double computeLegLegCost(Leg* leg1, Leg* leg2) {
@@ -1599,7 +1611,7 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
 }
 
 template<>
-    bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2)
+    bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2, vector<Terminal*> & terminals)
     {
         output->setLegs(input1->getLegs());
         output->appendLeg(input2);
@@ -1610,6 +1622,7 @@ template<>
             costCount = costCount + computeLegLegCost(*it, input2);
         }
         output->setAdditionalCost(costCount);
+        return true;
     }
 
 typedef boost::shared_ptr<Rule> RulePtr;

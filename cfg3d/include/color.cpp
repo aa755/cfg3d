@@ -31,7 +31,7 @@ class ColorRGB{
        assert(b<=1&&b>=0);
        convertToHSV();
    }
-   
+      
    void operator +=(const ColorRGB& other)
    {
        r+=other.r;
@@ -48,11 +48,12 @@ class ColorRGB{
    
    ColorRGB operator *(const int & num)
    {
-       float nr,ng,nb;
-       nr=r*num;
-       ng=g*num;
-       nb=b*num;
-       return ColorRGB(nr,ng,nb);
+      // float nr,ng,nb;
+       ColorRGB ret;
+       ret.r=r*num;
+       ret.g=g*num;
+       ret.b=b*num;
+       return ret;
    }
    
    ColorRGB(int rgbi)
