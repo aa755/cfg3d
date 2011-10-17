@@ -26,6 +26,7 @@
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
+#include "color.cpp"
 
 //sac_model_plane.h
 
@@ -107,6 +108,7 @@ protected:
     vector<NonTerminal*> optimalParents;
     pcl::PointXYZ centroid;
     long numPoints; // later, pointIndices might not be computed;
+    float avgColor; 
 
     //    vector<NonTerminal*> parents;
 public:
@@ -128,8 +130,8 @@ public:
         return neighbors;
     }
     
-    virtual void computeCentroidAndNumPoints()=0 ;
-
+    virtual void computeCentroidAndColorAndNumPoints()=0 ;
+    
     virtual void printData() =0;
     
     virtual void computeMaxZ()=0;
@@ -166,6 +168,11 @@ public:
         centroid_=centroid;
     }
 
+    ColorRGB getAvgColor()
+    {
+        return ColorRGB(avgColor);
+    }
+    
     virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
@@ -194,7 +201,7 @@ public:
         featuresComputed=true;
         computeZSquaredSum();
         computeMaxZ();
-        computeCentroidAndNumPoints();
+        computeCentroidAndColorAndNumPoints();
     }
     
     virtual int getId() = 0;
@@ -295,20 +302,23 @@ public:
         maxZ = greatestMaxZ;
     }
     
-    void computeCentroidAndNumPoints() {
+    void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
         centroid.y = 0;
         centroid.z = 0;
+        ColorRGB avg(0,0,0);
         for (size_t i = 0; i < pointIndices.size(); i++) {
             PointT & point = scene.points[pointIndices[i]];
             centroid.x += point.x;
             centroid.y += point.y;
             centroid.z += point.z;
+            avg+=ColorRGB(point.rgb);
         }
         numPoints=pointIndices.size();
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
+        avgColor=avg.getFloatRep();
     }
     
     
@@ -395,7 +405,7 @@ protected:
      */
     //will be populated only when extracted as min
 
-    void computeCentroidAndNumPoints() {
+    void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
         numPoints=0;
         centroid.x = 0;

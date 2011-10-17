@@ -8,7 +8,7 @@ using namespace std;
 #define	COLOR_H
 class ColorRGB{
   public:
-   float r,g,b;
+   float r,g,b; // between 0 to 1
    float H,S,V;
    ColorRGB()
    {
@@ -30,6 +30,13 @@ class ColorRGB{
        assert(g<=1&&g>=0);
        assert(b<=1&&b>=0);
        convertToHSV();
+   }
+   
+   void operator +=(const ColorRGB& other)
+   {
+       r+=other.r;
+       g+=other.g;
+       b+=other.b;
    }
 
    ColorRGB(int rgbi)
