@@ -1038,7 +1038,7 @@ public:
      * @param output
      * @param input
      */
-    void setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         assert(3 == 2); // needs specialization
     }
@@ -1467,30 +1467,34 @@ class TableTop: public Plane {
 };
 
 template<>
-    void DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2)
+    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2)
     {
         output->setCost();
+        return true;
     }
 
 template<>
-    void DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2)
+    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2)
     {
         output->setAdditionalCost(input1->coplanarity(input2));
+        return true;
     }
 
 template<>
-    void DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2)
+    bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2)
     {
         Vector3d planePairCrossProduct = input1->getCrossProduct();
         Vector3d planeNormal(input2->getPlaneNormal());
         output->setAdditionalCost(1-fabs(planePairCrossProduct.dot(planeNormal)));
+        return true;
     }
 
 template<>
-    void DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2)
+    bool DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2)
     {
  //       cerr<<"correct cost"; // needs specialization
         output->setAdditionalCost(0);
+        return true;
     }
 
 template<>
@@ -1564,7 +1568,7 @@ template<>
     }
 
 template<>
-    void DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
+    bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2) {
         output->setAdditionalCost(0);
     }
 
@@ -1595,7 +1599,7 @@ double computeLegLegCost(Leg* leg1, Leg* leg2) {
 }
 
 template<>
-    void DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2)
+    bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2)
     {
         output->setLegs(input1->getLegs());
         output->appendLeg(input2);
