@@ -22,10 +22,11 @@
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .75
-#define HIGH_COST 10
+#define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
+#include "color.cpp"
 
 //sac_model_plane.h
 
@@ -107,6 +108,7 @@ protected:
     vector<NonTerminal*> optimalParents;
     pcl::PointXYZ centroid;
     long numPoints; // later, pointIndices might not be computed;
+    float avgColor; 
 
     //    vector<NonTerminal*> parents;
 public:
@@ -128,8 +130,8 @@ public:
         return neighbors;
     }
     
-    virtual void computeCentroidAndNumPoints()=0 ;
-
+    virtual void computeCentroidAndColorAndNumPoints()=0 ;
+    
     virtual void printData() =0;
     
     virtual void computeMaxZ()=0;
@@ -166,6 +168,11 @@ public:
         centroid_=centroid;
     }
 
+    ColorRGB getAvgColor()
+    {
+        return ColorRGB(avgColor);
+    }
+    
     virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
@@ -194,7 +201,7 @@ public:
         featuresComputed=true;
         computeZSquaredSum();
         computeMaxZ();
-        computeCentroidAndNumPoints();
+        computeCentroidAndColorAndNumPoints();
     }
     
     virtual int getId() = 0;
@@ -296,20 +303,24 @@ public:
         maxZ = greatestMaxZ;
     }
     
-    void computeCentroidAndNumPoints() {
+    void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
         centroid.y = 0;
         centroid.z = 0;
+        ColorRGB avg(0,0,0);
         for (size_t i = 0; i < pointIndices.size(); i++) {
             PointT & point = scene.points[pointIndices[i]];
             centroid.x += point.x;
             centroid.y += point.y;
             centroid.z += point.z;
+            avg+=ColorRGB(point.rgb);
         }
         numPoints=pointIndices.size();
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
+        avgColor/=numPoints;
+        avgColor=avg.getFloatRep();
     }
     
     
@@ -396,8 +407,9 @@ protected:
      */
     //will be populated only when extracted as min
 
-    void computeCentroidAndNumPoints() {
+    void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
+        ColorRGB avg(0,0,0);
         numPoints=0;
         centroid.x = 0;
         centroid.y = 0;
@@ -410,10 +422,13 @@ protected:
             centroid.x += numPointsInChild*childCent.x;
             centroid.y += numPointsInChild*childCent.y;
             centroid.z += numPointsInChild*childCent.z;
+            avg+=(children.at(i)->getAvgColor()*numPointsInChild);
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
+        avg/=numPoints;
+        avgColor=avg.getFloatRep();
     }
 
     bool isSpanExclusive(NonTerminal * nt) {
@@ -862,7 +877,7 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-        if (sym->getCost() >= 6.65) {
+        if (sym->getCost() >= 10.1) {
             return false;
         }
         
@@ -915,6 +930,7 @@ public:
         if(costSortedQueue.empty())
             return NULL;
         Symbol * top = costSortedQueue.top();
+        assert(top!=NULL);
         costSortedQueue.pop();
         duplicate=false;
         if (typeid (*top) != typeid (Terminal)) {
@@ -1506,7 +1522,7 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>0.2 || maxZDiff >0.2)
+        if(normalZ>0.25 || maxZDiff >0.2)
             return false;
         else 
         {
@@ -1703,7 +1719,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         if(min==NULL)
         {
-            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules\n";
+            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n";
             exit(-1);
         }
         
