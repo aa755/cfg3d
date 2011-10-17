@@ -22,7 +22,7 @@
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .75
-#define HIGH_COST 10
+#define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
@@ -862,7 +862,7 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-        if (sym->getCost() >= 6.65) {
+        if (sym->getCost() >= 10.1) {
             return false;
         }
         
@@ -915,6 +915,7 @@ public:
         if(costSortedQueue.empty())
             return NULL;
         Symbol * top = costSortedQueue.top();
+        assert(top!=NULL);
         costSortedQueue.pop();
         duplicate=false;
         if (typeid (*top) != typeid (Terminal)) {
@@ -1650,7 +1651,7 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>0.2 || maxZDiff >0.2)
+        if(normalZ>0.25 || maxZDiff >0.2)
             return false;
         else 
         {
@@ -1846,7 +1847,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         if(min==NULL)
         {
-            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules\n";
+            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n";
             exit(-1);
         }
         
