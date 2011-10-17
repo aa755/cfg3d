@@ -303,6 +303,18 @@ public:
         maxZ = greatestMaxZ;
     }
     
+//    void computeMinZ() {
+//        double lowestMinZ = -infinity();
+//        double itMinZ = 0;
+//        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+//            itMinZ = scene.points[*it].z;
+//            if (itMinZ < lowestMinZ) {
+//                lowestMinZ = itMinZ;
+//            }
+//        }
+//        minZ = lowestMinZ;
+//    }
+    
     void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
         centroid.y = 0;
