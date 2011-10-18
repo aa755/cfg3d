@@ -27,7 +27,7 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .75
+#define TABLE_HEIGHT .70
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
@@ -1861,7 +1861,7 @@ bool isOnTop(Symbol* x, Symbol* y) {
 }
 
 bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .3;
+    return plane->getZNormal() <= .25;
 }
 
 bool isZCloseEnough(double value, double height) {
@@ -1886,7 +1886,7 @@ bool isCloseEnoughToTableHeight(Plane* input) {
 }
 
 bool isCloseEnoughToCompMonTop(Plane* input) {
-    return isZCloseEnough(input->getMinZ(), 1.1);
+    return isZCloseEnough(input->getMaxZ(), 1.1);
 }
 
 // Assumes all computers are above table_height
@@ -1897,14 +1897,17 @@ template<>
         return false;
     } else {
         double minZOfBothPlanes = min(input1->getMinZ(), input2->getMinZ());
+        
         if (!isCloseEnoughToTableHeight(input1) || !isCloseEnoughToTableHeight(input2) ||
             !isCloseEnoughToCompMonTop(input1) || !isCloseEnoughToCompMonTop(input2)) {
             return false;
         } else {
-            double distanceFromTable = minZOfBothPlanes - TABLE_HEIGHT;
+            double distanceFromTable = fabs(minZOfBothPlanes - TABLE_HEIGHT);
             double zNormal1 = input1->getZNormal();
             double zNormal2 = input2->getZNormal();
             output->setAdditionalCost(distanceFromTable + zNormal1 + zNormal2);
+            
+            //TODO: maybe add costs for maxZ?
             return true;
         }
     }
