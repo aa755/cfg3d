@@ -1830,7 +1830,7 @@ template<>
 
 // Assumes all computers are above table_height
 template<>
-    bool SingleRule<Computer, Corner> :: setCost(Computer* output, Corner* input, vector<Terminal*> & terminals) {
+    bool SingleRule<Computer, PlanePair> :: setCost(Computer* output, PlanePair* input, vector<Terminal*> & terminals) {
         output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
         return true;
     }
@@ -1890,10 +1890,17 @@ template<>
     }
 
 template<>
-bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
-    output->setAdditionalCost(0);
-    return true;
-}
+    bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
+        if (input2->getMinZ() - input1->getMaxZ() < .1) 
+        {
+            return false;
+        } 
+        else 
+        {
+            output->setAdditionalCost(0);
+            return true;
+        }
+    }
 
 // This conflicts with our current rule for Table
 //template<>
