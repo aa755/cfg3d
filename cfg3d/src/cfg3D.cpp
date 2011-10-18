@@ -6,9 +6,8 @@
  */
 
 #include <opencv/cv.h>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+// #include <opencv2/imgproc/imgproc.hpp>
+// #include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -1483,7 +1482,9 @@ public:
         // pcl::copyPointCloud(scene, scene2D);
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
         computeConvexHull.setInputCloud(scene2D.makeShared());
-        computeConvexHull.setIndices(getPointIndices());
+
+        // TODO: type wrong
+        // computeConvexHull.setIndices(getPointIndices());
 
         computeConvexHull.reconstruct(rectConvexHull);
     }
@@ -1569,17 +1570,21 @@ public:
         // Compute the convex hull for legs first
         pcl::PointCloud<pcl::PointXY> legConvexHull;
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        assert(false);  // add scene 2D to global
+        pcl::PointCloud<pcl::PointXY> scene2D;
         computeConvexHull.setInputCloud(scene2D.makeShared());
-        computeConvexHull.setIndices(legs->getPointIndices());
+        // TODO: type wrong
+        // computeConvexHull.setIndices(legs->getPointIndices());
         computeConvexHull.reconstruct(legConvexHull);
 
         // Combine the convex hull of legs and tabletop
         pcl::PointCloud<pcl::PointXY> combinedPoints;
-        pcl::concatenatePointCloud(legCOnvexHull, rectConvexHull, combinedPoints);
+        // TODO: type wrong. PointCloud2 to PointCloud
+        // pcl::concatenatePointCloud(legConvexHull, rectConvexHull, combinedPoints);
 
         // Compute the new convex hull of the combined convex hull.
         pcl::PointCloud<pcl::PointXY> combinedConvexHull;
-        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        // pcl::ConvexHull<pcl::PointXY> computeConvexHull;
         computeConvexHull.setInputCloud(combinedPoints.makeShared());
         computeConvexHull.reconstruct(combinedConvexHull);
 
