@@ -1666,6 +1666,10 @@ class TableTopSurface: public Plane {
 //    }
 };
 
+class TableTopObjects : public NonTerminal{};
+
+class TableTop : public NonTerminal{};
+
 //template<>
 //    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
 //    {
@@ -1824,15 +1828,23 @@ template<>
         return true;
     }
 
+// Assumes all computers are above table_height
 template<>
     bool SingleRule<Computer, Corner> :: setCost(Computer* output, Corner* input, vector<Terminal*> & terminals) {
         output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
         return true;
     }
 
+// Assumes all monitors are above table_height
 template<>
     bool SingleRule<Monitor, Plane> :: setCost(Monitor* output, Plane* input, vector<Terminal*> & terminals) {
         output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
+        return true;
+    }
+
+template<>
+    bool DoubleRule<TableTopObjects, Computer, Monitor> :: setCost(TableTopObjects* output, Computer* input1, Monitor* input2, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(0);
         return true;
     }
 
@@ -1876,6 +1888,20 @@ template<>
         output->setAdditionalCost(costCount);
         return true;
     }
+
+template<>
+bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
+    output->setAdditionalCost(0);
+    return true;
+}
+
+// This conflicts with our current rule for Table
+//template<>
+//bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
+//    output->setAdditionalCost(0);
+//    return true;
+//}
+
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
