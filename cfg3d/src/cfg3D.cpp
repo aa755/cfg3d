@@ -1377,7 +1377,7 @@ class Scene : public NonTerminal {
     
 };
 
-class Computer : public NonTerminal{};
+class Computer : public PlanePair{};
 
 class Monitor : public NonTerminal{};
 
@@ -1745,18 +1745,18 @@ public:
 };
 
 /// Templated Rules Marker TRM
-template<>
-    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
-    {
-        double parallelity = input1->dotProduct(input2);
-        if (parallelity < .2) {
-            output->setAdditionalCost(parallelity);
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
+//template<>
+//    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
+//    {
+//        double parallelity = input1->dotProduct(input2);
+//        if (parallelity < .2) {
+//            output->setAdditionalCost(parallelity);
+//            return true;
+//        }
+//        else {
+//            return false;
+//        }
+//    }
 
 template<>
     bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
