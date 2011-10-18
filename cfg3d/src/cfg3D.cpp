@@ -1958,10 +1958,10 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
-    rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
+    
     
     // computer
-    rules.push_back(RulePtr(new SingleRule<Computer, Corner>()));
+    rules.push_back(RulePtr(new SingleRule<Computer, PlanePair>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
@@ -1969,7 +1969,11 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     // whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
-  
+    // table
+    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
+    rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
 }
 
 void log(int iter, Symbol * sym) {
