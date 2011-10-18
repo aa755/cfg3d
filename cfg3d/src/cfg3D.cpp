@@ -39,6 +39,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
+#define MAX_SEG_INDEX 23
 /*
  *
  */
@@ -1959,7 +1960,7 @@ typedef boost::shared_ptr<Rule> RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules) {
     
 
-    //rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
     // planes
