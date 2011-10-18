@@ -1211,21 +1211,9 @@ public:
     }
 
     double costOfAddingPoint(PointT & p) {
-        if (pointIndices.size() == 2) {
-            /*return it's min distance to either points
-             */
-            double d1 = pcl::euclideanDistance<PointT, PointT > (p, scene.points[pointIndices[0]]);
-            double d2 = pcl::euclideanDistance<PointT, PointT > (p, scene.points[pointIndices[1]]);
-            if (d1 > d2)
-                return d1;
-            else
-                return d2;
-        } else if (pointIndices.size() >= 3) {
             assert(planeParamsComputed);
-            //            return exp(100*pcl::pointToPlaneDistance<PointT>(p,planeParams))-1;
-            return pcl::pointToPlaneDistance<PointT > (p, planeParams);
-        } else
-            assert(4 == 2);
+            double ret=pcl::pointToPlaneDistance<PointT > (p, planeParams);
+            return ret;
     }
 
     bool isCloseEnough(PointT& p) {
