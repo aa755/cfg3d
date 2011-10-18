@@ -1200,7 +1200,8 @@ public:
         return planeParams;
     }
     
-    double coplanarity(Plane * plane2) {
+    // If this quantity is greater, then the two planes are more parallel
+    double dotProduct(Plane * plane2) {
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
@@ -1729,8 +1730,14 @@ public:
 template<>
     bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
     {
-        output->setAdditionalCost(input1->coplanarity(input2));
-        return true;
+        double parallelity = input1->dotProduct(input2);
+        if (parallelity < .2) {
+            output->setAdditionalCost(parallelity);
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
 template<>
