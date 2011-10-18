@@ -1822,10 +1822,29 @@ template<>
         }                   
     }
 
-template<>
-    bool DoubleRule<Table, TableTopSurface, Legs> :: setCost(Table* output, TableTopSurface* input1, Legs* input2, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(0);
+// Checks if x is on top of y
+bool isOnTop(Symbol* x, Symbol* y) {
+    if (x->getMinZ() - y->getMaxZ() < .1) 
+    {
+        return false;
+    }
+    else
+    {
         return true;
+    }
+}
+
+template<>
+    bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input1, input2)) 
+        {
+            output->setAdditionalCost(0);
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
     }
 
 // Assumes all computers are above table_height
@@ -1891,14 +1910,14 @@ template<>
 
 template<>
     bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
-        if (input2->getMinZ() - input1->getMaxZ() < .1) 
-        {
-            return false;
-        } 
-        else 
+        if (isOnTop(input2, input1)) 
         {
             output->setAdditionalCost(0);
             return true;
+        } 
+        else 
+        {
+            return false;
         }
     }
 
