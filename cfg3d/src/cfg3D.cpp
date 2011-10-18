@@ -627,15 +627,15 @@ public:
     
     void computeMinZ() {
         vector<Symbol*>::iterator it;
-        double greatestMinZ = infinity();
+        double lowestMinZ = infinity();
         double itMinZ;
         for (it = children.begin(); it != children.end(); it++) {
-            itMinZ = (*it)->getMaxZ();
-            if (itMinZ < greatestMinZ) {
-                greatestMinZ = itMinZ;
+            itMinZ = (*it)->getMinZ();
+            if (itMinZ < lowestMinZ) {
+                lowestMinZ = itMinZ;
             }
         }
-        minZ = greatestMinZ;
+        minZ = lowestMinZ;
     }
     
     void computeZSquaredSum() {
