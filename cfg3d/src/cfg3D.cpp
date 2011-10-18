@@ -2040,7 +2040,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             continue;
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
-        if(segIndex>0)
+        if(segIndex>0 && segIndex<=maxSegIndex)
             terminals.at(segIndex-1)->addPointIndex(i);
     }
     
@@ -2142,12 +2142,20 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
             
             getTokens(line, nbrs);
             int segIndex=nbrs.at(0);
+            
+            if(segIndex>MAX_SEG_INDEX)
+                continue;
+            
             set<int> temp;
             neighbors[segIndex]=temp;
             if(max<segIndex)
                 max=segIndex;
             for(size_t i=1;i<nbrs.size();i++)
             {
+
+                if(nbrs.at(i)>MAX_SEG_INDEX)
+                        continue;
+                
                 neighbors[segIndex].insert(nbrs.at(i));
                 cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
             }
