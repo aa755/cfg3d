@@ -1223,7 +1223,7 @@ public:
         } else if (pointIndices.size() >= 3) {
             assert(planeParamsComputed);
             //            return exp(100*pcl::pointToPlaneDistance<PointT>(p,planeParams))-1;
-            return getNumTerminals()*(exp(pcl::pointToPlaneDistance<PointT > (p, planeParams)) - 1);
+            return pcl::pointToPlaneDistance<PointT > (p, planeParams);
         } else
             assert(4 == 2);
     }
@@ -1865,7 +1865,7 @@ bool isVerticalEnough(Plane* plane) {
 }
 
 bool isZCloseEnough(double value, double height) {
-    return fabs(value - height) <= .2;
+    return fabs(value - height) <= .25;
 }
 
 template<>
