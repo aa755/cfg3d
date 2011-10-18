@@ -1228,6 +1228,25 @@ public:
             assert(4 == 2);
     }
 
+    bool isCloseEnough(PointT& p) {
+        if (costOfAddingPoint(p) > .3) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    bool isAllCloseEnough(Terminal* terminal) {
+        vector<int> termPointIndices = terminal->getPointIndices();
+        for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
+            if (!isCloseEnough(scene.points[*it])) {
+                return false;
+            }
+        }
+        return true;
+    }
+        
+    
     virtual void setCost() {
         setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
@@ -1711,8 +1730,12 @@ public:
         names.push_back(typeid (Plane).name());
         names.push_back(typeid (Terminal).name());
     }
-
+    
     NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
+        if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
+            return NULL;
+        }
+        
         Plane * LHS = new Plane();
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
