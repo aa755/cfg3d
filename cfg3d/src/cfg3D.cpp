@@ -1184,8 +1184,8 @@ public:
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
     
-    double getZ() {
-        return planeParams[2];
+    double getZNormal() {
+        return fabs(planeParams[2]);
     }
 
     void computePlaneParams() {
@@ -1291,16 +1291,16 @@ public:
      }
      
      double getPlane1Z() {
-         return dynamic_cast<Plane*>(children.at(0))->getZ();
+         return dynamic_cast<Plane*>(children.at(0))->getZNormal();
      }
      
      double getPlane2Z() {
-         return dynamic_cast<Plane*>(children.at(1))->getZ();
+         return dynamic_cast<Plane*>(children.at(1))->getZNormal();
      }
      
      double getSumOfZs() {
-         double z1 = dynamic_cast<Plane*>(children.at(0))->getZ();
-         double z2 = dynamic_cast<Plane*>(children.at(1))->getZ();
+         double z1 = dynamic_cast<Plane*>(children.at(0))->getZNormal();
+         double z2 = dynamic_cast<Plane*>(children.at(1))->getZNormal();
          return z1 + z2;
      }
      
@@ -1860,6 +1860,14 @@ bool isOnTop(Symbol* x, Symbol* y) {
     }
 }
 
+bool isVerticalEnough(Plane* plane) {
+    return plane->getZNormal() <= .3;
+}
+
+bool isZCloseEnough(double value, double height) {
+    return fabs(value - height) <= .2;
+}
+
 template<>
     bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
         if (isOnTop(input1, input2)) 
@@ -1873,18 +1881,50 @@ template<>
         }
     }
 
+bool isCloseEnoughToTableHeight(Plane* input) {
+    return isZCloseEnough(input->getMinZ(), TABLE_HEIGHT);
+}
+
+bool isCloseEnoughToCompMonTop(Plane* input) {
+    return isZCloseEnough(input->getMinZ(), 1.1);
+}
+
 // Assumes all computers are above table_height
 template<>
-    bool SingleRule<Computer, PlanePair> :: setCost(Computer* output, PlanePair* input, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
-        return true;
+    bool DoubleRule<Computer, Plane, Plane> :: setCost(Computer* output, Plane* input1, Plane* input2, vector<Terminal*> & terminals) {
+
+    if (!isVerticalEnough(input1) || !isVerticalEnough(input2)) {
+        return false;
+    } else {
+        double minZOfBothPlanes = min(input1->getMinZ(), input2->getMinZ());
+        if (!isCloseEnoughToTableHeight(input1) || !isCloseEnoughToTableHeight(input2) ||
+            !isCloseEnoughToCompMonTop(input1) || !isCloseEnoughToCompMonTop(input2)) {
+            return false;
+        } else {
+            double distanceFromTable = minZOfBothPlanes - TABLE_HEIGHT;
+            double zNormal1 = input1->getZNormal();
+            double zNormal2 = input2->getZNormal();
+            output->setAdditionalCost(distanceFromTable + zNormal1 + zNormal2);
+            return true;
+        }
     }
+}
 
 // Assumes all monitors are above table_height
 template<>
     bool SingleRule<Monitor, Plane> :: setCost(Monitor* output, Plane* input, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
-        return true;
+        if (!isVerticalEnough(input)) {
+            return false;
+        } else {
+            if (!isCloseEnoughToTableHeight(input) || 
+                !isCloseEnoughToCompMonTop(input)) {
+                return false;
+            } else {
+                double distanceFromTable = fabs(input->getMinZ() - TABLE_HEIGHT);
+                output->setAdditionalCost(distanceFromTable + input->getZNormal());
+                return true;
+            }
+        }
     }
 
 template<>
@@ -1960,7 +2000,7 @@ typedef boost::shared_ptr<Rule> RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules) {
     
 
-    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+//    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
     // planes
@@ -1980,7 +2020,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-    rules.push_back(RulePtr(new SingleRule<Computer, PlanePair>()));
+    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
