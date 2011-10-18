@@ -39,7 +39,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 23
+#define MAX_SEG_INDEX 30
 /*
  *
  */
@@ -552,6 +552,12 @@ public:
 
     void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
+        for (uint i = 0; i < spanned_terminals.size(); i++) {
+            if(spanned_terminals.test(i)) {
+                cout<<i+1<<", ";
+            }
+        }
+        cout<<endl;
     }
 
     size_t getNumTerminals() {
@@ -1237,7 +1243,7 @@ public:
     }
     
     bool isAllCloseEnough(Terminal* terminal) {
-        vector<int> termPointIndices& = terminal->getPointIndices();
+        vector<int>& termPointIndices = terminal->getPointIndices();
         for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
             if (!isCloseEnough(scene.points[*it])) {
                 return false;
@@ -1830,11 +1836,13 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>0.25 || maxZDiff >0.2)
+        if(normalZ>.25 || maxZDiff >0.2)
+//        if( maxZDiff >0.2)
             return false;
         else 
         {
             output->setAdditionalCost(normalZ + maxZDiff);
+//            output->setAdditionalCost( maxZDiff);
             return true;
         }
     }
@@ -1873,7 +1881,7 @@ template<>
 
 // Checks if x is on top of y
 bool isOnTop(Symbol* x, Symbol* y) {
-    if (x->getMinZ() - y->getMaxZ() < .1) 
+    if (x->getMinZ() - y->getMaxZ() < -0.1) 
     {
         return false;
     }
@@ -2002,6 +2010,7 @@ template<>
 
 template<>
     bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
+
         if (isOnTop(input2, input1)) 
         {
             output->setAdditionalCost(0);
@@ -2012,14 +2021,6 @@ template<>
             return false;
         }
     }
-
-// This conflicts with our current rule for Table
-//template<>
-//bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
-//    output->setAdditionalCost(0);
-//    return true;
-//}
-
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
