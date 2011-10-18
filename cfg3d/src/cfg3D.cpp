@@ -192,6 +192,11 @@ public:
         return maxZ;
     }
     
+    double getMinZ() {
+        assert(featuresComputed);
+        return minZ;
+    }
+    
     virtual void computeZSquaredSum() = 0;
     
     double getZSquaredSum() {
@@ -1456,7 +1461,7 @@ public:
     }
 };
 
-class TableTop: public Plane {
+class TableTopSurface: public Plane {
 //public:
 //
 //    TableTop()
@@ -1716,7 +1721,7 @@ public:
     }
 };
 
-
+/// Templated Rules Marker TRM
 template<>
     bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
     {
@@ -1790,7 +1795,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input, vector<Terminal*> & terminals) {
+    bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
         if(additionalCost>(0.2*0.2)*input->getNumPoints())
             return false;
@@ -1814,8 +1819,20 @@ template<>
     }
 
 template<>
-    bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
+    bool DoubleRule<Table, TableTopSurface, Legs> :: setCost(Table* output, TableTopSurface* input1, Legs* input2, vector<Terminal*> & terminals) {
         output->setAdditionalCost(0);
+        return true;
+    }
+
+template<>
+    bool SingleRule<Computer, Corner> :: setCost(Computer* output, Corner* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
+        return true;
+    }
+
+template<>
+    bool SingleRule<Monitor, Plane> :: setCost(Monitor* output, Plane* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(fabs(input->getMinZ() - TABLE_HEIGHT));
         return true;
     }
 
@@ -1868,25 +1885,32 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     //rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
-    //forming Planes
+    // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
     
-    //Floor and Wall = Boundary
+    // boundary, wall, floor
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
     rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
 
-    // rules for table
-    rules.push_back(RulePtr(new SingleRule<TableTop, Plane>()));
+    // table
+    rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
-    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
     
-    //whole scene
+    // computer
+    rules.push_back(RulePtr(new SingleRule<Computer, Corner>()));
+    
+    // monitor
+    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
+    
+    // whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
+  
 }
 
 void log(int iter, Symbol * sym) {
