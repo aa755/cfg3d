@@ -319,7 +319,7 @@ public:
     }
     
     void computeMinZ() {
-        double lowestMinZ = -infinity();
+        double lowestMinZ = infinity();
         double itMinZ = 0;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             itMinZ = scene.points[*it].z;
@@ -626,7 +626,7 @@ public:
     
     void computeMinZ() {
         vector<Symbol*>::iterator it;
-        double greatestMinZ = -infinity();
+        double greatestMinZ = infinity();
         double itMinZ;
         for (it = children.begin(); it != children.end(); it++) {
             itMinZ = (*it)->getMaxZ();
@@ -1182,6 +1182,10 @@ public:
     double getNorm() {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
+    
+    double getZ() {
+        return planeParams[2];
+    }
 
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
@@ -1283,6 +1287,20 @@ public:
 
      Eigen::Vector3d getCrossProduct() const {
          return crossProduct;
+     }
+     
+     double getPlane1Z() {
+         return dynamic_cast<Plane*>(children.at(0))->getZ();
+     }
+     
+     double getPlane2Z() {
+         return dynamic_cast<Plane*>(children.at(1))->getZ();
+     }
+     
+     double getSumOfZs() {
+         double z1 = dynamic_cast<Plane*>(children.at(0))->getZ();
+         double z2 = dynamic_cast<Plane*>(children.at(1))->getZ();
+         return z1 + z2;
      }
      
      /**
