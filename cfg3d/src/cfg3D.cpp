@@ -26,7 +26,7 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .75
+#define TABLE_HEIGHT .70
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
@@ -38,6 +38,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
+#define MAX_SEG_INDEX 30
 /*
  *
  */
@@ -98,6 +99,7 @@ double infinity() {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+pcl::PointCloud<pcl::PointXY> scene2D;
 
 class Symbol {
 protected:
@@ -108,6 +110,7 @@ protected:
     bool featuresComputed;
     double cost;
     double maxZ;
+    double minZ;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
@@ -140,6 +143,8 @@ public:
     virtual void printData() =0;
     
     virtual void computeMaxZ()=0;
+    
+    virtual void computeMinZ()=0;
 
     void resetNeighborIterator()
     {
@@ -188,6 +193,11 @@ public:
         return maxZ;
     }
     
+    double getMinZ() {
+        assert(featuresComputed);
+        return minZ;
+    }
+    
     virtual void computeZSquaredSum() = 0;
     
     double getZSquaredSum() {
@@ -206,6 +216,7 @@ public:
         featuresComputed=true;
         computeZSquaredSum();
         computeMaxZ();
+        computeMinZ();
         computeCentroidAndColorAndNumPoints();
     }
     
@@ -306,6 +317,18 @@ public:
             }
         }
         maxZ = greatestMaxZ;
+    }
+    
+    void computeMinZ() {
+        double lowestMinZ = infinity();
+        double itMinZ = 0;
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            itMinZ = scene.points[*it].z;
+            if (itMinZ < lowestMinZ) {
+                lowestMinZ = itMinZ;
+            }
+        }
+        minZ = lowestMinZ;
     }
     
     void computeCentroidAndColorAndNumPoints() {
@@ -529,6 +552,12 @@ public:
 
     void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
+        for (uint i = 0; i < spanned_terminals.size(); i++) {
+            if(spanned_terminals.test(i)) {
+                cout<<i+1<<", ";
+            }
+        }
+        cout<<endl;
     }
 
     size_t getNumTerminals() {
@@ -600,6 +629,19 @@ public:
             }
         }
         maxZ = greatestMaxZ;
+    }
+    
+    void computeMinZ() {
+        vector<Symbol*>::iterator it;
+        double lowestMinZ = infinity();
+        double itMinZ;
+        for (it = children.begin(); it != children.end(); it++) {
+            itMinZ = (*it)->getMinZ();
+            if (itMinZ < lowestMinZ) {
+                lowestMinZ = itMinZ;
+            }
+        }
+        minZ = lowestMinZ;
     }
     
     void computeZSquaredSum() {
@@ -882,7 +924,7 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-        if (sym->getCost() >= 10.1) {
+        if (sym->getCost() >= HIGH_COST) {
             return false;
         }
         
@@ -1056,8 +1098,9 @@ public:
         LHS->addChild(RHS1);
         LHS->addChild(RHS2);
         LHS->computeSpannedTerminals();
-        if(setCost(LHS,RHS1,RHS2, terminals))
+        if(setCost(LHS,RHS1,RHS2, terminals)) {
             return LHS;
+        }
         else
         {
             delete LHS;
@@ -1146,6 +1189,10 @@ public:
     double getNorm() {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
+    
+    double getZNormal() {
+        return fabs(planeParams[2]);
+    }
 
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
@@ -1164,7 +1211,8 @@ public:
         return planeParams;
     }
     
-    double coplanarity(Plane * plane2) {
+    // If this quantity is greater, then the two planes are more parallel
+    double dotProduct(Plane * plane2) {
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
@@ -1181,11 +1229,30 @@ public:
         } else if (pointIndices.size() >= 3) {
             assert(planeParamsComputed);
             //            return exp(100*pcl::pointToPlaneDistance<PointT>(p,planeParams))-1;
-            return getNumTerminals()*(exp(pcl::pointToPlaneDistance<PointT > (p, planeParams)) - 1);
+            return pcl::pointToPlaneDistance<PointT > (p, planeParams);
         } else
             assert(4 == 2);
     }
 
+    bool isCloseEnough(PointT& p) {
+        if (costOfAddingPoint(p) > .3) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    
+    bool isAllCloseEnough(Terminal* terminal) {
+        vector<int>& termPointIndices = terminal->getPointIndices();
+        for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
+            if (!isCloseEnough(scene.points[*it])) {
+                return false;
+            }
+        }
+        return true;
+    }
+        
+    
     virtual void setCost() {
         setAbsoluteCost(sumDistancesSqredToPlane(this));
     }
@@ -1246,6 +1313,20 @@ public:
 
      Eigen::Vector3d getCrossProduct() const {
          return crossProduct;
+     }
+     
+     double getPlane1Z() {
+         return dynamic_cast<Plane*>(children.at(0))->getZNormal();
+     }
+     
+     double getPlane2Z() {
+         return dynamic_cast<Plane*>(children.at(1))->getZNormal();
+     }
+     
+     double getSumOfZs() {
+         double z1 = dynamic_cast<Plane*>(children.at(0))->getZNormal();
+         double z2 = dynamic_cast<Plane*>(children.at(1))->getZNormal();
+         return z1 + z2;
      }
      
      /**
@@ -1321,6 +1402,11 @@ class Scene : public NonTerminal {
     }
     
 };
+
+class Computer : public PlanePair{};
+
+class Monitor : public NonTerminal{};
+
 class Boundary : public NonTerminal
 {
     
@@ -1420,11 +1506,10 @@ public:
     }
 };
 
-class TableTop: public Plane {
-
+class TableTopSurface: public Plane {
 public:
 
-    TableTop()
+    TableTopSurface()
     {
 
         compute2DConvexHull();
@@ -1579,6 +1664,7 @@ public:
 
         // Combine the convex hull of legs and tabletop
         pcl::PointCloud<pcl::PointXY> combinedPoints;
+
         // TODO: type wrong. PointCloud2 to PointCloud
         // pcl::concatenatePointCloud(legConvexHull, rectConvexHull, combinedPoints);
 
@@ -1630,24 +1716,84 @@ private:
         cv::approxPolyDP(cv::Mat(cv2D), contour, 0.001, true);
         return fabs(cv::contourArea(cv::Mat(contour)));
     }
-
 };
 
-template<>
-    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
-    {
-        output->computePointIndices(terminals);
-        output->computePlaneParams();
-        output->setCost();
-        return true;
+class TableTopObjects : public NonTerminal{};
+
+class TableTop : public NonTerminal{};
+
+//template<>
+//    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
+//    {
+//        output->computePointIndices(terminals);
+//        output->computePlaneParams();
+//        output->setCost();
+//        cout<<"COST OF PLANE->PLANESEG: "<<output->getCost()<<endl;
+//        return true;
+//    }
+
+class RPlane_PlaneSeg : public Rule {
+public:
+
+    int get_Nof_RHS_symbols() {
+        return 2;
     }
 
-template<>
-    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
-    {
-        output->setAdditionalCost(input1->coplanarity(input2));
-        return true;
+    void get_typenames(vector<string> & names) {
+        names.push_back(typeid (Plane).name());
+        names.push_back(typeid (Terminal).name());
     }
+    
+    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
+        if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
+            return NULL;
+        }
+        
+        Plane * LHS = new Plane();
+        LHS->addChild(RHS_plane);
+        LHS->addChild(RHS_seg);
+        LHS->computeSpannedTerminals();
+        LHS->computePointIndices(terminals);
+        LHS->computePlaneParams();
+        LHS->setCost();
+        return LHS;
+    }
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        set<int>::iterator it;
+        //all terminals have cost=0, all NT's have cost>0,
+        //so when a terminal is extracted, no non-terminal(plane)
+        //has been extracted yet
+        //so, if sym is of type Terminal, it cannot be combined with a plane
+        if (typeid (*extractedSym) == typeid (Plane))
+        {
+            extractedSym->resetNeighborIterator();
+            int index;
+            while (extractedSym->nextNeighborIndex(index))
+            {
+                Plane * plane=dynamic_cast<Plane*> (extractedSym);
+                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
+                addToPqueueIfNotDuplicate(newNT,pqueue);
+            }
+
+        }
+    }
+};
+
+/// Templated Rules Marker TRM
+//template<>
+//    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
+//    {
+//        double parallelity = input1->dotProduct(input2);
+//        if (parallelity < .2) {
+//            output->setAdditionalCost(parallelity);
+//            return true;
+//        }
+//        else {
+//            return false;
+//        }
+//    }
 
 template<>
     bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
@@ -1697,11 +1843,13 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>0.25 || maxZDiff >0.2)
+        if(normalZ>.25 || maxZDiff >0.2)
+//        if( maxZDiff >0.2)
             return false;
         else 
         {
             output->setAdditionalCost(normalZ + maxZDiff);
+//            output->setAdditionalCost( maxZDiff);
             return true;
         }
     }
@@ -1715,7 +1863,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<TableTop, Plane> :: setCost(TableTop* output, Plane* input, vector<Terminal*> & terminals) {
+    bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
         if(additionalCost>(0.2*0.2)*input->getNumPoints())
             return false;
@@ -1738,8 +1886,90 @@ template<>
         }                   
     }
 
+// Checks if x is on top of y
+bool isOnTop(Symbol* x, Symbol* y) {
+    if (x->getMinZ() - y->getMaxZ() < -0.1) 
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool isVerticalEnough(Plane* plane) {
+    return plane->getZNormal() <= .25;
+}
+
+bool isZCloseEnough(double value, double height) {
+    return fabs(value - height) <= .25;
+}
+
 template<>
     bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input1, input2)) 
+        {
+            output->setAdditionalCost(0);
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
+bool isCloseEnoughToTableHeight(Plane* input) {
+    return isZCloseEnough(input->getMinZ(), TABLE_HEIGHT);
+}
+
+bool isCloseEnoughToCompMonTop(Plane* input) {
+    return isZCloseEnough(input->getMaxZ(), 1.1);
+}
+
+// Assumes all computers are above table_height
+template<>
+    bool DoubleRule<Computer, Plane, Plane> :: setCost(Computer* output, Plane* input1, Plane* input2, vector<Terminal*> & terminals) {
+
+    if (!isVerticalEnough(input1) || !isVerticalEnough(input2)) {
+        return false;
+    } else {
+        double minZOfBothPlanes = min(input1->getMinZ(), input2->getMinZ());
+        
+        if (!isCloseEnoughToTableHeight(input1) || !isCloseEnoughToTableHeight(input2) ||
+            !isCloseEnoughToCompMonTop(input1) || !isCloseEnoughToCompMonTop(input2)) {
+            return false;
+        } else {
+            double distanceFromTable = fabs(minZOfBothPlanes - TABLE_HEIGHT);
+            double zNormal1 = input1->getZNormal();
+            double zNormal2 = input2->getZNormal();
+            output->setAdditionalCost(distanceFromTable + zNormal1 + zNormal2);
+            
+            //TODO: maybe add costs for maxZ?
+            return true;
+        }
+    }
+}
+
+// Assumes all monitors are above table_height
+template<>
+    bool SingleRule<Monitor, Plane> :: setCost(Monitor* output, Plane* input, vector<Terminal*> & terminals) {
+        if (!isVerticalEnough(input)) {
+            return false;
+        } else {
+            if (!isCloseEnoughToTableHeight(input) || 
+                !isCloseEnoughToCompMonTop(input)) {
+                return false;
+            } else {
+                double distanceFromTable = fabs(input->getMinZ() - TABLE_HEIGHT);
+                output->setAdditionalCost(distanceFromTable + input->getZNormal());
+                return true;
+            }
+        }
+    }
+
+template<>
+    bool DoubleRule<TableTopObjects, Computer, Monitor> :: setCost(TableTopObjects* output, Computer* input1, Monitor* input2, vector<Terminal*> & terminals) {
         output->setAdditionalCost(0);
         return true;
     }
@@ -1785,31 +2015,58 @@ template<>
         return true;
     }
 
+template<>
+    bool DoubleRule<TableTop, TableTopSurface, TableTopObjects> :: setCost(TableTop* output, TableTopSurface* input1, TableTopObjects* input2, vector<Terminal*> & terminals) {
+
+        if (isOnTop(input2, input1)) 
+        {
+            output->setAdditionalCost(0);
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
 typedef boost::shared_ptr<Rule> RulePtr;
 
 void appendRuleInstances(vector<RulePtr> & rules) {
-    //rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+    
+
+//    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
-    //forming Planes
+    // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
-    rules.push_back(RulePtr(new DoubleRule<Plane,Plane,Terminal>()));
+    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
     
-    //Floor and Wall = Boundary
+    // boundary, wall, floor
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
     rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
 
-    // rules for table
-    rules.push_back(RulePtr(new SingleRule<TableTop, Plane>()));
+    // table
+    rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
-    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
-
-
-    //whole scene
+    
+    
+    // computer
+    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+    
+    // monitor
+    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
+    
+    // whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
+    
+    // table
+    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
+    rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
 }
 
 void log(int iter, Symbol * sym) {
@@ -1857,7 +2114,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             continue;
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
-        if(segIndex>0)
+        if(segIndex>0 && segIndex<=maxSegIndex)
             terminals.at(segIndex-1)->addPointIndex(i);
     }
     
@@ -1913,8 +2170,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             cout<<"mz"<<min->getMaxZ()<<endl;
             
             for (size_t i = 0; i < rules.size(); i++) {
-
-                rules[i]->combineAndPush(min, pq, terminals,rulecount++); // combine with the eligible NT's to form new NTs and add them to the priority queue
+                rules.at(i)->combineAndPush(min, pq, terminals,rulecount++); // combine with the eligible NT's to form new NTs and add them to the priority queue
                 //an eligible NT should not span any terminal already in min
                 //an eligible NT should contain atleast 1 terminal in combneCandidates
             }
@@ -1960,12 +2216,20 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
             
             getTokens(line, nbrs);
             int segIndex=nbrs.at(0);
+            
+            if(segIndex>MAX_SEG_INDEX)
+                continue;
+            
             set<int> temp;
             neighbors[segIndex]=temp;
             if(max<segIndex)
                 max=segIndex;
             for(size_t i=1;i<nbrs.size();i++)
             {
+
+                if(nbrs.at(i)>MAX_SEG_INDEX)
+                        continue;
+                
                 neighbors[segIndex].insert(nbrs.at(i));
                 cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
             }
