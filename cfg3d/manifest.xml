@@ -17,7 +17,7 @@
   <depend package="opencv2"/>
   <depend package="cv_bridge"/>
   <!--depend package="scene_processing"/-->
-
+  <depend package="opencv2"/>
 </package>
 
 
