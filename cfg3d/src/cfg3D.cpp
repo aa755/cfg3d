@@ -1550,7 +1550,7 @@ public:
         assert(false);
         // TODO: check if scene2D is initialized
         rectConvexHull.points.clear();  // TODO: is this the right way?
-        pcl::PointCloud<pcl::PointXY> scene2D;  // TODO: this should be global
+        
         // TODO: find out why this copy does not work.
         // pcl::copyPointCloud(scene, scene2D);
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
