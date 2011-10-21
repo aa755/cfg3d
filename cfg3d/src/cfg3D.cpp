@@ -100,6 +100,7 @@ typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
 pcl::PointCloud<pcl::PointXY> scene2D;
+pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
 class Symbol {
 protected:
@@ -530,6 +531,11 @@ public:
         return pointIndices;
     }
 
+    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
+        assert(pointIndices.size() > 0);
+        return createStaticShared<std::vector<int> >(& pointIndices);
+    }
+    
     bool intersects(NonTerminal * other) {
         return spanned_terminals.intersects(other->spanned_terminals);
     }
@@ -1497,7 +1503,7 @@ public:
 class TableTopSurface: public Plane {
 public:
 
-    TableTopSurface()
+    void initialize()
     {
 
         compute2DConvexHull();
@@ -1554,10 +1560,10 @@ public:
         // TODO: find out why this copy does not work.
         // pcl::copyPointCloud(scene, scene2D);
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
-        computeConvexHull.setInputCloud(scene2D.makeShared());
+        computeConvexHull.setInputCloud(scene2DPtr);
 
         // TODO: type wrong
-        // computeConvexHull.setIndices(getPointIndices());
+        computeConvexHull.setIndices(getPointIndicesBoostPtr());
 
         computeConvexHull.reconstruct(rectConvexHull);
     }
@@ -1594,6 +1600,8 @@ public:
      */
     double computeSelfCost(Plane *tableTopCandidate)
     {
+        assert(1==2); //what do these numbers mean?
+        
         // Define height and width cost
         float heightCost = 0;
         float widthCost = 0;
@@ -1618,6 +1626,8 @@ public:
 
         // To get the error rate of the fitting rectangle, get the ratio
         // of the area of the fitting rectangle to the plane's convex hull.
+        
+        assert(false) ; // is the rectangle inside convex hull?
         float fittingCost = getRectArea() / convexHullArea;
 
         float cost = heightCost + widthCost + fittingCost;
@@ -1644,8 +1654,7 @@ public:
         pcl::PointCloud<pcl::PointXY> legConvexHull;
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
         assert(false);  // add scene 2D to global
-        pcl::PointCloud<pcl::PointXY> scene2D;
-        computeConvexHull.setInputCloud(scene2D.makeShared());
+        computeConvexHull.setInputCloud(scene2DPtr);
         // TODO: type wrong
         // computeConvexHull.setIndices(legs->getPointIndices());
         computeConvexHull.reconstruct(legConvexHull);
@@ -2230,6 +2239,16 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
+    void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::PointXY> & cloudxy)
+    {
+        cloudxy.points.resize(cloud.size());
+        cloudxy.sensor_origin_=cloud.sensor_origin_;
+        for (size_t i = 0; i < cloud.size(); i++)
+        {
+            cloudxy.points[i].x = cloud.points[i].x;
+            cloudxy.points[i].y = cloud.points[i].y;
+        }
+    }
 
 int main(int argc, char** argv) {
 
@@ -2239,6 +2258,9 @@ int main(int argc, char** argv) {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    
+    convertToXY(scene,scene2D);
+    scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
         map<int, set<int> > neighbors;
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
