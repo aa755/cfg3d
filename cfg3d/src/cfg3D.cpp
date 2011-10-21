@@ -432,9 +432,8 @@ protected:
      */
     long lastIteration;
     static int id_counter;
-    /** indices into the pointcloud
-     */
-    //will be populated only when extracted as min
+       pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
+       bool convexHullComputed;
 
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
@@ -472,7 +471,42 @@ public:
     vector<Symbol*> children;
     friend class Terminal;
     
-     void resetTerminalIterator()
+    /**
+     * computes the convex hull of 2D points obtained by gettign rid of Z 
+     * coordinates
+     */
+    void compute2DConvexHull()
+    {
+           
+        // TODO: check if scene2D is initialized
+        rectConvexHull.points.clear();  // TODO: is this the right way?
+        
+        // TODO: find out why this copy does not work.
+        // pcl::copyPointCloud(scene, scene2D);
+        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
+        computeConvexHull.setInputCloud(scene2DPtr);
+
+        // TODO: type wrong
+        computeConvexHull.setIndices(getPointIndicesBoostPtr());
+
+        computeConvexHull.reconstruct(rectConvexHull);
+    }
+
+    const pcl::PointCloud<pcl::PointXY> & getConvexHull()
+    {
+        if(!convexHullComputed)
+            compute2DConvexHull();
+        return rectConvexHull;
+    }
+    
+    pcl::PointCloud<pcl::PointXY>  cloneConvexHull()
+    {
+        if(!convexHullComputed)
+            compute2DConvexHull();
+        return rectConvexHull;
+    }
+    
+    void resetTerminalIterator()
     {
         assert(spanned_terminals.size()>0);
         spanned_terminals.iteratorReset();
@@ -552,6 +586,7 @@ public:
         numTerminals = 0;
         lastIteration = 0;
         duplicate=false;
+        convexHullComputed=false;
     }
     
     friend class NTSetComparison;
@@ -1547,27 +1582,6 @@ public:
     }
 
 
-    /**
-     * computes the convex hull of 2D points obtained by gettign rid of Z 
-     * coordinates
-     */
-    void compute2DConvexHull()
-    {
-        assert(false);
-        // TODO: check if scene2D is initialized
-        rectConvexHull.points.clear();  // TODO: is this the right way?
-        
-        // TODO: find out why this copy does not work.
-        // pcl::copyPointCloud(scene, scene2D);
-        pcl::ConvexHull<pcl::PointXY> computeConvexHull;
-        computeConvexHull.setInputCloud(scene2DPtr);
-
-        // TODO: type wrong
-        computeConvexHull.setIndices(getPointIndicesBoostPtr());
-
-        computeConvexHull.reconstruct(rectConvexHull);
-    }
-
     void computeRectangleParams()
     {
         corners.clear();
@@ -1651,24 +1665,18 @@ public:
         // points plus the legs' points.
       
         // Compute the convex hull for legs first
-        pcl::PointCloud<pcl::PointXY> legConvexHull;
+        pcl::PointCloud<pcl::PointXY> concatenatedConvexHull;
+        pcl::PointCloud<pcl::PointXY> combinedConvexHull;
         pcl::ConvexHull<pcl::PointXY> computeConvexHull;
         assert(false);  // add scene 2D to global
-        computeConvexHull.setInputCloud(scene2DPtr);
         // TODO: type wrong
         // computeConvexHull.setIndices(legs->getPointIndices());
-        computeConvexHull.reconstruct(legConvexHull);
+        concatenatedConvexHull=legs->cloneConvexHull();
+        concatenatedConvexHull.points.insert(concatenatedConvexHull.points.end(),corners.begin(),corners.end());
+        
 
-        // Combine the convex hull of legs and tabletop
-        pcl::PointCloud<pcl::PointXY> combinedPoints;
-
-        // TODO: type wrong. PointCloud2 to PointCloud
-        // pcl::concatenatePointCloud(legConvexHull, rectConvexHull, combinedPoints);
-
-        // Compute the new convex hull of the combined convex hull.
-        pcl::PointCloud<pcl::PointXY> combinedConvexHull;
         // pcl::ConvexHull<pcl::PointXY> computeConvexHull;
-        computeConvexHull.setInputCloud(combinedPoints.makeShared());
+        computeConvexHull.setInputCloud(createStaticShared<pcl::PointCloud<pcl::PointXY> >(& concatenatedConvexHull));
         computeConvexHull.reconstruct(combinedConvexHull);
 
         // Transform the convex hull to OpenCV and get the area
@@ -1676,7 +1684,8 @@ public:
         _rosToOpenCv(combinedConvexHull, combined2dCv);
         float combinedArea = _getPolygonArea(combined2dCv);
 
-        float cost = combinedArea / getRectArea();
+        float cost = (combinedArea / getRectArea()-1);
+        assert(cost>=0);
         return cost;
     }
 
@@ -1689,7 +1698,6 @@ private:
     float height;
     float convexHullArea;
 
-    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
     vector<cv::Point2f> cv2dConvexHull;  // The convex hull points in openCV.
 
     /*
