@@ -4,7 +4,7 @@
      cfg3d
 
   </description>
-  <author>Abhishek Anand</author>
+  <author>Abhishek Anand, Sherwin Li, Paul Heran Yang</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/cfg3d</url>
@@ -17,7 +17,6 @@
   <depend package="opencv2"/>
   <depend package="cv_bridge"/>
   <!--depend package="scene_processing"/-->
-  <depend package="opencv2"/>
 </package>
 
 
