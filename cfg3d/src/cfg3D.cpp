@@ -198,7 +198,7 @@ public:
 
     virtual size_t getNumTerminals() = 0;
     
-     //virtual void compute2DConvexHull()=0;
+     virtual void compute2DConvexHull()=0;
 
 
     void getCentroid(pcl::PointXYZ & centroid_)
@@ -247,7 +247,7 @@ public:
         computeMaxZ();
         computeMinZ();
         computeCentroidAndColorAndNumPoints();
-   //     compute2DConvexHull();
+        compute2DConvexHull();
     }
     
     virtual int getId() = 0;
