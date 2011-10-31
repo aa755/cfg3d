@@ -26,7 +26,7 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .70
+#define TABLE_HEIGHT .75
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
@@ -99,8 +99,8 @@ double infinity() {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
-pcl::PointCloud<pcl::PointXY> scene2D;
-pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
+//pcl::PointCloud<pcl::PointXY> scene2D;
+//pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
 class Symbol {
 protected:
@@ -563,7 +563,14 @@ public:
     
     string getName()
     {
-        return string(typeid(*this).name()+1)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id);
+        const char * name=typeid(*this).name();
+        int count=0;
+        while(isdigit(*name)&&count<5)
+        {
+            name++;
+            count++;
+        }
+        return string(name)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id);
     }
     
 
@@ -1563,6 +1570,12 @@ class TableTopSurface: public Plane {
 
 public:
 
+    void additionalFinalize()
+    {
+        if(corners.size()==0)
+                initialize();
+    }
+    
     void initialize()
     {
 
@@ -1691,7 +1704,7 @@ public:
         // Compute the convex hull for legs first
         vector<cv::Point2f> combined2dCv;
         vector<cv::Point2f> concatenatedConvexHull;
-        assert(false);  // add scene 2D to global
+//        assert(false);  // add scene 2D to global
         // TODO: type wrong
         // computeConvexHull.setIndices(legs->getPointIndices());
         concatenatedConvexHull=legs->cloneConvexHull();
@@ -1703,7 +1716,8 @@ public:
 
         float combinedArea = _getPolygonArea(combined2dCv);
 
-        float cost = (combinedArea / getRectArea()-1);
+        float cost = 200*(combinedArea / getRectArea()-1);
+        cerr<<"areas "<<combinedArea<<","<<width<<","<<height<<endl;
         assert(cost>=0);
         return cost;
     }
@@ -1743,7 +1757,20 @@ private:
 
 class TableTopObjects : public NonTerminal{};
 
-class TableTop : public NonTerminal{};
+class TableTop : public NonTerminal
+{
+public:
+    TableTopSurface * getTableTopsurface()
+    {
+        return dynamic_cast<TableTopSurface*>(children.at(0));
+    }
+    
+     double computeCostOfAddingLegs(Legs *legs)
+     {
+         return getTableTopsurface()->computeCostOfAddingLegs(legs);
+     }
+    
+};
 
 //template<>
 //    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
@@ -1913,6 +1940,7 @@ template<>
 bool isOnTop(Symbol* x, Symbol* y) {
     if (x->getMinZ() - y->getMaxZ() < -0.1) 
     {
+        cerr<<"ontop violated";
         return false;
     }
     else
@@ -1933,11 +1961,26 @@ template<>
     bool DoubleRule<Table, TableTop, Legs> :: setCost(Table* output, TableTop* input1, Legs* input2, vector<Terminal*> & terminals) {
         if (isOnTop(input1, input2)) 
         {
-            output->setAdditionalCost(0);
+            output->setAdditionalCost(input1->computeCostOfAddingLegs(input2));
             return true;
         } 
         else 
         {
+            return false;
+        }
+    }
+
+template<>
+    bool DoubleRule<Table, TableTopSurface, Legs> :: setCost(Table* output, TableTopSurface* input1, Legs* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input1, input2)) 
+        {
+            output->setAdditionalCost(input1->computeCostOfAddingLegs(input2));
+            cerr<<"table id"<< output->getId() <<"created w/ cost"<<output->getCost()<<endl;
+            return true;
+        } 
+        else 
+        {
+          //  cerr<<"table rejected w/ cost"<<output->getCost()<<endl;
             return false;
         }
     }
@@ -2077,19 +2120,20 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
-    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
+//    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
     
     // whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
     // table
-    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
+//    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
-    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
-    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+//    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
+//    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
 
@@ -2170,7 +2214,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal(terminals);
             min->printData();
-            cout<<"mz"<<min->getMaxZ()<<endl;
+ //           cout<<"mz"<<min->getMaxZ()<<endl;
             
             for (size_t i = 0; i < rules.size(); i++) {
                 rules.at(i)->combineAndPush(min, pq, terminals,rulecount++); // combine with the eligible NT's to form new NTs and add them to the priority queue
@@ -2265,8 +2309,8 @@ int main(int argc, char** argv) {
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
     
-    convertToXY(scene,scene2D);
-    scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+    //convertToXY(scene,scene2D);
+  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
         map<int, set<int> > neighbors;
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
