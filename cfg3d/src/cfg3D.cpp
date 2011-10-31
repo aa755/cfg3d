@@ -1721,16 +1721,16 @@ private:
     /*
      * Convert ros 2D point cloud to CV Mat.
     */
-    void _rosToOpenCv(const pcl::PointCloud<pcl::PointXY>& pc2D, vector<cv::Point2f> cv2D)
-    {
-        cv2D.clear();
-        pcl::PointCloud<pcl::PointXY>::const_iterator pc;
-        for (pc = pc2D.begin(); pc != pc2D.end(); ++pc)
-        {
-            cv::Point2f curr(pc->x, pc->y);
-            cv2D.push_back(curr);
-        }
-    }
+//    void _rosToOpenCv(const pcl::PointCloud<pcl::PointXY>& pc2D, vector<cv::Point2f> cv2D)
+//    {
+//        cv2D.clear();
+//        pcl::PointCloud<pcl::PointXY>::const_iterator pc;
+//        for (pc = pc2D.begin(); pc != pc2D.end(); ++pc)
+//        {
+//            cv::Point2f curr(pc->x, pc->y);
+//            cv2D.push_back(curr);
+//        }
+//    }
 
     /* Get Area */
     float _getPolygonArea(const vector<cv::Point2f>& cv2D)
