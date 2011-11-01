@@ -1717,7 +1717,9 @@ public:
         float combinedArea = _getPolygonArea(combined2dCv);
 
         float cost = 200*(combinedArea / getRectArea()-1);
-        cerr<<"areas "<<combinedArea<<","<<width<<","<<height<<endl;
+      //  cerr<<"areas "<<combinedArea<<","<<cost<<","<<width<<","<<height<<endl;
+        if(cost<0.001)
+            cost=0; // minor numerical errors
         assert(cost>=0);
         return cost;
     }
@@ -1940,7 +1942,7 @@ template<>
 bool isOnTop(Symbol* x, Symbol* y) {
     if (x->getMinZ() - y->getMaxZ() < -0.1) 
     {
-        cerr<<"ontop violated";
+       // cerr<<"ontop violated";
         return false;
     }
     else
@@ -1975,7 +1977,7 @@ template<>
         if (isOnTop(input1, input2)) 
         {
             output->setAdditionalCost(input1->computeCostOfAddingLegs(input2));
-            cerr<<"table id"<< output->getId() <<"created w/ cost"<<output->getCost()<<endl;
+          //  cerr<<"table id"<< output->getId() <<"created w/ cost"<<output->getCost()<<endl;
             return true;
         } 
         else 
@@ -2120,19 +2122,19 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
-//    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
+    rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
     
     // whole scene
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
     // table
-//    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
-//    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
-//    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
+    rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
