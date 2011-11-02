@@ -14,8 +14,6 @@
   <depend package="octomap"/>
   <depend package="octomap_ros"/>
   <depend package="pcl_visualization"/>
-  <depend package="opencv2"/>
-  <depend package="cv_bridge"/>
   <!--depend package="scene_processing"/-->
   <depend package="opencv2"/>
 </package>
