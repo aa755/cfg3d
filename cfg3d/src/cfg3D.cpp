@@ -128,8 +128,6 @@ protected:
     virtual void computeCovarianceMatrixWoMean()=0;
 public:
 
-
-    
     const vector<cv::Point2f> & getConvexHull() const
     {
         assert(rectConvexHull.size()>0);
@@ -293,19 +291,30 @@ public:
  */
 class SymbolPriorityQueue;
 
-class Terminal : public Symbol 
+    double getPointCoordinate(int pointIndex, int coordinateIndex)
+    {
+        return scene.points[pointIndex].data[coordinateIndex];
+    }
+
+    class Terminal : public Symbol 
 {
 protected:
     /** segment index
      */
     size_t index;
+
     void computeCovarianceMatrixWoMean()
     {
-        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
-        
+        covarianceMatrixWoMean = Eigen::Matrix3d::Zero();
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++)
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
+
     }
     
 public:
+    
     void compute2DConvexHull()
     {
         if(rectConvexHull.size()>0)
@@ -451,22 +460,11 @@ public:
         return true;
     }
 
-    //bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)    {
-    //        return false; // each terminal can be derived in only 1 way
-    /* contrast it with a set of terminals which can be derived in multiple way
-     * (1 U 2) U 3  or  1 U (2 U 3 )
-     */
-    // }
 
     size_t getNumTerminals() {
         return 1;
     }
 
-    /*   void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
-       {
-           thisAncestors=allAncestors[index];
-       }
-     */
 };
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
@@ -538,6 +536,11 @@ protected:
     
     void computeCovarianceMatrixWoMean()
     {
+        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            covarianceMatrixWoMean+=children.at(i)->getCovarianceMatrixWoMean();
+        }
         
     }
 
