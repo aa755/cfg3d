@@ -122,17 +122,21 @@ protected:
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
     vector<int> pointIndices;
+    Eigen::Matrix3d covarianceMatrixWoMean;
 
     //    vector<NonTerminal*> parents;
+    virtual void computeCovarianceMatrixWoMean()=0;
 public:
 
-    const vector<cv::Point2f> & getConvexHull()
+
+    
+    const vector<cv::Point2f> & getConvexHull() const
     {
         assert(rectConvexHull.size()>0);
         return rectConvexHull;
     }
 
-    vector<cv::Point2f>  cloneConvexHull()
+    vector<cv::Point2f>  cloneConvexHull() const
     {
         assert(rectConvexHull.size()>0);
         return rectConvexHull;
@@ -267,6 +271,11 @@ public:
         assert(featuresComputed);
         return numPoints;
     }
+
+    const Eigen::Matrix3d & getCovarianceMatrixWoMean() const
+    {
+        return covarianceMatrixWoMean;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -290,6 +299,11 @@ protected:
     /** segment index
      */
     size_t index;
+    void computeCovarianceMatrixWoMean()
+    {
+        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
+        
+    }
     
 public:
     void compute2DConvexHull()
@@ -520,6 +534,11 @@ protected:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+    }
+    
+    void computeCovarianceMatrixWoMean()
+    {
+        
     }
 
     bool isSpanExclusive(NonTerminal * nt) {
