@@ -32,6 +32,7 @@
 #include "point_struct.h"
 #include "utils.h"
 #include "color.cpp"
+#include "pcl/features/feature.h"
 
 //sac_model_plane.h
 
@@ -144,17 +145,23 @@ protected:
     {
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                ans(i, j) += centr.data[i] * centr.data[i] * numPoints;
+                ans(i, j) = centr.data[i] * centr.data[j] * numPoints;
 
     }
 public:
 
+    void computeMeanCovAddition( Eigen::Matrix3d & ans)
+    {
+        computeMeanCovAddition(centroid,ans);
+    }
+    
     void computeMeanCovAddition(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
     {
         assert(featuresComputed);
         Eigen::Matrix3d  temp;
         computeMeanTA(centr, temp);
-        ans=(-temp-temp.transpose());
+        ans=-temp;
+        ans-=temp.transpose();
         
         computeMeanTMean(centr, temp);
         ans+=temp;
@@ -284,6 +291,7 @@ public:
         computeMinZ();
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
+        computeCovarianceMatrixWoMean();
     }
     
     virtual int getId() = 0;
@@ -1323,6 +1331,24 @@ public:
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
+        
+        computeFeatures();
+              EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix_;
+
+      /** \brief 16-bytes aligned placeholder for the XYZ centroid of a surface patch. */
+      Eigen::Vector4f xyz_centroid_;
+
+        pcl::compute3DCentroid (scene, getPointIndices(), xyz_centroid_);
+
+        // Compute the 3x3 covariance matrix
+        pcl::computeCovarianceMatrix (scene, getPointIndices(), xyz_centroid_, covariance_matrix_);
+        
+        Eigen::Matrix3d covMat;//
+        computeMeanCovAddition(covMat);
+        covMat+=getCovarianceMatrixWoMean();
+        
+        cerr<<"matrices\n"<<covariance_matrix_<<endl<<"--"<<endl<<covMat<<endl;
+        
         assert(fabs(getNorm()-1)<0.05);
      //   double norm = getNorm();
      //   planeParams /= norm;
