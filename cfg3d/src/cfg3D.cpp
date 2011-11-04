@@ -291,6 +291,8 @@ public:
     
     void computeFeatures()
     {
+        if(featuresComputed)
+            return;
         featuresComputed=true;
         computeZSquaredSum();
         computeMaxZ();
@@ -1348,14 +1350,7 @@ public:
     }
 
     void computePlaneParams() {
-        pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
-        normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
-        
-        cerr<<"pp"<<planeParams<<endl;
         computeFeatures();
-              EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix_;
-
-      /** \brief 16-bytes aligned placeholder for the XYZ centroid of a surface patch. */
       Eigen::Vector4f xyz_centroid_;
 
       for(int i=0;i<3;i++)
@@ -1367,12 +1362,8 @@ public:
         
         
         pcl::solvePlaneParameters (covMat.cast<float>(), xyz_centroid_, planeParams, curvature);
-//        cerr<<"matrices\n"<<covariance_matrix_<<endl<<"--"<<endl<<covMat<<endl;
-        cerr<<"pp'"<<planeParams<<endl;
         
         assert(fabs(getNorm()-1)<0.05);
-     //   double norm = getNorm();
-     //   planeParams /= norm;
         planeParamsComputed = true;
     }
     
