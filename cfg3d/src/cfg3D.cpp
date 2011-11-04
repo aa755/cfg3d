@@ -32,7 +32,7 @@
 #include "point_struct.h"
 #include "utils.h"
 #include "color.cpp"
-#include <Eigen/Dense>
+#include "pcl/features/feature.h"
 
 //sac_model_plane.h
 
@@ -127,9 +127,45 @@ protected:
 
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
+
+    double getSigmaCoordinate(int coordinateIndex)
+    {
+        return centroid.data[coordinateIndex]*numPoints;
+    }
+
+    void computeMeanTA(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) = centr.data[i] * getSigmaCoordinate(j);
+
+    }
+        
+    void computeMeanTMean(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) = centr.data[i] * centr.data[j] * numPoints;
+
+    }
 public:
 
-
+    void computeMeanCovAddition( Eigen::Matrix3d & ans)
+    {
+        computeMeanCovAddition(centroid,ans);
+    }
+    
+    void computeMeanCovAddition(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        assert(featuresComputed);
+        Eigen::Matrix3d  temp;
+        computeMeanTA(centr, temp);
+        ans=-temp;
+        ans-=temp.transpose();
+        
+        computeMeanTMean(centr, temp);
+        ans+=temp;
+    }
     
     const vector<cv::Point2f> & getConvexHull() const
     {
@@ -255,6 +291,7 @@ public:
         computeMinZ();
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
+        computeCovarianceMatrixWoMean();
     }
     
     virtual int getId() = 0;
@@ -294,19 +331,30 @@ public:
  */
 class SymbolPriorityQueue;
 
-class Terminal : public Symbol 
+    double getPointCoordinate(int pointIndex, int coordinateIndex)
+    {
+        return scene.points[pointIndex].data[coordinateIndex];
+    }
+
+    class Terminal : public Symbol 
 {
 protected:
     /** segment index
      */
     size_t index;
+
     void computeCovarianceMatrixWoMean()
     {
-        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
-        
+        covarianceMatrixWoMean = Eigen::Matrix3d::Zero();
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++)
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
+
     }
     
 public:
+    
     void compute2DConvexHull()
     {
         if(rectConvexHull.size()>0)
@@ -452,22 +500,11 @@ public:
         return true;
     }
 
-    //bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)    {
-    //        return false; // each terminal can be derived in only 1 way
-    /* contrast it with a set of terminals which can be derived in multiple way
-     * (1 U 2) U 3  or  1 U (2 U 3 )
-     */
-    // }
 
     size_t getNumTerminals() {
         return 1;
     }
 
-    /*   void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
-       {
-           thisAncestors=allAncestors[index];
-       }
-     */
 };
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
@@ -539,6 +576,11 @@ protected:
     
     void computeCovarianceMatrixWoMean()
     {
+        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            covarianceMatrixWoMean+=children.at(i)->getCovarianceMatrixWoMean();
+        }
         
     }
 
@@ -1289,6 +1331,24 @@ public:
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
+        
+        computeFeatures();
+              EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix_;
+
+      /** \brief 16-bytes aligned placeholder for the XYZ centroid of a surface patch. */
+      Eigen::Vector4f xyz_centroid_;
+
+        pcl::compute3DCentroid (scene, getPointIndices(), xyz_centroid_);
+
+        // Compute the 3x3 covariance matrix
+        pcl::computeCovarianceMatrix (scene, getPointIndices(), xyz_centroid_, covariance_matrix_);
+        
+        Eigen::Matrix3d covMat;//
+        computeMeanCovAddition(covMat);
+        covMat+=getCovarianceMatrixWoMean();
+        
+        cerr<<"matrices\n"<<covariance_matrix_<<endl<<"--"<<endl<<covMat<<endl;
+        
         assert(fabs(getNorm()-1)<0.05);
      //   double norm = getNorm();
      //   planeParams /= norm;
