@@ -167,9 +167,20 @@ public:
         ans+=temp;
     }
     
+    void computeSelfMeanCovAddition(Eigen::Matrix3d & ans)
+    {
+        assert(featuresComputed);
+        Eigen::Matrix3d  temp;
+        computeMeanTA(centroid, temp);
+        ans=-2*temp;
+        
+        computeMeanTMean(centroid, temp);
+        ans+=temp;
+    }
+    
     void computeMeanCovOtherMean(const pcl::PointXYZ & othercentr, Eigen::Matrix3d & ans)
     {
-        computeMeanCovAddition(othercentr,ans);
+        computeSelfMeanCovAddition(ans);
         ans+=covarianceMatrixWoMean;
     }
     
