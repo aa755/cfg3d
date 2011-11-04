@@ -656,6 +656,7 @@ public:
     
 
     void computePointIndices(vector<Terminal*> & terminals) {
+        return;
         if(pointIndices.size()>0)
             return ;
         // pointIndices.reserve(getNumTerminals());
@@ -1361,6 +1362,9 @@ public:
     }
 
     void computePlaneParams() {
+        if(planeParamsComputed)
+            return;
+        
         computeFeatures();
       Eigen::Vector4f xyz_centroid_;
 
@@ -1372,10 +1376,34 @@ public:
         computeCovarianceMat(covMat);
         
         
-        pcl::solvePlaneParameters (covMat.cast<float>(), xyz_centroid_, planeParams, curvature);
+//        pcl::solvePlaneParameters (covMat.cast<float>(), xyz_centroid_, planeParams, curvature);
         
-        assert(fabs(getNorm()-1)<0.05);
         planeParamsComputed = true;
+   // Avoid getting hung on Eigen's optimizers
+   for (int i = 0; i < 3; ++i)
+     for (int j = 0; j < 3; ++j)
+       assert(pcl_isfinite (covMat (i, j)));
+   
+   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> ei_symm (covMat);
+   EIGEN_ALIGN16 Eigen::Vector3d eigen_values  = ei_symm.eigenvalues ();
+   EIGEN_ALIGN16 Eigen::Matrix3d eigen_vectors = ei_symm.eigenvectors ();
+          
+   planeParams[0] = eigen_vectors (0, 0);
+   planeParams[1] = eigen_vectors (1, 0);
+   planeParams[2] = eigen_vectors (2, 0);
+   planeParams[3] = 0;
+ 
+   // Hessian form (D = nc . p_plane (centroid here) + p)
+   planeParams[3] = -1 * planeParams.dot (xyz_centroid_);
+ 
+        assert(fabs(getNorm()-1)<0.05);
+   double sumSquaredDistances=eigen_values(0);
+   setAbsoluteCost(sumSquaredDistances);
+   
+//   cerr<<sumDistancesSqredToPlane(this)<<" a,e "<<sumSquaredDistances<<endl;
+   
+   // Compute the curvature surface change
+   
     }
     
     Eigen::Vector3d getPlaneNormal() {
@@ -1416,8 +1444,7 @@ public:
     }
         
     
-    virtual void setCost() {
-        setAbsoluteCost(sumDistancesSqredToPlane(this));
+    void setCost() {
     }
     
     /**
