@@ -1936,7 +1936,25 @@ template<>
             output->setAdditionalCost(additionalCost);
             return true;
         }                   
-    }
+}
+
+typedef Matrix<float, 2, 2> Matrix2f;
+
+void solve2x2LinearEquation(Vector2f* v1, Vector2f* v2, Vector2f* solution) {
+    Matrix2f A;
+    A << v1[0],v1[1] v2[0],v2[1];
+    Vector2f b;
+    solution = A.colPivHouseholderQr().solve(b);
+}
+
+void getPlanePlaneOcclusionPoint(Plane* plane1, Plane* plane2) {
+    Vector4f* plane1Params = plane1->getPlaneParams();
+    Vector4f* plane2Params = plane2->getPlaneParams();
+    float x, y;
+    
+    solveLinearEquationPair(plane1Params, plane2Params, x, y)
+}
+
 
 // Checks if x is on top of y
 bool isOnTop(Symbol* x, Symbol* y) {
