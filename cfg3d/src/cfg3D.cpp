@@ -32,6 +32,7 @@
 #include "point_struct.h"
 #include "utils.h"
 #include "color.cpp"
+#include <Eigen/Dense>
 
 //sac_model_plane.h
 
@@ -1957,23 +1958,48 @@ template<>
         }                   
 }
 
-typedef Matrix<float, 2, 2> Matrix2f;
-
-void solve2x2LinearEquation(Vector2f* v1, Vector2f* v2, Vector2f* solution) {
+void solveLinearEquationPair(const Vector2f& v1, const Vector2f& v2, const Vector2f& b, Vector2f& solution) {
     Matrix2f A;
-    A << v1[0],v1[1] v2[0],v2[1];
-    Vector2f b;
+    float v10 = v1[0];
+    float v11 = v1[1];
+    float v20 = v2[0];
+    float v21 = v2[1];
+    A << v10,v11, v20,v21;
     solution = A.colPivHouseholderQr().solve(b);
 }
 
-void getPlanePlaneOcclusionPoint(Plane* plane1, Plane* plane2) {
-    Vector4f* plane1Params = plane1->getPlaneParams();
-    Vector4f* plane2Params = plane2->getPlaneParams();
-    float x, y;
-    
-    solveLinearEquationPair(plane1Params, plane2Params, x, y)
+Vector2f getDirection(pcl::PointXYZ& p1, pcl::PointXYZ& p2) {
+    return Vector2f(p1.x - p2.x, p1.y - p2.y);
 }
 
+pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2) {
+    Vector4f p1Params = plane1.getPlaneParams();
+    Vector4f p2Params = plane2.getPlaneParams();
+    Vector2f intersectionPoint;
+    Vector2f v1(p1Params[0],p1Params[1]);
+    Vector2f v2(p2Params[0],p2Params[1]);
+    Vector2f v4(p1Params[3],p2Params[3]);
+    solveLinearEquationPair(v1, v2, v4, intersectionPoint);
+        
+    pcl::PointXYZ c1;
+    plane1.getCentroid(c1);
+    pcl::PointXYZ c2;
+    plane2.getCentroid(c2);
+    
+    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
+    Vector2f d2 = getDirection(c1, i);
+    Vector2f d1 = getDirection(c2, i);
+    
+    Vector2f b(c2.x - c1.x, c2.y - c1.y);
+    Vector2f row1(d1[0], -d2[0]);
+    Vector2f row2(d1[1], -d2[1]);
+    Vector2f r;
+    solveLinearEquationPair(row1, row2, b, r);
+    
+    float x_p = c2.x + r[0] * d2[0];
+    float y_p = c2.y + r[1] * d2[1];
+    return pcl::PointXYZ(x_p, y_p, 0);
+}
 
 // Checks if x is on top of y
 bool isOnTop(Symbol* x, Symbol* y) {
@@ -2340,8 +2366,6 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     }
 
 int main(int argc, char** argv) {
-
-    
     if(argc!=3)
     {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
@@ -2354,7 +2378,7 @@ int main(int argc, char** argv) {
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
-    
+//    
     return 0;
     
 }
