@@ -150,9 +150,9 @@ protected:
     }
 public:
 
-    void computeMeanCovAddition( Eigen::Matrix3d & ans)
+    void computeCovarianceMat( Eigen::Matrix3d & ans)
     {
-        computeMeanCovAddition(centroid,ans);
+        computeMeanCovOtherMean(centroid,ans);
     }
     
     void computeMeanCovAddition(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
@@ -165,6 +165,12 @@ public:
         
         computeMeanTMean(centr, temp);
         ans+=temp;
+    }
+    
+    void computeMeanCovOtherMean(const pcl::PointXYZ & othercentr, Eigen::Matrix3d & ans)
+    {
+        computeMeanCovAddition(othercentr,ans);
+        ans+=covarianceMatrixWoMean;
     }
     
     const vector<cv::Point2f> & getConvexHull() const
@@ -683,6 +689,19 @@ public:
     }
     
     friend class NTSetComparison;
+
+//    void sumChildrenCovOtherMean(const pcl::PointXYZ & othercentr, Eigen::Matrix3d & ans)
+//    {
+//        Eigen::Matrix3d  temp;
+//        children.at(0)->computeMeanCovAddition(othercentr,ans);
+//        
+//        for(unsigned int i=1;i<children.size();i++)
+//        {
+//             children.at(0)->computeMeanCovAddition(othercentr,temp);
+//             ans+=temp;
+//        }
+//        
+//    }
 
     void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
@@ -1332,22 +1351,24 @@ public:
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
         
+        cerr<<"pp"<<planeParams<<endl;
         computeFeatures();
               EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix_;
 
       /** \brief 16-bytes aligned placeholder for the XYZ centroid of a surface patch. */
       Eigen::Vector4f xyz_centroid_;
 
-        pcl::compute3DCentroid (scene, getPointIndices(), xyz_centroid_);
-
-        // Compute the 3x3 covariance matrix
-        pcl::computeCovarianceMatrix (scene, getPointIndices(), xyz_centroid_, covariance_matrix_);
+      for(int i=0;i<3;i++)
+          xyz_centroid_(i)=centroid.data[i];
+      xyz_centroid_(3)=1;
         
         Eigen::Matrix3d covMat;//
-        computeMeanCovAddition(covMat);
-        covMat+=getCovarianceMatrixWoMean();
+        computeCovarianceMat(covMat);
         
-        cerr<<"matrices\n"<<covariance_matrix_<<endl<<"--"<<endl<<covMat<<endl;
+        
+        pcl::solvePlaneParameters (covMat.cast<float>(), xyz_centroid_, planeParams, curvature);
+//        cerr<<"matrices\n"<<covariance_matrix_<<endl<<"--"<<endl<<covMat<<endl;
+        cerr<<"pp'"<<planeParams<<endl;
         
         assert(fabs(getNorm()-1)<0.05);
      //   double norm = getNorm();
