@@ -126,8 +126,40 @@ protected:
 
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
+
+    double getSigmaCoordinate(int coordinateIndex)
+    {
+        return centroid.data[coordinateIndex]*numPoints;
+    }
+
+    void computeMeanTA(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) = centr.data[i] * getSigmaCoordinate(j);
+
+    }
+        
+    void computeMeanTMean(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) += centr.data[i] * centr.data[i] * numPoints;
+
+    }
 public:
 
+    void computeMeanCovAddition(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        assert(featuresComputed);
+        Eigen::Matrix3d  temp;
+        computeMeanTA(centr, temp);
+        ans=(-temp-temp.transpose());
+        
+        computeMeanTMean(centr, temp);
+        ans+=temp;
+    }
+    
     const vector<cv::Point2f> & getConvexHull() const
     {
         assert(rectConvexHull.size()>0);
