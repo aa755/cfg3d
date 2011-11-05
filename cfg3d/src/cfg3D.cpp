@@ -122,7 +122,6 @@ protected:
      vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
-    vector<int> pointIndices;
     Eigen::Matrix3d covarianceMatrixWoMean;
 
     //    vector<NonTerminal*> parents;
@@ -240,15 +239,6 @@ public:
         return cost < rhs.cost;
     }
 
-    vector<int> & getPointIndices() {
-        assert(pointIndices.size() > 0);
-        return pointIndices;
-    }
-
-    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
-        assert(pointIndices.size() > 0);
-        return createStaticShared<std::vector<int> >(& pointIndices);
-    }
     
     
     double getCost() const {
@@ -358,6 +348,7 @@ class SymbolPriorityQueue;
     class Terminal : public Symbol 
 {
 protected:
+    vector<int> pointIndices;
     /** segment index
      */
     size_t index;
@@ -373,6 +364,15 @@ protected:
     }
     
 public:
+    vector<int> & getPointIndices() {
+        assert(pointIndices.size() > 0);
+        return pointIndices;
+    }
+
+    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
+        assert(pointIndices.size() > 0);
+        return createStaticShared<std::vector<int> >(& pointIndices);
+    }
     
     void compute2DConvexHull()
     {
@@ -655,19 +655,6 @@ public:
     }
     
 
-    void computePointIndices(vector<Terminal*> & terminals) {
-        return;
-        if(pointIndices.size()>0)
-            return ;
-        // pointIndices.reserve(getNumTerminals());
-
-        //TODO: change this
-        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
-            if (spanned_terminals.test(i))
-                pointIndices.insert(pointIndices.end(), terminals.at(i)->getPointIndices().begin(), terminals.at(i)->getPointIndices().end());
-        }
-    }
-
     /**
      * is span(this) U span(nt) =all terminals 
      * @param nt
@@ -846,7 +833,6 @@ public:
 
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
-        computePointIndices(terminals);
         computeFeatures();
         additionalFinalize();
         return true;
@@ -1431,23 +1417,6 @@ public:
     }
         
     
-    /**
-     * computes the sum of distances of all points spanned by symbol t from this plane
-     * using distance squared since, the plane parameters are obtained by using a least squares fit
-     * http://www.ros.org/doc/unstable/api/pcl/html/feature_8h.html
-     * @param t
-     * @return 
-     */
-    double sumDistancesSqredToPlane(Symbol * t) {
-            assert(planeParamsComputed);
-            double sum=0;
-        for (unsigned int i = 0; i < t->getPointIndices().size(); i++) {
-            PointT & p=scene.points[t->getPointIndices().at(i)];
-                sum+=sqr(pcl::pointToPlaneDistance<PointT > (p, planeParams));
-        }
-            return sum;
-            
-    }
     
 };
 
@@ -1919,7 +1888,6 @@ public:
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
         return LHS;
     }
@@ -1980,7 +1948,6 @@ template<>
 template<>
     bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
-        output->computePointIndices(terminals);
         output->computePlaneParams();
         return true;
     }
