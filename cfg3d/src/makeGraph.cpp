@@ -585,6 +585,12 @@ public:
       }
     }
   }
+template <typename PointT, typename Normal> 
+  void extractRansacClusters( const pcl::PointCloud<PointT> &cloud, std::vector<pcl::PointIndices> &segments)
+  {
+    
+  }
+
 #define MIN_SEG_SIZE 50
 
 bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndices & seg2) 

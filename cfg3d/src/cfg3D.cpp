@@ -26,7 +26,7 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .75
+#define TABLE_HEIGHT .70
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
@@ -1799,9 +1799,11 @@ public:
 
         float combinedArea = _getPolygonArea(combined2dCv);
 
-        float cost = 200*(combinedArea / getRectArea()-1);
+        float rectArea=getRectArea();
+        assert(rectArea>0);
+        float cost = 200*(combinedArea / rectArea -1);
       //  cerr<<"areas "<<combinedArea<<","<<cost<<","<<width<<","<<height<<endl;
-        if(cost<0.001)
+        if(cost>-0.001)
             cost=0; // minor numerical errors
         assert(cost>=0);
         return cost;
