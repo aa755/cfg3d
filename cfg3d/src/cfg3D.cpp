@@ -1976,7 +1976,7 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>.25 || maxZDiff >0.2)
+        if(normalZ>.25 || maxZDiff >0.30)
 //        if( maxZDiff >0.2)
             return false;
         else 
@@ -1998,7 +1998,7 @@ template<>
 template<>
     bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
-        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+        if(additionalCost>(0.3*0.3)*input->getNumPoints())
             return false;
         else 
         {
@@ -2080,7 +2080,7 @@ bool isVerticalEnough(Plane* plane) {
 }
 
 bool isZCloseEnough(double value, double height) {
-    return fabs(value - height) <= .25;
+    return fabs(value - height) <= .3;
 }
 
 template<>
