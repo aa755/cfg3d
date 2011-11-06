@@ -112,12 +112,13 @@ protected:
      */
     bool featuresComputed;
     double cost;
-    double maxZ;
-    double minZ;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
     pcl::PointXYZ centroid;
+    pcl::PointXYZ minxyz;
+    pcl::PointXYZ maxxyz;
+    
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
      vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
@@ -218,10 +219,8 @@ public:
     
     virtual void printData() =0;
     
-    virtual void computeMaxZ()=0;
+    virtual void computeMinMaxXYZ()=0;
     
-    virtual void computeMinZ()=0;
-
     void resetNeighborIterator()
     {
         assert(neighbors.size()>0);
@@ -270,12 +269,22 @@ public:
 
     double getMaxZ() {
         assert(featuresComputed);
-        return maxZ;
+        return maxxyz.z;
     }
     
     double getMinZ() {
         assert(featuresComputed);
-        return minZ;
+        return minxyz.z;
+    }
+
+    double getMaxCoord(int coordIndex) {
+        assert(featuresComputed);
+        return maxxyz.data[coordIndex];
+    }
+    
+    double getMinCoord(int coordIndex) {
+        assert(featuresComputed);
+        return minxyz.data[coordIndex];
     }
     
     virtual void computeZSquaredSum() = 0;
@@ -297,8 +306,7 @@ public:
             return;
         featuresComputed=true;
         computeZSquaredSum();
-        computeMaxZ();
-        computeMinZ();
+        computeMinMaxXYZ();
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
         computeCovarianceMatrixWoMean();
@@ -429,29 +437,33 @@ public:
         zSquaredSum = costSum;
     }
     
-    void computeMaxZ() {
-        double greatestMaxZ = -infinity();
-        double itMaxZ = 0;
-        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            itMaxZ = scene.points[*it].z;
-            if (itMaxZ > greatestMaxZ) {
-                greatestMaxZ = itMaxZ;
+    void computeMinMaxXYZ() {
+        vector<Symbol*>::iterator it;
+        for (int i = 0; i < 3; i++)
+        {
+             maxxyz.data[i] = -infinity();
+             minxyz.data[i] = infinity();
+        }
+        
+        double itVal;
+        for (int i = 0; i < 3; i++)
+        {
+            for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) 
+            {
+                itVal = scene.points.at(*it).data[i];
+                if (itVal > maxxyz.data[i])
+                {
+                    maxxyz.data[i] = itVal;
+                }
+                
+                if (itVal < minxyz.data[i])
+                {
+                    minxyz.data[i] = itVal;
+                }
             }
         }
-        maxZ = greatestMaxZ;
     }
     
-    void computeMinZ() {
-        double lowestMinZ = infinity();
-        double itMinZ = 0;
-        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            itMinZ = scene.points[*it].z;
-            if (itMinZ < lowestMinZ) {
-                lowestMinZ = itMinZ;
-            }
-        }
-        minZ = lowestMinZ;
-    }
     
     void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
@@ -773,31 +785,35 @@ public:
         neighbors -= spanned_terminals;
     }
 
-    void computeMaxZ() {
+    void computeMinMaxXYZ()
+    {
         vector<Symbol*>::iterator it;
-        double greatestMaxZ = -infinity();
-        double itMaxZ;
-        for (it = children.begin(); it != children.end(); it++) {
-            itMaxZ = (*it)->getMaxZ();
-            if (itMaxZ > greatestMaxZ) {
-                greatestMaxZ = itMaxZ;
+        for (int i = 0; i < 3; i++)
+        {
+             maxxyz.data[i] = -infinity();
+             minxyz.data[i] = infinity();
+        }
+        
+        double itMax,itMin;
+        for (int i = 0; i < 3; i++)
+        {
+            for (it = children.begin(); it != children.end(); it++)
+            {
+                itMax = (*it)->getMaxCoord(i);
+                itMin = (*it)->getMinCoord(i);
+                if (itMax > maxxyz.data[i])
+                {
+                    maxxyz.data[i] = itMax;
+                }
+                
+                if (itMin < minxyz.data[i])
+                {
+                    minxyz.data[i] = itMin;
+                }
             }
         }
-        maxZ = greatestMaxZ;
     }
     
-    void computeMinZ() {
-        vector<Symbol*>::iterator it;
-        double lowestMinZ = infinity();
-        double itMinZ;
-        for (it = children.begin(); it != children.end(); it++) {
-            itMinZ = (*it)->getMinZ();
-            if (itMinZ < lowestMinZ) {
-                lowestMinZ = itMinZ;
-            }
-        }
-        minZ = lowestMinZ;
-    }
     
     void computeZSquaredSum() {
         double sum = 0;
