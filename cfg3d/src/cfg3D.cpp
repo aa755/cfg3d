@@ -1339,7 +1339,11 @@ public:
         planeParamsComputed = false;
     }
 
-    double getNorm() {
+bool isHorizontalEnough() {
+    return getZNormal() >= .88;
+}
+
+double getNorm() {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
     
@@ -1998,7 +2002,7 @@ template<>
 template<>
     bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
-        if(additionalCost>(0.3*0.3)*input->getNumPoints())
+        if(additionalCost>(0.3*0.3)*input->getNumPoints() || ! input->isHorizontalEnough())
             return false;
         else 
         {
@@ -2010,7 +2014,7 @@ template<>
 template<>
     bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->getZSquaredSum();
-        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+        if(additionalCost>(0.2*0.2)*input->getNumPoints() || ! input->isHorizontalEnough() )
             return false;
         else 
         {
