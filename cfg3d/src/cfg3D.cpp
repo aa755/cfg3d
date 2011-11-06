@@ -8,7 +8,6 @@
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
 // #include <opencv2/highgui/highgui.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -40,6 +39,7 @@ using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 30
+#include "OccupancyMap.h"
 /*
  *
  */
@@ -100,6 +100,7 @@ double infinity() {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
@@ -2436,7 +2437,9 @@ int main(int argc, char** argv) {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    
+
+    occlusionChecker = new OccupancyMap<PointT>(scene);
+
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
         map<int, set<int> > neighbors;
