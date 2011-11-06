@@ -17,7 +17,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
-
+#include "extract_planes.cpp"
 
 typedef pcl::PointXYZRGBCamSL PointOutT;
 typedef pcl::PointXYZRGB PointInT;
@@ -491,10 +491,17 @@ public:
       }
     }
   }
-template <typename PointT, typename Normal> 
-  void extractRansacClusters( const pcl::PointCloud<PointT> &cloud, std::vector<pcl::PointIndices> &segments)
+  
+  void extractRansacClusters(  pcl::PointCloud<PointInT> &cloud, std::vector<pcl::PointIndices> &segments)
   {
-    
+    Extractor p;
+
+    p.initializeFromCloud(createStaticShared<pcl::PointCloud<PointInT> >(& cloud));
+    int i = 0;
+    while(i < 100 && p.compute_object(i,segments)) {
+        i++;
+    }
+
   }
 
 #define MIN_SEG_SIZE 50
@@ -526,8 +533,8 @@ int main(int argc, char** argv)
 
 
     int number_neighbours = 50;
-    float radius = 0.05; // 0.025
-    float angle = 0.52;
+//    float radius = 0.05; // 0.025
+//    float angle = 0.52;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
     std::vector<pcl::PointIndices> clusters;
@@ -548,7 +555,8 @@ int main(int argc, char** argv)
 
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
-    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
+//    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
+    extractRansacClusters(cloud, clusters);
     
     sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
     

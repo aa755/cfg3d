@@ -64,7 +64,7 @@ public:
         vg.setLeafSize(LEAFSIZE, LEAFSIZE, LEAFSIZE);
 
         // Any object < CUT_THRESHOLD will be abandoned.
-        CUT_THRESHOLD = (int)LEAFSIZE * 100000;
+        CUT_THRESHOLD = (int)(LEAFSIZE * 30000);
 
         // Clustering
         cluster_.setClusterTolerance(0.04 * UNIT);
@@ -120,12 +120,20 @@ public:
         return cost;
     }
 
-    void initialize(const std::string & pcd_name) {
-        // Read in the cloud data
+    void initializeFromFilename(const std::string & pcd_name) {
         reader.read(pcd_name, *cloud);
         std::cerr << "PointCloud has: " << cloud->points.size() << " data points." << std::endl;
 
-        // pcl::io::loadPCDFile(pcd_name, *cloud);
+        initialize();
+    }
+    
+    void initializeFromCloud(pcl::PointCloud<Point>::Ptr cloudp) {
+        cloud=cloudp;
+
+        initialize();
+    }
+
+    void initialize() {
 
         // A passthrough filter to remove spurious NaNs
         pass.setInputCloud(cloud);
@@ -145,7 +153,7 @@ public:
         ROS_INFO("%lu normals estimated", cloud_normals->points.size());
     }
 
-    bool compute_object(const int i) {
+    bool compute_object(const int i, std::vector<pcl::PointIndices > &segments) {
         // Call get_plane, get_cylinder, get_sphere
         float plane_score = compute_plane(); // plane_inliers_ has the pc.
         float cylinder_score = compute_cylinder(); // cylinder_inliers_ has the pc
@@ -186,6 +194,7 @@ public:
         }
 
         main_cluster_.reset(new pcl::PointIndices(clusters.at(0)));
+        segments.push_back(*main_cluster_);
 
         // Extract the inliers from the input cloud
         extract.setInputCloud(cloud_filtered);
@@ -219,15 +228,17 @@ public:
     }
 };
 
-int main(int argc, char** argv) {
-    ros::init(argc, argv, "Extractor");
-    Extractor p;
-
-    p.initialize(std::string(argv[1]));
-    int i = 0;
-    while(i < 10 && p.compute_object(i)) {
-        i++;
-    }
-
-    return (0);
-}
+//
+//int main(int argc, char** argv) {
+//    ros::init(argc, argv, "Extractor");
+//    Extractor p;
+//
+//    std::vector<pcl::PointIndices> segments;
+//    p.initialize(std::string(argv[1]));
+//    int i = 0;
+//    while(i < 100 && p.compute_object(i,segments)) {
+//        i++;
+//    }
+//
+//    return (0);
+//}
