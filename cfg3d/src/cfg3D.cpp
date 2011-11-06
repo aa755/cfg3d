@@ -267,6 +267,26 @@ public:
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
+    double getMaxX() {
+        assert(featuresComputed);
+        return maxxyz.x;
+    }
+    
+    double getMinX() {
+        assert(featuresComputed);
+        return minxyz.x;
+    }
+    
+    double getMaxY() {
+        assert(featuresComputed);
+        return maxxyz.y;
+    }
+    
+    double getMinY() {
+        assert(featuresComputed);
+        return minxyz.y;
+    }
+    
     double getMaxZ() {
         assert(featuresComputed);
         return maxxyz.z;
@@ -1356,11 +1376,11 @@ public:
         planeParamsComputed = false;
     }
 
-bool isHorizontalEnough() {
-    return getZNormal() >= .88;
-}
+    bool isHorizontalEnough() {
+        return getZNormal() >= .88;
+    }
 
-double getNorm() {
+    double getNorm() {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
     
@@ -2051,10 +2071,31 @@ void solveLinearEquationPair(const Vector2f& v1, const Vector2f& v2, const Vecto
 }
 
 Vector2f getDirection(pcl::PointXYZ& p1, pcl::PointXYZ& p2) {
-    return Vector2f(p1.x - p2.x, p1.y - p2.y);
+    Vector2f v1(p1.x, p1.y);
+    Vector2f v2(p2.x, p2.y);
+    return v1 - v2;
 }
 
-pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2) {
+pcl::PointXYZ getFarthestInDirection(Plane& plane, const Vector2f direction) {
+    float farthestX;
+    float farthestY;
+    
+    if (direction[0] < 0) {
+        farthestX = plane.getMinX();
+    } else {
+        farthestX = plane.getMaxX();
+    }
+    
+    if (direction[1] < 0) {
+        farthestY = plane.getMinY();
+    } else {
+        farthestY = plane.getMaxY();
+    }
+    
+    return pcl::PointXYZ(farthestX, farthestY, 0);
+}
+
+pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ p1, pcl::PointXYZ p2) {
     Vector4f p1Params = plane1.getPlaneParams();
     Vector4f p2Params = plane2.getPlaneParams();
     Vector2f intersectionPoint;
@@ -2063,14 +2104,20 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2) {
     Vector2f v4(p1Params[3],p2Params[3]);
     solveLinearEquationPair(v1, v2, v4, intersectionPoint);
         
-    pcl::PointXYZ c1;
-    plane1.getCentroid(c1);
-    pcl::PointXYZ c2;
-    plane2.getCentroid(c2);
+    pcl::PointXYZ centroid1;
+    plane1.getCentroid(centroid1);
+    pcl::PointXYZ centroid2;
+    plane2.getCentroid(centroid2);
     
     pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
-    Vector2f d2 = getDirection(c1, i);
-    Vector2f d1 = getDirection(c2, i);
+    
+    // Where d1 and d2 are the directions away from the intersection point of the two planes.
+    Vector2f d2 = getDirection(centroid1, i);
+    Vector2f d1 = getDirection(centroid2, i);
+    
+    
+    pcl::PointXYZ c1 = getFarthestInDirection(plane1, d1);
+    pcl::PointXYZ c2 = getFarthestInDirection(plane2, d2);
     
     Vector2f b(c2.x - c1.x, c2.y - c1.y);
     Vector2f row1(d1[0], -d2[0]);
@@ -2081,6 +2128,15 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2) {
     float x_p = c2.x + r[0] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
     return pcl::PointXYZ(x_p, y_p, 0);
+}
+
+bool canHallucinatePlane(Plane& plane1, Plane& plane2) {
+    return false;
+//    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2);
+//    bool isOccluded = isOccluded(occlusionPoint);
+//    if (isOccluded) {
+//        
+//    }
 }
 
 // Checks if x is on top of y
@@ -2283,7 +2339,6 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
-
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
@@ -2447,6 +2502,7 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
         }
     }
 
+    // v1 - v2, direction goes toward the first vector
 int main(int argc, char** argv) {
     if(argc!=3)
     {
@@ -2462,7 +2518,7 @@ int main(int argc, char** argv) {
        int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
    runParse(neighbors,maxSegIndex);
-//    
+    
     return 0;
     
 }
