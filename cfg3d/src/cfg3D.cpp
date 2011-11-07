@@ -534,6 +534,9 @@ public:
         cost = 0;
     }
 
+    Terminal(vector<pcl::PointXYZ> & points) {
+    }
+
     Terminal(int index_, double cost_) {
         index = index_;
         cost = cost_;
