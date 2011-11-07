@@ -2091,7 +2091,7 @@ bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusion
     float numOccludedPoints = 0;
     vector<pcl::PointXYZ>::iterator it;
     for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
-        if (isOccluded(*it)) {
+        if (occlusionChecker->isOccluded(*it)) {
             numOccludedPoints = numOccludedPoints + 1;
         }
     }
