@@ -2536,30 +2536,22 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
             cloudxy.points[i].y = cloud.points[i].y;
         }
     }
-
-    void testFunction(int& integer) {
-        integer = 4;
-    }
     
-    // v1 - v2, direction goes toward the first vector
 int main(int argc, char** argv) {
-    int integer = 5;
-    testFunction(integer);
-    cout<<integer<<endl;
-//    if(argc!=3)
-//    {
-//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
-//    }
-//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-//
-//    occlusionChecker = new OccupancyMap<PointT>(scene);
-//
-//    //convertToXY(scene,scene2D);
-//  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-//    map<int, set<int> > neighbors;
-//    int maxSegIndex= parseNbrMap(argv[2],neighbors);
-//    cout<<"scene has "<<scene.size()<<" points"<<endl;
-//    runParse(neighbors,maxSegIndex);
+    if(argc!=3)
+    {
+        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+    }
+    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+
+    occlusionChecker = new OccupancyMap<PointT>(scene);
+
+    //convertToXY(scene,scene2D);
+  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+    map<int, set<int> > neighbors;
+    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+    cout<<"scene has "<<scene.size()<<" points"<<endl;
+    runParse(neighbors,maxSegIndex);
     
     return 0;
     
