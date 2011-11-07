@@ -558,7 +558,7 @@ int main(int argc, char** argv)
 //    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
     extractRansacClusters(cloud, clusters);
     
-    sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
+    //sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
     
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
