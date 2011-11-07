@@ -2039,8 +2039,8 @@ bool isOccluded(pcl::PointXYZ& point) {
     return false;
 }
 
-vector<pcl::PointXYZ*> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
-    vector<pcl::PointXYZ*> samplePoints;
+vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
+    vector<pcl::PointXYZ> samplePoints;
     float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
     float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
     float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
@@ -2050,7 +2050,7 @@ vector<pcl::PointXYZ*> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlu
     while(samplesTaken < sampleFactor) {
         for (int k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
             pcl::PointXYZ samplePoint(currentX, currentY, k);
-            samplePoints.push_back(&samplePoint);
+            samplePoints.push_back(samplePoint);
         }
         currentX = currentX + xStep;
         currentY = currentY + yStep;
@@ -2059,18 +2059,18 @@ vector<pcl::PointXYZ*> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlu
     return samplePoints;
 }
 
-bool isSamplePointsOccluded(vector<pcl::PointXYZ*>& samplePoints, float occlusionThreshold, float sampleFactor) {
+bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
     float numOccludedPoints = 0;
-    vector<pcl::PointXYZ*>::iterator it;
+    vector<pcl::PointXYZ>::iterator it;
     for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
-        if (isOccluded(**it)) {
+        if (isOccluded(*it)) {
             numOccludedPoints = numOccludedPoints + 1;
         }
     }
     return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
 }
 
-bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ*>& samplePoints) {
+bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
     float sampleFactor = 5;
     float occlusionThreshold = .9;
     pcl::PointXYZ c1;
@@ -2104,14 +2104,14 @@ public:
     NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
         Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
         Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
-        vector<pcl::PointXYZ*> hallucinationPoints;
+        vector<pcl::PointXYZ> hallucinationPoints;
         
         if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
             return NULL;
         }
         else {
             // Get hallucinated plane
-            Terminal* hallucinatedSegment = new Terminal();
+            Terminal* hallucinatedSegment = new Terminal(hallucinationPoints);
             SingleRule<Plane, Terminal>* rule = new SingleRule<Plane, Terminal>();
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule->applyRule(hallucinatedSegment, terminals));
             
