@@ -12,13 +12,14 @@
 #include <pcl/segmentation/extract_clusters.h>
 
 #include "plane.h"
+#include "point_struct.h"
 #include <stdio.h>
 
 #define PI 3.14159265
 #define RANGE 0.1  //angle range
 #define UNIT 1.0  // m
 
-typedef pcl::PointXYZRGB Point;
+typedef pcl::PointXYZRGBA Point;
 typedef pcl::KdTree<Point>::Ptr KdTreePtr;
 
 class Extractor
@@ -127,8 +128,18 @@ public:
         initialize();
     }
     
-    void initializeFromCloud(pcl::PointCloud<Point>::Ptr cloudp) {
-        cloud=cloudp;
+    void initializeFromCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudp) 
+    {
+        cloud=boost::shared_ptr<pcl::PointCloud<Point> >(new pcl::PointCloud<Point>());
+        cloud->points.resize(cloudp->size());
+        for(unsigned int i=0;i<cloudp->size();i++)
+        {
+            cloud->points.at(i).x=cloudp->points.at(i).x;
+            cloud->points.at(i).y=cloudp->points.at(i).y;
+            cloud->points.at(i).z=cloudp->points.at(i).z;
+            cloud->points.at(i).rgba=i;
+            
+        }
 
         initialize();
     }
@@ -194,7 +205,6 @@ public:
         }
 
         main_cluster_.reset(new pcl::PointIndices(clusters.at(0)));
-        segments.push_back(*main_cluster_);
 
         // Extract the inliers from the input cloud
         extract.setInputCloud(cloud_filtered);
@@ -203,7 +213,18 @@ public:
 
         // Write the inliers to disk
         pcl::PointCloud<Point>::Ptr cloud_plane(new pcl::PointCloud<Point > ());
+        
+        
         extract.filter(*cloud_plane);
+
+        pcl::PointIndices originalIndices;
+        originalIndices.indices.resize(cloud_plane->size());
+        
+        for(unsigned int j=0;j<originalIndices.indices.size();j++)
+            originalIndices.indices.at(j)=cloud_plane->points.at(j).rgba;
+                    
+        segments.push_back(originalIndices);
+        
         std::stringstream debug_s;
         if (inliers_object_ == inliers_cylinder_) {
             debug_s << "cylinder_object_" << i << ".pcd";
