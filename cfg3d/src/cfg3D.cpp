@@ -1478,6 +1478,35 @@ public:
     
 };
 
+bool isVerticalEnough(Plane* plane) {
+    return plane->getZNormal() <= .25;
+}
+
+// Checks if x is on top of y
+bool isOnTop(Symbol* x, Symbol* y) {
+    if (x->getMinZ() - y->getMaxZ() < -0.1) 
+    {
+       // cerr<<"ontop violated";
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+// Checks if x is above value
+bool isOnTop(Symbol* x, float value) {
+    if (x->getMinZ() - value < -0.1) 
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 class Floor : public Plane {
 public: 
     /**
@@ -1917,6 +1946,8 @@ public:
     
 };
 
+class PlaneTriplet : public NonTerminal {};
+
 //template<>
 //    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
 //    {
@@ -1974,19 +2005,193 @@ public:
     }
 };
 
+
+void solveLinearEquationPair(const Vector2f& v1, const Vector2f& v2, const Vector2f& b, Vector2f& solution) {
+    Matrix2f A;
+    float v10 = v1[0];
+    float v11 = v1[1];
+    float v20 = v2[0];
+    float v21 = v2[1];
+    A << v10,v11, v20,v21;
+    solution = A.colPivHouseholderQr().solve(b);
+}
+
+Vector2f getDirection(pcl::PointXYZ& p1, pcl::PointXYZ& p2) {
+    Vector2f v1(p1.x, p1.y);
+    Vector2f v2(p2.x, p2.y);
+    return v1 - v2;
+}
+
+pcl::PointXYZ getFarthestInDirection(Plane& plane, const Vector2f direction) {
+    float farthestX;
+    float farthestY;
+    
+    if (direction[0] < 0) {
+        farthestX = plane.getMinX();
+    } else {
+        farthestX = plane.getMaxX();
+    }
+    
+    if (direction[1] < 0) {
+        farthestY = plane.getMinY();
+    } else {
+        farthestY = plane.getMaxY();
+    }
+    
+    return pcl::PointXYZ(farthestX, farthestY, 0);
+}
+
+pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ& c1, pcl::PointXYZ& c2, Vector2f& d1, Vector2f& d2) {
+    Vector4f p1Params = plane1.getPlaneParams();
+    Vector4f p2Params = plane2.getPlaneParams();
+    Vector2f intersectionPoint;
+    Vector2f v1(p1Params[0],p1Params[1]);
+    Vector2f v2(p2Params[0],p2Params[1]);
+    Vector2f v4(p1Params[3],p2Params[3]);
+    solveLinearEquationPair(v1, v2, v4, intersectionPoint);
+        
+    pcl::PointXYZ centroid1;
+    plane1.getCentroid(centroid1);
+    pcl::PointXYZ centroid2;
+    plane2.getCentroid(centroid2);
+    
+    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
+    
+    // Where d1 and d2 are the directions away from the intersection point of the two planes.
+    d2 = getDirection(centroid1, i);
+    d1 = getDirection(centroid2, i);
+    
+    
+    c1 = getFarthestInDirection(plane1, d1);
+    c2 = getFarthestInDirection(plane2, d2);
+    
+    Vector2f b(c2.x - c1.x, c2.y - c1.y);
+    Vector2f row1(d1[0], -d2[0]);
+    Vector2f row2(d1[1], -d2[1]);
+    Vector2f r;
+    solveLinearEquationPair(row1, row2, b, r);
+    
+    float x_p = c2.x + r[0] * d2[0];
+    float y_p = c2.y + r[1] * d2[1];
+    return pcl::PointXYZ(x_p, y_p, 0);
+}
+
+bool isOccluded(pcl::PointXYZ& point) {
+    assert(3==2);
+    return false;
+}
+
+vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
+    vector<pcl::PointXYZ> samplePoints;
+    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
+    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
+    float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
+    float currentX = min(c1.x, occlusionPoint.x);
+    float currentY = min(c1.y, occlusionPoint.y);
+    float samplesTaken = 0;
+    while(samplesTaken < sampleFactor) {
+        for (int k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
+            pcl::PointXYZ samplePoint(currentX, currentY, k);
+            samplePoints.push_back(samplePoint);
+        }
+        currentX = currentX + xStep;
+        currentY = currentY + yStep;
+        samplesTaken = samplesTaken + 1;
+    }
+    return samplePoints;
+}
+
+bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
+    float numOccludedPoints = 0;
+    vector<pcl::PointXYZ>::iterator it;
+    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
+        if (isOccluded(*it)) {
+            numOccludedPoints = numOccludedPoints + 1;
+        }
+    }
+    return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
+}
+
+bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
+    float sampleFactor = 5;
+    float occlusionThreshold = .9;
+    pcl::PointXYZ c1;
+    pcl::PointXYZ c2;
+    Vector2f d1;
+    Vector2f d2;
+    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
+    samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
+    if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+        return true;
+    } else {
+        samplePoints = getPointsToSample(c2, occlusionPoint, plane2, sampleFactor);
+        if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+class RPlaneTriplet_PlanePairPlane : public Rule {
+public:
+    int get_Nof_RHS_symbols() {
+        return 2;
+    }
+
+    void get_typenames(vector<string> & names) {
+        names.push_back(typeid (PlanePair).name());
+        names.push_back(typeid (Plane).name());
+    }
+    
+    NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
+        Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
+        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+        vector<pcl::PointXYZ> hallucinationPoints;
+        
+        if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
+            return NULL;
+        }
+        else {
+            // Get hallucinated plane
+            Terminal* hallucinatedSegment = new Terminal(hallucinationPoints);
+            SingleRule<Plane, Terminal>* rule = new SingleRule<Plane, Terminal>();
+            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule->applyRule(hallucinatedSegment, terminals));
+            
+            PlaneTriplet* LHS = new PlaneTriplet();
+            
+            LHS->addChild(RHS_planePair);
+            LHS->addChild(RHS_hallucinatedPlane);
+            LHS->computeSpannedTerminals();
+            
+            return LHS;
+        }
+    }
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (PlanePair))
+        {
+            PlanePair* planePair = dynamic_cast<PlanePair*> (extractedSym);
+            // Try to hallucinate.
+            NonTerminal *newNT = applyRule(planePair, terminals);
+            addToPqueueIfNotDuplicate(newNT,pqueue);
+        }
+    }
+};
+
 /// Templated Rules Marker TRM
-//template<>
-//    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
-//    {
-//        double parallelity = input1->dotProduct(input2);
-//        if (parallelity < .2) {
-//            output->setAdditionalCost(parallelity);
-//            return true;
-//        }
-//        else {
-//            return false;
-//        }
-//    }
+template<>
+    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
+    {
+        double parallelity = input1->dotProduct(input2);
+        if (parallelity < .2 && isVerticalEnough(input1) && isVerticalEnough(input2) && isOnTop(input1, TABLE_HEIGHT) && isOnTop(input2, TABLE_HEIGHT)) {
+            output->setAdditionalCost(parallelity);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
 template<>
     bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
@@ -2075,137 +2280,6 @@ template<>
             output->setAdditionalCost(additionalCost);
             return true;
         }                   
-}
-
-void solveLinearEquationPair(const Vector2f& v1, const Vector2f& v2, const Vector2f& b, Vector2f& solution) {
-    Matrix2f A;
-    float v10 = v1[0];
-    float v11 = v1[1];
-    float v20 = v2[0];
-    float v21 = v2[1];
-    A << v10,v11, v20,v21;
-    solution = A.colPivHouseholderQr().solve(b);
-}
-
-Vector2f getDirection(pcl::PointXYZ& p1, pcl::PointXYZ& p2) {
-    Vector2f v1(p1.x, p1.y);
-    Vector2f v2(p2.x, p2.y);
-    return v1 - v2;
-}
-
-pcl::PointXYZ getFarthestInDirection(Plane& plane, const Vector2f direction) {
-    float farthestX;
-    float farthestY;
-    
-    if (direction[0] < 0) {
-        farthestX = plane.getMinX();
-    } else {
-        farthestX = plane.getMaxX();
-    }
-    
-    if (direction[1] < 0) {
-        farthestY = plane.getMinY();
-    } else {
-        farthestY = plane.getMaxY();
-    }
-    
-    return pcl::PointXYZ(farthestX, farthestY, 0);
-}
-
-pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ& c1, pcl::PointXYZ& c2, Vector2f& d1, Vector2f& d2) {
-    Vector4f p1Params = plane1.getPlaneParams();
-    Vector4f p2Params = plane2.getPlaneParams();
-    Vector2f intersectionPoint;
-    Vector2f v1(p1Params[0],p1Params[1]);
-    Vector2f v2(p2Params[0],p2Params[1]);
-    Vector2f v4(p1Params[3],p2Params[3]);
-    solveLinearEquationPair(v1, v2, v4, intersectionPoint);
-        
-    pcl::PointXYZ centroid1;
-    plane1.getCentroid(centroid1);
-    pcl::PointXYZ centroid2;
-    plane2.getCentroid(centroid2);
-    
-    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
-    
-    // Where d1 and d2 are the directions away from the intersection point of the two planes.
-    d2 = getDirection(centroid1, i);
-    d1 = getDirection(centroid2, i);
-    
-    
-    c1 = getFarthestInDirection(plane1, d1);
-    c2 = getFarthestInDirection(plane2, d2);
-    
-    Vector2f b(c2.x - c1.x, c2.y - c1.y);
-    Vector2f row1(d1[0], -d2[0]);
-    Vector2f row2(d1[1], -d2[1]);
-    Vector2f r;
-    solveLinearEquationPair(row1, row2, b, r);
-    
-    float x_p = c2.x + r[0] * d2[0];
-    float y_p = c2.y + r[1] * d2[1];
-    return pcl::PointXYZ(x_p, y_p, 0);
-}
-
-bool isOccluded(pcl::PointXYZ& point) {
-    assert(3==2);
-    return false;
-}
-
-vector<pcl::PointXYZ*> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
-    vector<pcl::PointXYZ*> samplePoints;
-    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
-    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
-    float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
-    float currentX = min(c1.x, occlusionPoint.x);
-    float currentY = min(c1.y, occlusionPoint.y);
-    float samplesTaken = 0;
-    while(samplesTaken < sampleFactor) {
-        for (int k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
-            pcl::PointXYZ samplePoint(currentX, currentY, k);
-            samplePoints.push_back(&samplePoint);
-        }
-        currentX = currentX + xStep;
-        currentY = currentY + yStep;
-        samplesTaken = samplesTaken + 1;
-    }
-    return samplePoints;
-}
-
-bool canHallucinatePlane(Plane& plane1, Plane& plane2) {
-    float sampleFactor = 5;
-    float occlusionThreshold = .9;
-    pcl::PointXYZ c1;
-    pcl::PointXYZ c2;
-    Vector2f d1;
-    Vector2f d2;
-    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
-    vector<pcl::PointXYZ*> samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
-    float numOccludedPoints = 0;
-    vector<pcl::PointXYZ*>::iterator it;
-    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
-        if (isOccluded(**it)) {
-            numOccludedPoints = numOccludedPoints + 1;
-        }
-    }
-    return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
-}
-
-// Checks if x is on top of y
-bool isOnTop(Symbol* x, Symbol* y) {
-    if (x->getMinZ() - y->getMaxZ() < -0.1) 
-    {
-       // cerr<<"ontop violated";
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .25;
 }
 
 bool isZCloseEnough(double value, double height) {
@@ -2361,6 +2435,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+    rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
     
     // boundary, wall, floor
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
@@ -2375,7 +2450,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+     rules.push_back(RulePtr(new SingleRule<Computer, PlaneTriplet>()));
+//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
