@@ -419,6 +419,7 @@ public:
         cv::convexHull(cv::Mat(cvPoints), rectConvexHull);
     }
     
+    static int numHallucinatedTerminals;
     static int totalNumTerminals;
     
     boost::dynamic_bitset<> & getNeighbors() {
@@ -535,6 +536,18 @@ public:
     }
 
     Terminal(vector<pcl::PointXYZ> & points) {
+        index=totalNumTerminals+numHallucinatedTerminals++;
+        int start=scene.size();
+        pointIndices.resize(points.size());
+        scene.points.resize(start+points.size());
+        for(unsigned int i=0;i<points.size();i++)
+        {
+            pointIndices.at(i)=start+i;
+            scene.points.at(start+i).x=points.at(i).x;
+            scene.points.at(start+i).y=points.at(i).y;
+            scene.points.at(start+i).z=points.at(i).z;
+        }
+        computeFeatures();
     }
 
     Terminal(int index_, double cost_) {
@@ -563,6 +576,7 @@ public:
 };
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
+int Terminal::numHallucinatedTerminals = 0;
 
 class NonTerminal : public Symbol {
 protected:
