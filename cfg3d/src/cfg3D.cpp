@@ -592,6 +592,12 @@ public:
         }
         computeFeatures();
     }
+    
+    void unionMembership(boost::dynamic_bitset<> & set_membership) {
+        
+        //do nothing
+    }
+
 };
 
 Terminal * terminals;
