@@ -1464,6 +1464,35 @@ public:
     
 };
 
+bool isVerticalEnough(Plane* plane) {
+    return plane->getZNormal() <= .25;
+}
+
+// Checks if x is on top of y
+bool isOnTop(Symbol* x, Symbol* y) {
+    if (x->getMinZ() - y->getMaxZ() < -0.1) 
+    {
+       // cerr<<"ontop violated";
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+// Checks if x is above value
+bool isOnTop(Symbol* x, float value) {
+    if (x->getMinZ() - value < -0.1) 
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 class Floor : public Plane {
 public: 
     /**
@@ -2122,7 +2151,6 @@ public:
             
             return LHS;
         }
-        
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
@@ -2133,24 +2161,23 @@ public:
             // Try to hallucinate.
             NonTerminal *newNT = applyRule(planePair, terminals);
             addToPqueueIfNotDuplicate(newNT,pqueue);
-
         }
     }
 };
 
 /// Templated Rules Marker TRM
-//template<>
-//    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
-//    {
-//        double parallelity = input1->dotProduct(input2);
-//        if (parallelity < .2) {
-//            output->setAdditionalCost(parallelity);
-//            return true;
-//        }
-//        else {
-//            return false;
-//        }
-//    }
+template<>
+    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
+    {
+        double parallelity = input1->dotProduct(input2);
+        if (parallelity < .2 && isVerticalEnough(input1) && isVerticalEnough(input2) && isOnTop(input1, TABLE_HEIGHT) && isOnTop(input2, TABLE_HEIGHT)) {
+            output->setAdditionalCost(parallelity);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
 template<>
     bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
@@ -2239,23 +2266,6 @@ template<>
             output->setAdditionalCost(additionalCost);
             return true;
         }                   
-}
-
-// Checks if x is on top of y
-bool isOnTop(Symbol* x, Symbol* y) {
-    if (x->getMinZ() - y->getMaxZ() < -0.1) 
-    {
-       // cerr<<"ontop violated";
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .25;
 }
 
 bool isZCloseEnough(double value, double height) {
