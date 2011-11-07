@@ -262,7 +262,7 @@ public:
         return ColorRGB(avgColor);
     }
     
-    virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
+    virtual bool declareOptimal() = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -565,7 +565,7 @@ public:
         cout << "t\t:" << index << endl;
     }
 
-    bool declareOptimal(vector<Terminal*> & terminals) {
+    bool declareOptimal() {
         return true;
     }
 
@@ -579,6 +579,7 @@ public:
 class HallucinatedTerminal : public Terminal {
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) {
+        neighbors.resize(totalNumTerminals,false);
         index=totalNumTerminals+numHallucinatedTerminals++;
         int start=scene.size();
         pointIndices.resize(points.size());
@@ -904,7 +905,7 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal( vector<Terminal*> & terminals) {
+    bool declareOptimal() {
         vector<Symbol*>::iterator it;
 
         for (it = children.begin(); it != children.end(); it++) {
@@ -2177,6 +2178,7 @@ public:
             Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
             SingleRule<Plane, Terminal> rule;
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
+            RHS_hallucinatedPlane->declareOptimal();
             
             PlaneTriplet* LHS = new PlaneTriplet();
             
@@ -2564,7 +2566,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             return;
         }
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
-            min->declareOptimal(terminals);
+            min->declareOptimal();
             min->printData();
  //           cout<<"mz"<<min->getMaxZ()<<endl;
             
