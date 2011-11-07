@@ -2149,8 +2149,8 @@ public:
         else {
             // Get hallucinated plane
             Terminal* hallucinatedSegment = new Terminal(hallucinationPoints);
-            SingleRule<Plane, Terminal>* rule = new SingleRule<Plane, Terminal>();
-            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule->applyRule(hallucinatedSegment, terminals));
+            SingleRule<Plane, Terminal> rule;
+            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
             
             PlaneTriplet* LHS = new PlaneTriplet();
             
