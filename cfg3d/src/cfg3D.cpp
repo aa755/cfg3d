@@ -2062,11 +2062,6 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
-bool isOccluded(pcl::PointXYZ& point) {
-    assert(3==2);
-    return false;
-}
-
 vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
     vector<pcl::PointXYZ> samplePoints;
     float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
