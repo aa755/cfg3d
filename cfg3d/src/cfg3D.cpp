@@ -374,7 +374,7 @@ class SymbolPriorityQueue;
         return scene.points[pointIndex].data[coordinateIndex];
     }
 
-    class Terminal : public Symbol 
+class Terminal : public Symbol 
 {
 protected:
     vector<int> pointIndices;
@@ -574,6 +574,25 @@ public:
     }
 
 };
+
+class HallucinatedTerminal : public Terminal{
+public: 
+    HallucinatedTerminal(vector<pcl::PointXYZ> & points) {
+        index=totalNumTerminals+numHallucinatedTerminals++;
+        int start=scene.size();
+        pointIndices.resize(points.size());
+        scene.points.resize(start+points.size());
+        for(unsigned int i=0;i<points.size();i++)
+        {
+            pointIndices.at(i)=start+i;
+            scene.points.at(start+i).x=points.at(i).x;
+            scene.points.at(start+i).y=points.at(i).y;
+            scene.points.at(start+i).z=points.at(i).z;
+        }
+        computeFeatures();
+    }
+};
+
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
 int Terminal::numHallucinatedTerminals = 0;
