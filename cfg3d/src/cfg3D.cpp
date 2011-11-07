@@ -101,7 +101,6 @@ typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
 OccupancyMap<PointT> * occlusionChecker;
-int numHallucinations = 0;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
