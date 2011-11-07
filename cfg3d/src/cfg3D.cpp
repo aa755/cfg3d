@@ -520,7 +520,7 @@ public:
      * add this terminal to the set
      * @param set_membership
      */
-    void unionMembership(boost::dynamic_bitset<> & set_membership) {
+    virtual void unionMembership(boost::dynamic_bitset<> & set_membership) {
         set_membership.set(index, true);
     }
 
