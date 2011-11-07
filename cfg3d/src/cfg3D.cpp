@@ -2155,8 +2155,9 @@ public:
             PlaneTriplet* LHS = new PlaneTriplet();
             
             LHS->addChild(RHS_planePair);
-            LHS->addChild(RHS_hallucinatedPlane);
             LHS->computeSpannedTerminals();
+            
+            LHS->addChild(RHS_hallucinatedPlane);
             
             return LHS;
         }
