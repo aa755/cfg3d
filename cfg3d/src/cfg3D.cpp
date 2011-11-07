@@ -575,7 +575,7 @@ public:
 
 };
 
-class HallucinatedTerminal : public Terminal{
+class HallucinatedTerminal : public Terminal {
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) {
         index=totalNumTerminals+numHallucinatedTerminals++;
@@ -2167,7 +2167,7 @@ public:
         }
         else {
             // Get hallucinated plane
-            Terminal* hallucinatedSegment = new Terminal(hallucinationPoints);
+            Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
             SingleRule<Plane, Terminal> rule;
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
             
