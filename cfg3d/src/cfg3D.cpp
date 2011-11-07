@@ -537,6 +537,7 @@ public:
 
     Terminal(vector<pcl::PointXYZ> & points) {
         index=totalNumTerminals+numHallucinatedTerminals++;
+        cerr<<numHallucinatedTerminals<<endl;
         int start=scene.size();
         pointIndices.resize(points.size());
         scene.points.resize(start+points.size());
@@ -2090,7 +2091,7 @@ vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlus
     float currentY = min(c1.y, occlusionPoint.y);
     float samplesTaken = 0;
     while(samplesTaken < sampleFactor) {
-        for (int k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
+        for (float k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
             pcl::PointXYZ samplePoint(currentX, currentY, k);
             samplePoints.push_back(samplePoint);
         }
@@ -2429,7 +2430,7 @@ typedef boost::shared_ptr<Rule> RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules) {
     
 
-//    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
     // planes
