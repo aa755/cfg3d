@@ -2083,7 +2083,7 @@ pcl::PointXYZ getFarthestInDirection(Plane& plane, const Vector2f direction) {
     return pcl::PointXYZ(farthestX, farthestY, 0);
 }
 
-pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ p1, pcl::PointXYZ p2) {
+pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ& c1, pcl::PointXYZ& c2, Vector2f& d1, Vector2f& d2) {
     Vector4f p1Params = plane1.getPlaneParams();
     Vector4f p2Params = plane2.getPlaneParams();
     Vector2f intersectionPoint;
@@ -2100,12 +2100,12 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
     
     // Where d1 and d2 are the directions away from the intersection point of the two planes.
-    Vector2f d2 = getDirection(centroid1, i);
-    Vector2f d1 = getDirection(centroid2, i);
+    d2 = getDirection(centroid1, i);
+    d1 = getDirection(centroid2, i);
     
     
-    pcl::PointXYZ c1 = getFarthestInDirection(plane1, d1);
-    pcl::PointXYZ c2 = getFarthestInDirection(plane2, d2);
+    c1 = getFarthestInDirection(plane1, d1);
+    c2 = getFarthestInDirection(plane2, d2);
     
     Vector2f b(c2.x - c1.x, c2.y - c1.y);
     Vector2f row1(d1[0], -d2[0]);
@@ -2118,13 +2118,48 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
-bool canHallucinatePlane(Plane& plane1, Plane& plane2) {
+bool isOccluded(pcl::PointXYZ& point) {
+    assert(3==2);
     return false;
-//    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2);
-//    bool isOccluded = isOccluded(occlusionPoint);
-//    if (isOccluded) {
-//        
-//    }
+}
+
+vector<pcl::PointXYZ*> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
+    vector<pcl::PointXYZ*> samplePoints;
+    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
+    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
+    float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
+    float currentX = min(c1.x, occlusionPoint.x);
+    float currentY = min(c1.y, occlusionPoint.y);
+    float samplesTaken = 0;
+    while(samplesTaken < sampleFactor) {
+        for (int k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
+            pcl::PointXYZ samplePoint(currentX, currentY, k);
+            samplePoints.push_back(&samplePoint);
+        }
+        currentX = currentX + xStep;
+        currentY = currentY + yStep;
+        samplesTaken = samplesTaken + 1;
+    }
+    return samplePoints;
+}
+
+bool canHallucinatePlane(Plane& plane1, Plane& plane2) {
+    float sampleFactor = 5;
+    float occlusionThreshold = .9;
+    pcl::PointXYZ c1;
+    pcl::PointXYZ c2;
+    Vector2f d1;
+    Vector2f d2;
+    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
+    vector<pcl::PointXYZ*> samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
+    float numOccludedPoints = 0;
+    vector<pcl::PointXYZ*>::iterator it;
+    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
+        if (isOccluded(**it)) {
+            numOccludedPoints = numOccludedPoints + 1;
+        }
+    }
+    return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
 }
 
 // Checks if x is on top of y
@@ -2490,22 +2525,29 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
         }
     }
 
+    void testFunction(int& integer) {
+        integer = 4;
+    }
+    
     // v1 - v2, direction goes toward the first vector
 int main(int argc, char** argv) {
-    if(argc!=3)
-    {
-        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
-    }
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-
-    occlusionChecker = new OccupancyMap<PointT>(scene);
-
-    //convertToXY(scene,scene2D);
-  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-        map<int, set<int> > neighbors;
-       int maxSegIndex= parseNbrMap(argv[2],neighbors);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse(neighbors,maxSegIndex);
+    int integer = 5;
+    testFunction(integer);
+    cout<<integer<<endl;
+//    if(argc!=3)
+//    {
+//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+//    }
+//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+//
+//    occlusionChecker = new OccupancyMap<PointT>(scene);
+//
+//    //convertToXY(scene,scene2D);
+//  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+//    map<int, set<int> > neighbors;
+//    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+//    cout<<"scene has "<<scene.size()<<" points"<<endl;
+//    runParse(neighbors,maxSegIndex);
     
     return 0;
     
