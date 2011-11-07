@@ -2412,6 +2412,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+    rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
     
     // boundary, wall, floor
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
@@ -2426,7 +2427,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+     rules.push_back(RulePtr(new SingleRule<Computer, PlaneTriplet>()));
+//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
