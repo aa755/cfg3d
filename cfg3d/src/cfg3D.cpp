@@ -530,28 +530,15 @@ public:
         cost = 0;
     }
 
-    Terminal(int index_) {
+    Terminal(int index_) : Symbol()
+    {
         index = index_;
         cost = 0;
     }
 
-    Terminal(vector<pcl::PointXYZ> & points) {
-        index=totalNumTerminals+numHallucinatedTerminals++;
-        cerr<<numHallucinatedTerminals<<endl;
-        int start=scene.size();
-        pointIndices.resize(points.size());
-        scene.points.resize(start+points.size());
-        for(unsigned int i=0;i<points.size();i++)
-        {
-            pointIndices.at(i)=start+i;
-            scene.points.at(start+i).x=points.at(i).x;
-            scene.points.at(start+i).y=points.at(i).y;
-            scene.points.at(start+i).z=points.at(i).z;
-        }
-        computeFeatures();
-    }
 
-    Terminal(int index_, double cost_) {
+    Terminal(int index_, double cost_) : Symbol()
+    {
         index = index_;
         cost = cost_;
     }
@@ -578,9 +565,9 @@ public:
 
 class HallucinatedTerminal : public Terminal {
 public: 
-    HallucinatedTerminal(vector<pcl::PointXYZ> & points) {
+    HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+    {
         neighbors.resize(totalNumTerminals,false);
-        index=totalNumTerminals+numHallucinatedTerminals++;
         int start=scene.size();
         pointIndices.resize(points.size());
         scene.points.resize(start+points.size());
@@ -591,6 +578,8 @@ public:
             scene.points.at(start+i).y=points.at(i).y;
             scene.points.at(start+i).z=points.at(i).z;
         }
+        assert(points.size()>=3);
+        featuresComputed=false;
         computeFeatures();
     }
     
@@ -2186,6 +2175,7 @@ public:
             LHS->computeSpannedTerminals();
             
             LHS->addChild(RHS_hallucinatedPlane);
+            LHS->setAdditionalCost(1);
             
             return LHS;
         }
