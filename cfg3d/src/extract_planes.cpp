@@ -64,11 +64,11 @@ public:
         vg.setLeafSize(LEAFSIZE, LEAFSIZE, LEAFSIZE);
 
         // Any object < CUT_THRESHOLD will be abandoned.
-        CUT_THRESHOLD = (int)LEAFSIZE * 100000;
+        CUT_THRESHOLD = (int)(LEAFSIZE * 70000); // 700
 
         // Clustering
-        cluster_.setClusterTolerance(0.04 * UNIT);
-        cluster_.setMinClusterSize(80.0);
+        cluster_.setClusterTolerance(0.06 * UNIT);
+        cluster_.setMinClusterSize(50.0);
         cluster_.setSearchMethod(clusters_tree_);
 
         // Normals
@@ -80,8 +80,8 @@ public:
         seg_plane.setModelType(pcl::SACMODEL_NORMAL_PLANE);
         seg_plane.setNormalDistanceWeight(0.1); // 0.1
         seg_plane.setMethodType(pcl::SAC_RANSAC);
-        seg_plane.setMaxIterations(100); // 10000
-        seg_plane.setDistanceThreshold(0.04); // 0.03
+        seg_plane.setMaxIterations(1000); // 10000
+        seg_plane.setDistanceThreshold(0.05); // 0.03
 
         // cylinder SAC
         seg_cylinder.setOptimizeCoefficients(true);
@@ -192,20 +192,27 @@ public:
         extract.setIndices(main_cluster_);
         extract.setNegative(false);
 
-        // Write the inliers to disk
         pcl::PointCloud<Point>::Ptr cloud_plane(new pcl::PointCloud<Point > ());
         extract.filter(*cloud_plane);
-        std::stringstream debug_s;
-        if (inliers_object_ == inliers_cylinder_) {
-            debug_s << "cylinder_object_" << i << ".pcd";
-        } else if (inliers_object_ == inliers_plane_) {
-            debug_s << "plane_object_" << i << ".pcd";
+
+        // Test if cluster[0] is too small
+        if (main_cluster_->indices.size() < CUT_THRESHOLD) {
+            std::cerr << "object cluster[0] has "<< main_cluster_->indices.size()
+                    << " < " << CUT_THRESHOLD <<" points. Not writing to disk..." << std::endl;
         } else {
+          // Write the inliers to disk
+          std::stringstream debug_s;
+          if (inliers_object_ == inliers_cylinder_) {
+            debug_s << "cylinder_object_" << i << ".pcd";
+          } else if (inliers_object_ == inliers_plane_) {
+            debug_s << "plane_object_" << i << ".pcd";
+          } else {
             debug_s << "unknown_object_" << i << ".pcd";
+          }
+          pcl::io::savePCDFile(debug_s.str(), *cloud_plane);
+          std::cout << "PointCloud representing the extracted component: " <<
+            cloud_plane->points.size() << " data points." << std::endl;
         }
-        pcl::io::savePCDFile(debug_s.str(), *cloud_plane);
-        std::cout << "PointCloud representing the extracted component: " <<
-                cloud_plane->points.size() << " data points." << std::endl;
 
         // Remove cluster[0], update cloud_filtered and cloud_normals
         extract.setNegative(true);
@@ -225,7 +232,7 @@ int main(int argc, char** argv) {
 
     p.initialize(std::string(argv[1]));
     int i = 0;
-    while(i < 10 && p.compute_object(i)) {
+    while(i < 1000 && p.compute_object(i)) {
         i++;
     }
 
