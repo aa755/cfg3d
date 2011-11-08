@@ -1,5 +1,17 @@
 #ifndef PREGRASP_POINT_STRUCT
 #define PREGRASP_POINT_STRUCT
+#include <pcl/filters/impl/extract_indices.hpp>
+#include <pcl/filters/impl/passthrough.hpp>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/kdtree/kdtree.h>
+#include "pcl/kdtree/tree_types.h"
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/organized_data.h>
+#include "pcl/kdtree/impl/kdtree_flann.hpp"
+#include "pcl/kdtree/impl/tree_types.hpp"
+#include "pcl/kdtree/impl/organized_data.hpp"
+#include "pcl/features/normal_3d.h"
+#include "pcl/features/impl/normal_3d.hpp"
 
 //#include "includes/point_types.h"
 

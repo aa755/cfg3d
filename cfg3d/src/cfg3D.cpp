@@ -8,7 +8,6 @@
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
 // #include <opencv2/highgui/highgui.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -26,12 +25,13 @@
 #include <time.h>
 #include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .75
+#define TABLE_HEIGHT .70
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
 #include "utils.h"
 #include "color.cpp"
+#include "pcl/features/feature.h"
 
 //sac_model_plane.h
 
@@ -39,6 +39,7 @@ using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 30
+#include "OccupancyMap.h"
 /*
  *
  */
@@ -99,6 +100,7 @@ double infinity() {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
@@ -110,29 +112,86 @@ protected:
      */
     bool featuresComputed;
     double cost;
-    double maxZ;
-    double minZ;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
     vector<NonTerminal*> optimalParents;
     pcl::PointXYZ centroid;
+    pcl::PointXYZ minxyz;
+    pcl::PointXYZ maxxyz;
+    
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
      vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
-    vector<int> pointIndices;
+    Eigen::Matrix3d covarianceMatrixWoMean;
 
     //    vector<NonTerminal*> parents;
+    virtual void computeCovarianceMatrixWoMean()=0;
+
+    double getSigmaCoordinate(int coordinateIndex)
+    {
+        return centroid.data[coordinateIndex]*numPoints;
+    }
+
+    void computeMeanTA(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) = centr.data[i] * getSigmaCoordinate(j);
+
+    }
+        
+    void computeMeanTMean(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                ans(i, j) = centr.data[i] * centr.data[j] * numPoints;
+
+    }
 public:
 
-    const vector<cv::Point2f> & getConvexHull()
+    void computeCovarianceMat( Eigen::Matrix3d & ans)
+    {
+        computeMeanCovOtherMean(centroid,ans);
+    }
+    
+    void computeMeanCovAddition(const pcl::PointXYZ & centr, Eigen::Matrix3d & ans)
+    {
+        assert(featuresComputed);
+        Eigen::Matrix3d  temp;
+        computeMeanTA(centr, temp);
+        ans=-temp;
+        ans-=temp.transpose();
+        
+        computeMeanTMean(centr, temp);
+        ans+=temp;
+    }
+    
+    void computeSelfMeanCovAddition(Eigen::Matrix3d & ans)
+    {
+        assert(featuresComputed);
+        Eigen::Matrix3d  temp;
+        computeMeanTA(centroid, temp);
+        ans=-2*temp;
+        
+        computeMeanTMean(centroid, temp);
+        ans+=temp;
+    }
+    
+    void computeMeanCovOtherMean(const pcl::PointXYZ & othercentr, Eigen::Matrix3d & ans)
+    {
+        computeSelfMeanCovAddition(ans);
+        ans+=covarianceMatrixWoMean;
+    }
+    
+    const vector<cv::Point2f> & getConvexHull() const
     {
         assert(rectConvexHull.size()>0);
         return rectConvexHull;
     }
 
-    vector<cv::Point2f>  cloneConvexHull()
+    vector<cv::Point2f>  cloneConvexHull() const
     {
         assert(rectConvexHull.size()>0);
         return rectConvexHull;
@@ -160,10 +219,8 @@ public:
     
     virtual void printData() =0;
     
-    virtual void computeMaxZ()=0;
+    virtual void computeMinMaxXYZ()=0;
     
-    virtual void computeMinZ()=0;
-
     void resetNeighborIterator()
     {
         assert(neighbors.size()>0);
@@ -182,15 +239,6 @@ public:
         return cost < rhs.cost;
     }
 
-    vector<int> & getPointIndices() {
-        assert(pointIndices.size() > 0);
-        return pointIndices;
-    }
-
-    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
-        assert(pointIndices.size() > 0);
-        return createStaticShared<std::vector<int> >(& pointIndices);
-    }
     
     
     double getCost() const {
@@ -214,19 +262,49 @@ public:
         return ColorRGB(avgColor);
     }
     
-    virtual bool declareOptimal( vector<Terminal*> & terminals) = 0;
+    virtual bool declareOptimal() = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
+    double getMaxX() {
+        assert(featuresComputed);
+        return maxxyz.x;
+    }
+    
+    double getMinX() {
+        assert(featuresComputed);
+        return minxyz.x;
+    }
+    
+    double getMaxY() {
+        assert(featuresComputed);
+        return maxxyz.y;
+    }
+    
+    double getMinY() {
+        assert(featuresComputed);
+        return minxyz.y;
+    }
+    
     double getMaxZ() {
         assert(featuresComputed);
-        return maxZ;
+        return maxxyz.z;
     }
     
     double getMinZ() {
         assert(featuresComputed);
-        return minZ;
+        return minxyz.z;
+    }
+
+    double getMaxCoord(int coordIndex) {
+        assert(featuresComputed);
+        return maxxyz.data[coordIndex];
+    }
+    
+    double getMinCoord(int coordIndex) {
+        assert(featuresComputed);
+        return minxyz.data[coordIndex];
     }
     
     virtual void computeZSquaredSum() = 0;
@@ -244,12 +322,14 @@ public:
     
     void computeFeatures()
     {
+        if(featuresComputed)
+            return;
         featuresComputed=true;
         computeZSquaredSum();
-        computeMaxZ();
-        computeMinZ();
+        computeMinMaxXYZ();
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
+        computeCovarianceMatrixWoMean();
     }
     
     virtual int getId() = 0;
@@ -266,6 +346,11 @@ public:
     {
         assert(featuresComputed);
         return numPoints;
+    }
+
+    const Eigen::Matrix3d & getCovarianceMatrixWoMean() const
+    {
+        return covarianceMatrixWoMean;
     }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
@@ -284,14 +369,40 @@ public:
  */
 class SymbolPriorityQueue;
 
+    double getPointCoordinate(int pointIndex, int coordinateIndex)
+    {
+        return scene.points[pointIndex].data[coordinateIndex];
+    }
+
 class Terminal : public Symbol 
 {
 protected:
+    vector<int> pointIndices;
     /** segment index
      */
     size_t index;
+
+    void computeCovarianceMatrixWoMean()
+    {
+        covarianceMatrixWoMean = Eigen::Matrix3d::Zero();
+        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++)
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
+
+    }
     
 public:
+    vector<int> & getPointIndices() {
+        assert(pointIndices.size() > 0);
+        return pointIndices;
+    }
+
+    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
+        assert(pointIndices.size() > 0);
+        return createStaticShared<std::vector<int> >(& pointIndices);
+    }
+    
     void compute2DConvexHull()
     {
         if(rectConvexHull.size()>0)
@@ -308,6 +419,7 @@ public:
         cv::convexHull(cv::Mat(cvPoints), rectConvexHull);
     }
     
+    static int numHallucinatedTerminals;
     static int totalNumTerminals;
     
     boost::dynamic_bitset<> & getNeighbors() {
@@ -346,29 +458,33 @@ public:
         zSquaredSum = costSum;
     }
     
-    void computeMaxZ() {
-        double greatestMaxZ = -infinity();
-        double itMaxZ = 0;
-        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            itMaxZ = scene.points[*it].z;
-            if (itMaxZ > greatestMaxZ) {
-                greatestMaxZ = itMaxZ;
+    void computeMinMaxXYZ() {
+        vector<Symbol*>::iterator it;
+        for (int i = 0; i < 3; i++)
+        {
+             maxxyz.data[i] = -infinity();
+             minxyz.data[i] = infinity();
+        }
+        
+        double itVal;
+        for (int i = 0; i < 3; i++)
+        {
+            for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) 
+            {
+                itVal = scene.points.at(*it).data[i];
+                if (itVal > maxxyz.data[i])
+                {
+                    maxxyz.data[i] = itVal;
+                }
+                
+                if (itVal < minxyz.data[i])
+                {
+                    minxyz.data[i] = itVal;
+                }
             }
         }
-        maxZ = greatestMaxZ;
     }
     
-    void computeMinZ() {
-        double lowestMinZ = infinity();
-        double itMinZ = 0;
-        for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
-            itMinZ = scene.points[*it].z;
-            if (itMinZ < lowestMinZ) {
-                lowestMinZ = itMinZ;
-            }
-        }
-        minZ = lowestMinZ;
-    }
     
     void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
@@ -404,7 +520,7 @@ public:
      * add this terminal to the set
      * @param set_membership
      */
-    void unionMembership(boost::dynamic_bitset<> & set_membership) {
+    virtual void unionMembership(boost::dynamic_bitset<> & set_membership) {
         set_membership.set(index, true);
     }
 
@@ -417,6 +533,22 @@ public:
     Terminal(int index_) {
         index = index_;
         cost = 0;
+    }
+
+    Terminal(vector<pcl::PointXYZ> & points) {
+        index=totalNumTerminals+numHallucinatedTerminals++;
+        cerr<<numHallucinatedTerminals<<endl;
+        int start=scene.size();
+        pointIndices.resize(points.size());
+        scene.points.resize(start+points.size());
+        for(unsigned int i=0;i<points.size();i++)
+        {
+            pointIndices.at(i)=start+i;
+            scene.points.at(start+i).x=points.at(i).x;
+            scene.points.at(start+i).y=points.at(i).y;
+            scene.points.at(start+i).z=points.at(i).z;
+        }
+        computeFeatures();
     }
 
     Terminal(int index_, double cost_) {
@@ -433,29 +565,45 @@ public:
         cout << "t\t:" << index << endl;
     }
 
-    bool declareOptimal(vector<Terminal*> & terminals) {
+    bool declareOptimal() {
         return true;
     }
 
-    //bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)    {
-    //        return false; // each terminal can be derived in only 1 way
-    /* contrast it with a set of terminals which can be derived in multiple way
-     * (1 U 2) U 3  or  1 U (2 U 3 )
-     */
-    // }
 
     size_t getNumTerminals() {
         return 1;
     }
 
-    /*   void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
-       {
-           thisAncestors=allAncestors[index];
-       }
-     */
 };
+
+class HallucinatedTerminal : public Terminal {
+public: 
+    HallucinatedTerminal(vector<pcl::PointXYZ> & points) {
+        neighbors.resize(totalNumTerminals,false);
+        index=totalNumTerminals+numHallucinatedTerminals++;
+        int start=scene.size();
+        pointIndices.resize(points.size());
+        scene.points.resize(start+points.size());
+        for(unsigned int i=0;i<points.size();i++)
+        {
+            pointIndices.at(i)=start+i;
+            scene.points.at(start+i).x=points.at(i).x;
+            scene.points.at(start+i).y=points.at(i).y;
+            scene.points.at(start+i).z=points.at(i).z;
+        }
+        computeFeatures();
+    }
+    
+    void unionMembership(boost::dynamic_bitset<> & set_membership) {
+        
+        //do nothing
+    }
+
+};
+
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
+int Terminal::numHallucinatedTerminals = 0;
 
 class NonTerminal : public Symbol {
 protected:
@@ -521,6 +669,16 @@ protected:
         avg/=numPoints;
         avgColor=avg.getFloatRep();
     }
+    
+    void computeCovarianceMatrixWoMean()
+    {
+        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            covarianceMatrixWoMean+=children.at(i)->getCovarianceMatrixWoMean();
+        }
+        
+    }
 
     bool isSpanExclusive(NonTerminal * nt) {
         return !(spanned_terminals.intersects(nt->spanned_terminals));
@@ -574,18 +732,6 @@ public:
     }
     
 
-    void computePointIndices(vector<Terminal*> & terminals) {
-        if(pointIndices.size()>0)
-            return ;
-        // pointIndices.reserve(getNumTerminals());
-
-        //TODO: change this
-        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
-            if (spanned_terminals.test(i))
-                pointIndices.insert(pointIndices.end(), terminals.at(i)->getPointIndices().begin(), terminals.at(i)->getPointIndices().end());
-        }
-    }
-
     /**
      * is span(this) U span(nt) =all terminals 
      * @param nt
@@ -621,6 +767,19 @@ public:
     }
     
     friend class NTSetComparison;
+
+//    void sumChildrenCovOtherMean(const pcl::PointXYZ & othercentr, Eigen::Matrix3d & ans)
+//    {
+//        Eigen::Matrix3d  temp;
+//        children.at(0)->computeMeanCovAddition(othercentr,ans);
+//        
+//        for(unsigned int i=1;i<children.size();i++)
+//        {
+//             children.at(0)->computeMeanCovAddition(othercentr,temp);
+//             ans+=temp;
+//        }
+//        
+//    }
 
     void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
@@ -690,31 +849,35 @@ public:
         neighbors -= spanned_terminals;
     }
 
-    void computeMaxZ() {
+    void computeMinMaxXYZ()
+    {
         vector<Symbol*>::iterator it;
-        double greatestMaxZ = -infinity();
-        double itMaxZ;
-        for (it = children.begin(); it != children.end(); it++) {
-            itMaxZ = (*it)->getMaxZ();
-            if (itMaxZ > greatestMaxZ) {
-                greatestMaxZ = itMaxZ;
+        for (int i = 0; i < 3; i++)
+        {
+             maxxyz.data[i] = -infinity();
+             minxyz.data[i] = infinity();
+        }
+        
+        double itMax,itMin;
+        for (int i = 0; i < 3; i++)
+        {
+            for (it = children.begin(); it != children.end(); it++)
+            {
+                itMax = (*it)->getMaxCoord(i);
+                itMin = (*it)->getMinCoord(i);
+                if (itMax > maxxyz.data[i])
+                {
+                    maxxyz.data[i] = itMax;
+                }
+                
+                if (itMin < minxyz.data[i])
+                {
+                    minxyz.data[i] = itMin;
+                }
             }
         }
-        maxZ = greatestMaxZ;
     }
     
-    void computeMinZ() {
-        vector<Symbol*>::iterator it;
-        double lowestMinZ = infinity();
-        double itMinZ;
-        for (it = children.begin(); it != children.end(); it++) {
-            itMinZ = (*it)->getMinZ();
-            if (itMinZ < lowestMinZ) {
-                lowestMinZ = itMinZ;
-            }
-        }
-        minZ = lowestMinZ;
-    }
     
     void computeZSquaredSum() {
         double sum = 0;
@@ -742,7 +905,7 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal( vector<Terminal*> & terminals) {
+    bool declareOptimal() {
         vector<Symbol*>::iterator it;
 
         for (it = children.begin(); it != children.end(); it++) {
@@ -751,7 +914,6 @@ public:
 
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
-        computePointIndices(terminals);
         computeFeatures();
         additionalFinalize();
         return true;
@@ -1258,6 +1420,10 @@ public:
         planeParamsComputed = false;
     }
 
+    bool isHorizontalEnough() {
+        return getZNormal() >= .88;
+    }
+
     double getNorm() {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
@@ -1266,13 +1432,36 @@ public:
         return fabs(planeParams[2]);
     }
 
-    void computePlaneParams() {
-        pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
-        normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
-        assert(fabs(getNorm()-1)<0.05);
-     //   double norm = getNorm();
-     //   planeParams /= norm;
+    void computePlaneParams()
+    {
+        if (planeParamsComputed)
+            return;
+
+        computeFeatures();
+        Eigen::Vector4f xyz_centroid_;
+
+        for (int i = 0; i < 3; i++)
+            xyz_centroid_(i) = centroid.data[i];
+        xyz_centroid_(3) = 1;
+
+        Eigen::Matrix3d covMat; //
+        computeCovarianceMat(covMat);
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> ei_symm(covMat);
+        EIGEN_ALIGN16 Eigen::Vector3d eigen_values = ei_symm.eigenvalues();
+        EIGEN_ALIGN16 Eigen::Matrix3d eigen_vectors = ei_symm.eigenvectors();
+
+        planeParams[0] = eigen_vectors(0, 0);
+        planeParams[1] = eigen_vectors(1, 0);
+        planeParams[2] = eigen_vectors(2, 0);
+        planeParams[3] = 0;
+
+        // Hessian form (D = nc . p_plane (centroid here) + p)
+        planeParams[3] = -1 * planeParams.dot(xyz_centroid_);
         planeParamsComputed = true;
+
+        double sumSquaredDistances = eigen_values(0);
+        setAbsoluteCost(sumSquaredDistances);
     }
     
     Eigen::Vector3d getPlaneNormal() {
@@ -1313,29 +1502,37 @@ public:
     }
         
     
-    virtual void setCost() {
-        setAbsoluteCost(sumDistancesSqredToPlane(this));
-    }
-    
-    /**
-     * computes the sum of distances of all points spanned by symbol t from this plane
-     * using distance squared since, the plane parameters are obtained by using a least squares fit
-     * http://www.ros.org/doc/unstable/api/pcl/html/feature_8h.html
-     * @param t
-     * @return 
-     */
-    double sumDistancesSqredToPlane(Symbol * t) {
-            assert(planeParamsComputed);
-            double sum=0;
-        for (unsigned int i = 0; i < t->getPointIndices().size(); i++) {
-            PointT & p=scene.points[t->getPointIndices().at(i)];
-                sum+=sqr(pcl::pointToPlaneDistance<PointT > (p, planeParams));
-        }
-            return sum;
-            
-    }
     
 };
+
+bool isVerticalEnough(Plane* plane) {
+    return plane->getZNormal() <= .25;
+}
+
+// Checks if x is on top of y
+bool isOnTop(Symbol* x, Symbol* y) {
+    if (x->getMinZ() - y->getMaxZ() < -0.1) 
+    {
+       // cerr<<"ontop violated";
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+// Checks if x is above value
+bool isOnTop(Symbol* x, float value) {
+    if (x->getMinZ() - value < -0.1) 
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
 
 class Floor : public Plane {
 public: 
@@ -1716,9 +1913,11 @@ public:
 
         float combinedArea = _getPolygonArea(combined2dCv);
 
-        float cost = 200*(combinedArea / getRectArea()-1);
+        float rectArea=getRectArea();
+        assert(rectArea>0);
+        float cost = 200*(combinedArea / rectArea -1);
       //  cerr<<"areas "<<combinedArea<<","<<cost<<","<<width<<","<<height<<endl;
-        if(cost<0.001)
+        if(cost>-0.001)
             cost=0; // minor numerical errors
         assert(cost>=0);
         return cost;
@@ -1774,6 +1973,8 @@ public:
     
 };
 
+class PlaneTriplet : public NonTerminal {};
+
 //template<>
 //    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane * output, Plane * input1, Terminal * input2, vector<Terminal*> & terminals)
 //    {
@@ -1805,9 +2006,7 @@ public:
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
-        LHS->computePointIndices(terminals);
         LHS->computePlaneParams();
-        LHS->setCost();
         return LHS;
     }
 
@@ -1833,19 +2032,190 @@ public:
     }
 };
 
+
+void solveLinearEquationPair(const Vector2f& v1, const Vector2f& v2, const Vector2f& b, Vector2f& solution) {
+    Matrix2f A;
+    float v10 = v1[0];
+    float v11 = v1[1];
+    float v20 = v2[0];
+    float v21 = v2[1];
+    A << v10,v11, v20,v21;
+    solution = A.colPivHouseholderQr().solve(b);
+}
+
+Vector2f getDirection(pcl::PointXYZ& p1, pcl::PointXYZ& p2) {
+    Vector2f v1(p1.x, p1.y);
+    Vector2f v2(p2.x, p2.y);
+    return v1 - v2;
+}
+
+pcl::PointXYZ getFarthestInDirection(Plane& plane, const Vector2f direction) {
+    float farthestX;
+    float farthestY;
+    
+    if (direction[0] < 0) {
+        farthestX = plane.getMinX();
+    } else {
+        farthestX = plane.getMaxX();
+    }
+    
+    if (direction[1] < 0) {
+        farthestY = plane.getMinY();
+    } else {
+        farthestY = plane.getMaxY();
+    }
+    
+    return pcl::PointXYZ(farthestX, farthestY, 0);
+}
+
+pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::PointXYZ& c1, pcl::PointXYZ& c2, Vector2f& d1, Vector2f& d2) {
+    Vector4f p1Params = plane1.getPlaneParams();
+    Vector4f p2Params = plane2.getPlaneParams();
+    Vector2f intersectionPoint;
+    Vector2f v1(p1Params[0],p1Params[1]);
+    Vector2f v2(p2Params[0],p2Params[1]);
+    Vector2f v4(p1Params[3],p2Params[3]);
+    solveLinearEquationPair(v1, v2, v4, intersectionPoint);
+        
+    pcl::PointXYZ centroid1;
+    plane1.getCentroid(centroid1);
+    pcl::PointXYZ centroid2;
+    plane2.getCentroid(centroid2);
+    
+    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
+    
+    // Where d1 and d2 are the directions away from the intersection point of the two planes.
+    d2 = getDirection(centroid1, i);
+    d1 = getDirection(centroid2, i);
+    
+    
+    c1 = getFarthestInDirection(plane1, d1);
+    c2 = getFarthestInDirection(plane2, d2);
+    
+    Vector2f b(c2.x - c1.x, c2.y - c1.y);
+    Vector2f row1(d1[0], -d2[0]);
+    Vector2f row2(d1[1], -d2[1]);
+    Vector2f r;
+    solveLinearEquationPair(row1, row2, b, r);
+    
+    float x_p = c2.x + r[0] * d2[0];
+    float y_p = c2.y + r[1] * d2[1];
+    return pcl::PointXYZ(x_p, y_p, 0);
+}
+
+vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
+    vector<pcl::PointXYZ> samplePoints;
+    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
+    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
+    float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
+    float currentX = min(c1.x, occlusionPoint.x);
+    float currentY = min(c1.y, occlusionPoint.y);
+    float samplesTaken = 0;
+    while(samplesTaken < sampleFactor) {
+        for (float k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
+            pcl::PointXYZ samplePoint(currentX, currentY, k);
+            samplePoints.push_back(samplePoint);
+        }
+        currentX = currentX + xStep;
+        currentY = currentY + yStep;
+        samplesTaken = samplesTaken + 1;
+    }
+    return samplePoints;
+}
+
+bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
+    float numOccludedPoints = 0;
+    vector<pcl::PointXYZ>::iterator it;
+    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
+        if (occlusionChecker->isOccluded(*it)) {
+            numOccludedPoints = numOccludedPoints + 1;
+        }
+    }
+    return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
+}
+
+bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
+    float sampleFactor = 5;
+    float occlusionThreshold = .9;
+    pcl::PointXYZ c1;
+    pcl::PointXYZ c2;
+    Vector2f d1;
+    Vector2f d2;
+    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
+    samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
+    if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+        return true;
+    } else {
+        samplePoints = getPointsToSample(c2, occlusionPoint, plane2, sampleFactor);
+        if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+class RPlaneTriplet_PlanePairPlane : public Rule {
+public:
+    int get_Nof_RHS_symbols() {
+        return 2;
+    }
+
+    void get_typenames(vector<string> & names) {
+        names.push_back(typeid (PlanePair).name());
+        names.push_back(typeid (Plane).name());
+    }
+    
+    NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
+        Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
+        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+        vector<pcl::PointXYZ> hallucinationPoints;
+        
+        if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
+            return NULL;
+        }
+        else {
+            // Get hallucinated plane
+            Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
+            SingleRule<Plane, Terminal> rule;
+            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
+            RHS_hallucinatedPlane->declareOptimal();
+            
+            PlaneTriplet* LHS = new PlaneTriplet();
+            
+            LHS->addChild(RHS_planePair);
+            LHS->computeSpannedTerminals();
+            
+            LHS->addChild(RHS_hallucinatedPlane);
+            
+            return LHS;
+        }
+    }
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (PlanePair))
+        {
+            PlanePair* planePair = dynamic_cast<PlanePair*> (extractedSym);
+            // Try to hallucinate.
+            NonTerminal *newNT = applyRule(planePair, terminals);
+            addToPqueueIfNotDuplicate(newNT,pqueue);
+        }
+    }
+};
+
 /// Templated Rules Marker TRM
-//template<>
-//    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
-//    {
-//        double parallelity = input1->dotProduct(input2);
-//        if (parallelity < .2) {
-//            output->setAdditionalCost(parallelity);
-//            return true;
-//        }
-//        else {
-//            return false;
-//        }
-//    }
+template<>
+    bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
+    {
+        double parallelity = input1->dotProduct(input2);
+        if (parallelity < .2 && isVerticalEnough(input1) && isVerticalEnough(input2) && isOnTop(input1, TABLE_HEIGHT) && isOnTop(input2, TABLE_HEIGHT)) {
+            output->setAdditionalCost(parallelity);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
 template<>
     bool DoubleRule<Corner, PlanePair, Plane> :: setCost(Corner * output, PlanePair * input1, Plane * input2, vector<Terminal*> & terminals)
@@ -1867,9 +2237,7 @@ template<>
 template<>
     bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
-        output->computePointIndices(terminals);
         output->computePlaneParams();
-        output->setCost();
         return true;
     }
 
@@ -1895,7 +2263,7 @@ template<>
         double normalZ=fabs(planeParams[2]);
         double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
 
-        if(normalZ>.25 || maxZDiff >0.2)
+        if(normalZ>.25 || maxZDiff >0.30)
 //        if( maxZDiff >0.2)
             return false;
         else 
@@ -1917,7 +2285,7 @@ template<>
 template<>
     bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
-        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+        if(additionalCost>(0.3*0.3)*input->getNumPoints() || ! input->isHorizontalEnough())
             return false;
         else 
         {
@@ -1929,34 +2297,17 @@ template<>
 template<>
     bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->getZSquaredSum();
-        if(additionalCost>(0.2*0.2)*input->getNumPoints())
+        if(additionalCost>(0.2*0.2)*input->getNumPoints() || ! input->isHorizontalEnough() )
             return false;
         else 
         {
             output->setAdditionalCost(additionalCost);
             return true;
         }                   
-    }
-
-// Checks if x is on top of y
-bool isOnTop(Symbol* x, Symbol* y) {
-    if (x->getMinZ() - y->getMaxZ() < -0.1) 
-    {
-       // cerr<<"ontop violated";
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .25;
 }
 
 bool isZCloseEnough(double value, double height) {
-    return fabs(value - height) <= .25;
+    return fabs(value - height) <= .3;
 }
 
 template<>
@@ -2102,12 +2453,13 @@ typedef boost::shared_ptr<Rule> RulePtr;
 void appendRuleInstances(vector<RulePtr> & rules) {
     
 
-//    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
     
     // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+    rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
     
     // boundary, wall, floor
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
@@ -2122,7 +2474,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     
     
     // computer
-    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+     rules.push_back(RulePtr(new SingleRule<Computer, PlaneTriplet>()));
+//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
@@ -2137,7 +2490,6 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
-
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
@@ -2214,7 +2566,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             return;
         }
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
-            min->declareOptimal(terminals);
+            min->declareOptimal();
             min->printData();
  //           cout<<"mz"<<min->getMaxZ()<<endl;
             
@@ -2301,22 +2653,22 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
             cloudxy.points[i].y = cloud.points[i].y;
         }
     }
-
-int main(int argc, char** argv) {
-
     
+int main(int argc, char** argv) {
     if(argc!=3)
     {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    
+
+    occlusionChecker = new OccupancyMap<PointT>(scene);
+
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-        map<int, set<int> > neighbors;
-       int maxSegIndex= parseNbrMap(argv[2],neighbors);
+    map<int, set<int> > neighbors;
+    int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
-   runParse(neighbors,maxSegIndex);
+    runParse(neighbors,maxSegIndex);
     
     return 0;
     
