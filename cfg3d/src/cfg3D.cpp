@@ -801,7 +801,11 @@ public:
      * @param absoluteCost
      */
     void setAbsoluteCost(double absoluteCost) {
-        assert(absoluteCost >= 0);
+        cout<<absoluteCost<<endl;
+        assert(absoluteCost >= (0 - .0003));
+        if (absoluteCost >= (0 - .0003) && absoluteCost < 0) {
+            absoluteCost = 0;
+        }
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); it++) {
             assert(absoluteCost >= (*it)->getCost());
@@ -1488,10 +1492,7 @@ public:
             }
         }
         return true;
-    }
-        
-    
-    
+    }   
 };
 
 bool isVerticalEnough(Plane* plane) {
@@ -2158,12 +2159,18 @@ public:
         Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
         Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
         vector<pcl::PointXYZ> hallucinationPoints;
-        
         if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
             return NULL;
         }
         else {
+            vector<pcl::PointXYZ>::iterator it;
+            for (it = hallucinationPoints.begin(); it != hallucinationPoints.end(); it++) {
+                cout<<"("<<(*it).x<<","<<(*it).y<<","<<(*it).z<<")"<<endl;
+            }
+            
+            cout<<"Hallucination Points: "<<hallucinationPoints.size()<<endl;
             // Get hallucinated plane
+            
             Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
             SingleRule<Plane, Terminal> rule;
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
@@ -2375,6 +2382,12 @@ template<>
                 return true;
             }
         }
+    }
+
+template<>
+    bool SingleRule<Computer, PlaneTriplet> :: setCost(Computer* output, PlaneTriplet* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(0);
+        return true;
     }
 
 template<>
