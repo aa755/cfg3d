@@ -1650,7 +1650,7 @@ class Scene : public NonTerminal {
     
 };
 
-class Computer : public PlanePair{};
+class Computer : public NonTerminal{};
 
 class Monitor : public NonTerminal{};
 
@@ -2168,7 +2168,6 @@ public:
                 cout<<"("<<(*it).x<<","<<(*it).y<<","<<(*it).z<<")"<<endl;
             }
             
-            cout<<"Hallucination Points: "<<hallucinationPoints.size()<<endl;
             // Get hallucinated plane
             
             Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
@@ -2204,6 +2203,7 @@ public:
 template<>
     bool DoubleRule<PlanePair, Plane, Plane> :: setCost(PlanePair * output, Plane * input1, Plane * input2, vector<Terminal*> & terminals)
     {
+        assert(output->children.size()==2);
         double parallelity = input1->dotProduct(input2);
         if (parallelity < .2 && isVerticalEnough(input1) && isVerticalEnough(input2) && isOnTop(input1, TABLE_HEIGHT) && isOnTop(input2, TABLE_HEIGHT)) {
             output->setAdditionalCost(parallelity);
@@ -2344,28 +2344,28 @@ bool isCloseEnoughToCompMonTop(Plane* input) {
 }
 
 // Assumes all computers are above table_height
-template<>
-    bool DoubleRule<Computer, Plane, Plane> :: setCost(Computer* output, Plane* input1, Plane* input2, vector<Terminal*> & terminals) {
-
-    if (!isVerticalEnough(input1) || !isVerticalEnough(input2)) {
-        return false;
-    } else {
-        double minZOfBothPlanes = min(input1->getMinZ(), input2->getMinZ());
-        
-        if (!isCloseEnoughToTableHeight(input1) || !isCloseEnoughToTableHeight(input2) ||
-            !isCloseEnoughToCompMonTop(input1) || !isCloseEnoughToCompMonTop(input2)) {
-            return false;
-        } else {
-            double distanceFromTable = fabs(minZOfBothPlanes - TABLE_HEIGHT);
-            double zNormal1 = input1->getZNormal();
-            double zNormal2 = input2->getZNormal();
-            output->setAdditionalCost(distanceFromTable + zNormal1 + zNormal2);
-            
-            //TODO: maybe add costs for maxZ?
-            return true;
-        }
-    }
-}
+//template<>
+//    bool DoubleRule<Computer, Plane, Plane> :: setCost(Computer* output, Plane* input1, Plane* input2, vector<Terminal*> & terminals) {
+//
+//    if (!isVerticalEnough(input1) || !isVerticalEnough(input2)) {
+//        return false;
+//    } else {
+//        double minZOfBothPlanes = min(input1->getMinZ(), input2->getMinZ());
+//        
+//        if (!isCloseEnoughToTableHeight(input1) || !isCloseEnoughToTableHeight(input2) ||
+//            !isCloseEnoughToCompMonTop(input1) || !isCloseEnoughToCompMonTop(input2)) {
+//            return false;
+//        } else {
+//            double distanceFromTable = fabs(minZOfBothPlanes - TABLE_HEIGHT);
+//            double zNormal1 = input1->getZNormal();
+//            double zNormal2 = input2->getZNormal();
+//            output->setAdditionalCost(distanceFromTable + zNormal1 + zNormal2);
+//            
+//            //TODO: maybe add costs for maxZ?
+//            return true;
+//        }
+//    }
+//}
 
 // Assumes all monitors are above table_height
 template<>
