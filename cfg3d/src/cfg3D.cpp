@@ -129,6 +129,7 @@ protected:
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
 
+    
     double getSigmaCoordinate(int coordinateIndex)
     {
         return centroid.data[coordinateIndex]*numPoints;
@@ -150,6 +151,8 @@ protected:
 
     }
 public:
+
+    bool isATerminal();
 
     void computeCovarianceMat( Eigen::Matrix3d & ans)
     {
@@ -397,6 +400,11 @@ public:
         assert(pointIndices.size() > 0);
         return pointIndices;
     }
+    
+    virtual void colorScene()
+    {
+        
+    }
 
     boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
         assert(pointIndices.size() > 0);
@@ -567,6 +575,7 @@ class HallucinatedTerminal : public Terminal {
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
     {
+            ColorRGB green(0.0,1.0,0.0);
         neighbors.resize(totalNumTerminals,false);
         int start=scene.size();
         pointIndices.resize(points.size());
@@ -577,8 +586,7 @@ public:
             scene.points.at(start+i).x=points.at(i).x;
             scene.points.at(start+i).y=points.at(i).y;
             scene.points.at(start+i).z=points.at(i).z;
-            ColorRGB red(1.0,0.0,0.0);
-            scene.points.at(start+i).rgb=red.getFloatRep();
+            scene.points.at(start+i).rgb=green.getFloatRep();
         }
         assert(points.size()>=3);
         featuresComputed=false;
@@ -590,7 +598,22 @@ public:
         //do nothing
     }
 
+    virtual void colorScene()
+    {
+        float greenColor=ColorRGB(0,1,0).getFloatRep();
+        for(vector<int>::iterator it=pointIndices.begin(); it!=pointIndices.end();it++)
+        {
+            scene.points[*it].rgb=greenColor;
+        }
+    }    
+
 };
+
+    bool Symbol :: isATerminal()
+    {
+        Terminal * term= dynamic_cast<Terminal *>(this);
+        return (term!=NULL);
+    }
 
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
@@ -1498,7 +1521,7 @@ public:
 };
 
 bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .25;
+    return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
 // Checks if x is on top of y
@@ -1621,12 +1644,17 @@ class Scene : public NonTerminal {
                 Symbol * childs=curNode->getChild(i);
                 
                 graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
-                if(typeid(*childs)!=typeid(Terminal) && typeid(*childs)!=typeid(HallucinatedTerminal))
+                Terminal *childT= dynamic_cast<Terminal *>(childs);
+                if(childT==NULL) // not of type Terminal
                 {
-                    assert(childs!=NULL);
+                 //   assert(childs!=NULL);
                     NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
                     assert(child!=NULL);
                     parseTreeNodes.push(child);
+                }
+                else
+                {
+                    childT->colorScene();
                 }
             }
             
@@ -2165,7 +2193,7 @@ public:
     
     NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
         Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
-        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));        
         vector<pcl::PointXYZ> hallucinationPoints;
         if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
             return NULL;
@@ -2179,6 +2207,12 @@ public:
             // Get hallucinated plane
             
             Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
+                    cout<<"hallucination\n---------"<<endl;
+        plane1->printData();
+        plane2->printData();
+        cout<<hallucinatedSegment->getIndex()<<endl;
+        cout<<"--------"<<endl;
+
             SingleRule<Plane, Terminal> rule;
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
             RHS_hallucinatedPlane->declareOptimal();
