@@ -31,7 +31,7 @@ class ColorRGB{
        assert(b<=1&&b>=0);
        convertToHSV();
    }
-      
+
    void operator +=(const ColorRGB& other)
    {
        r+=other.r;

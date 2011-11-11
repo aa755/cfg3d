@@ -577,6 +577,8 @@ public:
             scene.points.at(start+i).x=points.at(i).x;
             scene.points.at(start+i).y=points.at(i).y;
             scene.points.at(start+i).z=points.at(i).z;
+            ColorRGB red(1.0,0.0,0.0);
+            scene.points.at(start+i).rgb=red.getFloatRep();
         }
         assert(points.size()>=3);
         featuresComputed=false;
@@ -708,7 +710,7 @@ public:
         return children.at(i);
     }
     
-    string getName()
+      string getName()
     {
         const char * name=typeid(*this).name();
         int count=0;
@@ -1603,6 +1605,10 @@ class Scene : public NonTerminal {
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(this);
         
+        scene.width=1;
+        scene.height=scene.size();
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        
         graphvizFile<<"digraph g{\n";
         while(!parseTreeNodes.empty())
         {
@@ -1615,16 +1621,18 @@ class Scene : public NonTerminal {
                 Symbol * childs=curNode->getChild(i);
                 
                 graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
-                if(typeid(*childs)!=typeid(Terminal))
+                if(typeid(*childs)!=typeid(Terminal) && typeid(*childs)!=typeid(HallucinatedTerminal))
                 {
+                    assert(childs!=NULL);
                     NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
+                    assert(child!=NULL);
                     parseTreeNodes.push(child);
                 }
             }
             
         }
         
-        
+
         graphvizFile <<"}\n";
         graphvizFile.close();
         NTmembershipFile.close();
