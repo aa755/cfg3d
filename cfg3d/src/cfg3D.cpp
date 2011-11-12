@@ -575,7 +575,7 @@ class HallucinatedTerminal : public Terminal {
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
     {
-            ColorRGB green(0.0,1.0,0.0);
+            ColorRGB green(0.0,0.0,1.0);
         neighbors.resize(totalNumTerminals,false);
         int start=scene.size();
         pointIndices.resize(points.size());
@@ -587,6 +587,7 @@ public:
             scene.points.at(start+i).y=points.at(i).y;
             scene.points.at(start+i).z=points.at(i).z;
             scene.points.at(start+i).rgb=green.getFloatRep();
+            scene.points.at(start+i).segment=index;
         }
         assert(points.size()>=3);
         featuresComputed=false;
@@ -2124,7 +2125,7 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     Vector2f r;
     solveLinearEquationPair(row1, row2, b, r);
     
-    float x_p = c2.x + r[0] * d2[0];
+    float x_p = c2.x + r[1  ] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
     return pcl::PointXYZ(x_p, y_p, 0);
 }
