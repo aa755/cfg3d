@@ -129,6 +129,7 @@ protected:
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
 
+    
     double getSigmaCoordinate(int coordinateIndex)
     {
         return centroid.data[coordinateIndex]*numPoints;
@@ -150,6 +151,8 @@ protected:
 
     }
 public:
+
+    bool isATerminal();
 
     void computeCovarianceMat( Eigen::Matrix3d & ans)
     {
@@ -397,6 +400,11 @@ public:
         assert(pointIndices.size() > 0);
         return pointIndices;
     }
+    
+    virtual void colorScene()
+    {
+        
+    }
 
     boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
         assert(pointIndices.size() > 0);
@@ -567,6 +575,7 @@ class HallucinatedTerminal : public Terminal {
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
     {
+            ColorRGB green(0.0,0.0,1.0);
         neighbors.resize(totalNumTerminals,false);
         int start=scene.size();
         pointIndices.resize(points.size());
@@ -577,6 +586,8 @@ public:
             scene.points.at(start+i).x=points.at(i).x;
             scene.points.at(start+i).y=points.at(i).y;
             scene.points.at(start+i).z=points.at(i).z;
+            scene.points.at(start+i).rgb=green.getFloatRep();
+            scene.points.at(start+i).segment=index;
         }
         assert(points.size()>=3);
         featuresComputed=false;
@@ -588,7 +599,22 @@ public:
         //do nothing
     }
 
+    virtual void colorScene()
+    {
+        float greenColor=ColorRGB(0,1,0).getFloatRep();
+        for(vector<int>::iterator it=pointIndices.begin(); it!=pointIndices.end();it++)
+        {
+            scene.points[*it].rgb=greenColor;
+        }
+    }    
+
 };
+
+    bool Symbol :: isATerminal()
+    {
+        Terminal * term= dynamic_cast<Terminal *>(this);
+        return (term!=NULL);
+    }
 
 Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
@@ -708,7 +734,7 @@ public:
         return children.at(i);
     }
     
-    string getName()
+      string getName()
     {
         const char * name=typeid(*this).name();
         int count=0;
@@ -802,8 +828,8 @@ public:
      */
     void setAbsoluteCost(double absoluteCost) {
         cout<<absoluteCost<<endl;
-        assert(absoluteCost >= (0 - .0003));
-        if (absoluteCost >= (0 - .0003) && absoluteCost < 0) {
+        assert(absoluteCost >= (0 - .001));
+        if (absoluteCost >= (0 - .001) && absoluteCost < 0) {
             absoluteCost = 0;
         }
         vector<Symbol*>::iterator it;
@@ -1496,7 +1522,7 @@ public:
 };
 
 bool isVerticalEnough(Plane* plane) {
-    return plane->getZNormal() <= .25;
+    return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
 // Checks if x is on top of y
@@ -1603,6 +1629,10 @@ class Scene : public NonTerminal {
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(this);
         
+        scene.width=1;
+        scene.height=scene.size();
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        
         graphvizFile<<"digraph g{\n";
         while(!parseTreeNodes.empty())
         {
@@ -1615,16 +1645,23 @@ class Scene : public NonTerminal {
                 Symbol * childs=curNode->getChild(i);
                 
                 graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
-                if(typeid(*childs)!=typeid(Terminal))
+                Terminal *childT= dynamic_cast<Terminal *>(childs);
+                if(childT==NULL) // not of type Terminal
                 {
+                 //   assert(childs!=NULL);
                     NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
+                    assert(child!=NULL);
                     parseTreeNodes.push(child);
+                }
+                else
+                {
+                    childT->colorScene();
                 }
             }
             
         }
         
-        
+
         graphvizFile <<"}\n";
         graphvizFile.close();
         NTmembershipFile.close();
@@ -2088,18 +2125,20 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     Vector2f r;
     solveLinearEquationPair(row1, row2, b, r);
     
-    float x_p = c2.x + r[0] * d2[0];
+    float x_p = c2.x + r[1] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
 vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
     vector<pcl::PointXYZ> samplePoints;
-    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
-    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
+    float xStep = (occlusionPoint.x - c1.x)/sampleFactor;
+    float yStep = (occlusionPoint.y - c1.y)/sampleFactor;
+//    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
+//    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
     float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
-    float currentX = min(c1.x, occlusionPoint.x);
-    float currentY = min(c1.y, occlusionPoint.y);
+    float currentX = c1.x;
+    float currentY = c1.y;
     float samplesTaken = 0;
     while(samplesTaken < sampleFactor) {
         for (float k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
@@ -2157,7 +2196,7 @@ public:
     
     NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
         Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
-        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));        
         vector<pcl::PointXYZ> hallucinationPoints;
         if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
             return NULL;
@@ -2171,6 +2210,12 @@ public:
             // Get hallucinated plane
             
             Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
+                    cout<<"hallucination\n---------"<<endl;
+        plane1->printData();
+        plane2->printData();
+        cout<<hallucinatedSegment->getIndex()<<endl;
+        cout<<"--------"<<endl;
+
             SingleRule<Plane, Terminal> rule;
             Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
             RHS_hallucinatedPlane->declareOptimal();
