@@ -2095,11 +2095,13 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
 
 vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
     vector<pcl::PointXYZ> samplePoints;
-    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
-    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
+    float xStep = occlusionPoint.x - c1.x;
+    float yStep = occlusionPoint.y - c1.y;
+//    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
+//    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
     float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
-    float currentX = min(c1.x, occlusionPoint.x);
-    float currentY = min(c1.y, occlusionPoint.y);
+    float currentX = c1.x;
+    float currentY = c1.y;
     float samplesTaken = 0;
     while(samplesTaken < sampleFactor) {
         for (float k = plane.getMinZ(); k < plane.getMaxZ(); k+=zStep) {
@@ -2563,7 +2565,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
-        if (typeid (*min) == typeid (Scene)) {
+        if (typeid (*min) == typeid (Table)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
