@@ -59,7 +59,7 @@
 #include <pcl/features/normal_3d.h>
 
 #include "pcl/io/pcd_io.h"
-#include "includes/point_types.h"
+#include "point_types.h"
 
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
@@ -71,8 +71,8 @@
 #include <boost/numeric/ublas/io.hpp>
 
 #include <dynamic_reconfigure/server.h>
-#include <scene_processing/labelviewerConfig.h>
-#include "includes/color.cpp"
+#include <cfg3d/labelerConfig.h>
+#include "color.cpp"
 
 //typedef pcl::PointXYZRGB PointT;
 //std::string initLabels[]={"wall","floor","table","shelf","chair","cpu","monitor","clutter"};
@@ -81,8 +81,9 @@ typedef pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2> Colo
 typedef ColorHandler::Ptr ColorHandlerPtr;
 typedef pcl::PointXYZRGBCamSL PointT;
 using namespace boost;
-dynamic_reconfigure::Server < scene_processing::labelviewerConfig > *srv;
-scene_processing::labelviewerConfig conf;
+dynamic_reconfigure::Server < cfg3d::labelerConfig > *srv;
+cfg3d::labelerConfig conf;
+
 boost::recursive_mutex global_mutex;
 pcl_visualization::PCLVisualizer viewer("3D Viewer");
 int viewportOrig = 0;
@@ -219,7 +220,7 @@ vector <string> getTokens(std::string str)
 	return out;
 }
 
-void reconfig(scene_processing::labelviewerConfig & config, uint32_t level) {
+void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
     conf = config;
     boost::recursive_mutex::scoped_lock lock(global_mutex);
     pcl::PointCloud<PointT>::Ptr pred_cloud_ptr(new pcl::PointCloud<PointT > (cloud_pred));
@@ -438,20 +439,20 @@ main(int argc, char** argv) {
     //viewer.spinOnce(5000, true);
 
 
-    srv = new dynamic_reconfigure::Server < scene_processing::labelviewerConfig > (global_mutex);
-    dynamic_reconfigure::Server < scene_processing::labelviewerConfig >::CallbackType f = boost::bind(&reconfig, _1, _2);
+    srv = new dynamic_reconfigure::Server < cfg3d::labelerConfig > (global_mutex);
+    dynamic_reconfigure::Server < cfg3d::labelerConfig >::CallbackType f = boost::bind(&reconfig, _1, _2);
 
 
     srv->setCallback(f);
-    conf.done = false;
+    conf.exit = false;
 
     bool isDone = false;
     //ROS_INFO ("Press q to quit.");
     while (!isDone) {
         viewer.spinOnce();
         ros::spinOnce();
-        if (conf.done) {
-            conf.done = false;
+        if (conf.exit) {
+            conf.exit = false;
             srv->updateConfig(conf);
             //savePCDAndLabels ();
             break;
