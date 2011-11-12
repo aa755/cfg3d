@@ -159,8 +159,8 @@ void reconfig(cfg3d::labelviewerConfig & config, uint32_t level) {
     pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
     bool c = false;
 
-    int NUM_CLASSES_TO_SHOW=10;
-    int labelNum = 0;
+//    int NUM_CLASSES_TO_SHOW=10;
+//    int labelNum = 0;
 
     if (conf.showSegment) {
         conf.showSegment = false;
@@ -185,9 +185,9 @@ int
 main(int argc, char** argv) {
 
     ros::init(argc, argv, "labelviewer");
-    bool groundSelected = false;
-    bool editLabel = false;
-    int targetLabel;
+//    bool groundSelected = false;
+//    bool editLabel = false;
+//    int targetLabel;
 
     boost::numeric::ublas::matrix<double> outMat(4, 4);
 
@@ -200,7 +200,7 @@ main(int argc, char** argv) {
     
     
     if (labelFile.is_open()) {
-        int count = 1;
+//        int count = 1;
         while (labelFile.good()) {
             getline(labelFile, line); //each line is a label
             if (line.size() == 0)
@@ -284,6 +284,7 @@ main(int argc, char** argv) {
 
 
 
+    
     viewer.removePointCloud("orig");
 
 
