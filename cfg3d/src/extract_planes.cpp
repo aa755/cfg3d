@@ -66,7 +66,8 @@ public:
         vg.setLeafSize(LEAFSIZE, LEAFSIZE, LEAFSIZE);
 
         // Any object < CUT_THRESHOLD will be abandoned.
-        CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 7000000); // 700
+        //CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 7000000); // 700
+        CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 20000000); // 2000 for nonfiltering
 
         // Clustering
         cluster_.setClusterTolerance(0.06 * UNIT);
