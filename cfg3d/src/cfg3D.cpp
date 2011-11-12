@@ -828,8 +828,8 @@ public:
      */
     void setAbsoluteCost(double absoluteCost) {
         cout<<absoluteCost<<endl;
-        assert(absoluteCost >= (0 - .0003));
-        if (absoluteCost >= (0 - .0003) && absoluteCost < 0) {
+        assert(absoluteCost >= (0 - .001));
+        if (absoluteCost >= (0 - .001) && absoluteCost < 0) {
             absoluteCost = 0;
         }
         vector<Symbol*>::iterator it;
@@ -2125,15 +2125,15 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     Vector2f r;
     solveLinearEquationPair(row1, row2, b, r);
     
-    float x_p = c2.x + r[1  ] * d2[0];
+    float x_p = c2.x + r[1] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
 vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlusionPoint, Plane& plane, float sampleFactor) {
     vector<pcl::PointXYZ> samplePoints;
-    float xStep = occlusionPoint.x - c1.x;
-    float yStep = occlusionPoint.y - c1.y;
+    float xStep = (occlusionPoint.x - c1.x)/sampleFactor;
+    float yStep = (occlusionPoint.y - c1.y)/sampleFactor;
 //    float xStep = fabs(c1.x - occlusionPoint.x)/sampleFactor;
 //    float yStep = fabs(c1.y - occlusionPoint.y)/sampleFactor;
     float zStep = fabs(plane.getMaxZ() - plane.getMinZ())/sampleFactor;
@@ -2608,7 +2608,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
-        if (typeid (*min) == typeid (Table)) {
+        if (typeid (*min) == typeid (Scene)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
