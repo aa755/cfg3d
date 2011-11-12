@@ -35,11 +35,11 @@ public:
     KdTreePtr clusters_tree_;
     pcl::PassThrough<Point> pass;
     pcl::VoxelGrid<Point> vg;
+    double LEAFSIZE;
     unsigned int CUT_THRESHOLD;
 
     // Datasets
     pcl::PointCloud<Point>::Ptr cloud;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr original_cloud;
     pcl::PointCloud<Point>::Ptr cloud_filtered;
     pcl::PointIndices::Ptr main_cluster_;
     pcl::PointCloud<pcl::Normal>::Ptr cloud_normals;
@@ -50,7 +50,6 @@ public:
     Extractor() {
         tree.reset(new pcl::KdTreeFLANN<Point > ());
         cloud.reset(new pcl::PointCloud<Point>);
-        original_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
         cloud_filtered.reset(new pcl::PointCloud<Point>);
         cloud_normals.reset(new pcl::PointCloud<pcl::Normal>);
         coefficients_plane_.reset(new pcl::ModelCoefficients);
@@ -63,11 +62,11 @@ public:
         pass.setFilterLimits(-100, 100);
 
         // VoxelGrid for Downsampling
-        const double LEAFSIZE = 0.05f;
+        LEAFSIZE = 0.01f;
         vg.setLeafSize(LEAFSIZE, LEAFSIZE, LEAFSIZE);
 
         // Any object < CUT_THRESHOLD will be abandoned.
-        CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 70000); // 700
+        CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 7000000); // 700
 
         // Clustering
         cluster_.setClusterTolerance(0.06 * UNIT);
@@ -127,58 +126,55 @@ public:
         reader.read(pcd_name, *cloud);
         std::cerr << "PointCloud has: " << cloud->points.size() << " data points." << std::endl;
 
-        initialize();
+        initialize(true);
     }
 
     void initializeFromCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudp) {
         std::cout << "Initializing from Point Cloud" << std::endl;
-        
-        // cloud = boost::shared_ptr<pcl::PointCloud<Point> >(new pcl::PointCloud<Point > ());
         cloud->points.resize(cloudp->size());
-        original_cloud->points.resize(cloudp->size());
         for (unsigned int i = 0; i < cloudp->size(); i++) {
             cloud->points.at(i).x = cloudp->points.at(i).x;
             cloud->points.at(i).y = cloudp->points.at(i).y;
             cloud->points.at(i).z = cloudp->points.at(i).z;
             cloud->points.at(i).rgba = i;
-
-
-            original_cloud->points.at(i).x = cloudp->points.at(i).x;
-            original_cloud->points.at(i).y = cloudp->points.at(i).y;
-            original_cloud->points.at(i).z = cloudp->points.at(i).z;
         }
-
-        // original_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>(*cloudp));
-        // cloud.reset(new pcl::PointCloud<>(*cloudp));
-        //for (int i = 0; i < cloud->size(); ++i) {
-        //    cloud->points.at(i).rgba = i;
-        //}
-        std::cout << "Initializing from Point Cloud done!" << std::endl;
-        initialize();
+        initialize(false);
     }
 
+    // For debugging
     void initializeCFGdebug(const std::string & pcd_name) {
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cfg;
         cloud_cfg.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
         reader.read(pcd_name, *cloud_cfg);
         std::cerr << "PointCloud has: " << cloud_cfg->points.size() << " data points." << std::endl;
+
+        pcl::VoxelGrid<pcl::PointXYZRGB> pvg;
+        pvg.setLeafSize(LEAFSIZE, LEAFSIZE, LEAFSIZE);
+        pvg.setInputCloud(cloud_cfg);
+        pvg.filter(*cloud_cfg);
+        std::cout << "PointCloud after prefiltering has: " <<
+                cloud_cfg->points.size() << " data points." << std::endl;
+
         initializeFromCloud(cloud_cfg);
     }
 
-    void initialize() {
+    void initialize(bool toFilter) {
         // A passthrough filter to remove spurious NaNs
         pass.setInputCloud(cloud);
         pass.filter(*cloud_filtered);
-        std::cout << "PointCloud after filtering has: " <<
+        std::cout << "PointCloud after pass through has: " <<
                 cloud_filtered->points.size() << " data points." << std::endl;
 
-        
+
         // Downsample the dataset using a leaf size of 1cm
-        vg.setInputCloud(cloud_filtered);
-        vg.filter(*cloud_filtered);
-        std::cout << "PointCloud after filtering has: " <<
-                cloud_filtered->points.size() << " data points." << std::endl;
-
+        // After filtering the point cloud, all indices do not point to the
+        // original points. Therefore disable this if called from initializeFromPointCLoud
+        if (toFilter) {
+            vg.setInputCloud(cloud_filtered);
+            vg.filter(*cloud_filtered);
+            std::cout << "PointCloud after filtering has: " <<
+                    cloud_filtered->points.size() << " data points." << std::endl;
+        }
         // Estimate point normals
         ne.setInputCloud(cloud_filtered);
         ne.compute(*cloud_normals);
@@ -254,41 +250,37 @@ public:
                     cloud_plane->points.size() << " data points." << std::endl;
 
             // Insert the points to segments for cfg3D
-
-            for (unsigned int j = 0; j < main_cluster_->indices.size(); j++) {
-                //printf("main_cluster_i: %d\n", main_cluster_->indices.at(j));
-            }
-            pcl::PointIndices::Ptr originalIndices (new pcl::PointIndices ());
+            pcl::PointIndices::Ptr originalIndices(new pcl::PointIndices());
             originalIndices->indices.resize(cloud_plane->size());
 
             for (unsigned int j = 0; j < originalIndices->indices.size(); j++) {
                 originalIndices->indices.at(j) = cloud_plane->points.at(j).rgba;
-                //printf("rgba: %d\n", cloud_plane->points.at(j).rgba);
             }
             segments.push_back(*originalIndices);
 
 
             // Debugging for cfg3D
-            
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cfg_segment_cloud(new pcl::PointCloud<pcl::PointXYZRGB> ());
-            pcl::ExtractIndices<pcl::PointXYZRGB> cfg_extract;
-            /*
+            pcl::PointCloud<Point>::Ptr cfg_segment_cloud(new pcl::PointCloud<Point > ());
+
+            pcl::ExtractIndices<Point> cfg_extract;
             cfg_extract.setNegative(false);
-            cfg_extract.setInputCloud(original_cloud);
+            cfg_extract.setInputCloud(cloud);
             cfg_extract.setIndices(originalIndices);
             cfg_extract.filter(*cfg_segment_cloud);
-*/
+
+            /*
             cfg_segment_cloud->points.resize(originalIndices->indices.size());
             for (unsigned int j = 0; j < originalIndices->indices.size(); j++) {
                 unsigned int index = originalIndices->indices.at(j);
-                cfg_segment_cloud->points.at(j).x = original_cloud->points.at(index).x;
-                cfg_segment_cloud->points.at(j).y = original_cloud->points.at(index).y;
-                cfg_segment_cloud->points.at(j).z = original_cloud->points.at(index).z;
+                cfg_segment_cloud->points.at(j).x = cloud->points.at(index).x;
+                cfg_segment_cloud->points.at(j).y = cloud->points.at(index).y;
+                cfg_segment_cloud->points.at(j).z = cloud->points.at(index).z;
             }
+             */
             std::stringstream cfg_debug_s;
             cfg_debug_s << "cfg_debug_segment_" << i << ".pcd";
             pcl::io::savePCDFile(cfg_debug_s.str(), *cfg_segment_cloud);
-            
+
         }
 
         // Remove cluster[0], update cloud_filtered and cloud_normals
@@ -303,6 +295,7 @@ public:
     }
 };
 
+/*
 int main(int argc, char** argv) {
     ros::init(argc, argv, "Extractor");
     Extractor p;
@@ -316,3 +309,4 @@ int main(int argc, char** argv) {
 
     return (0);
 }
+*/
