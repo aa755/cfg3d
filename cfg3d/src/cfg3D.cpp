@@ -2109,7 +2109,7 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     pcl::PointXYZ centroid2;
     plane2.getCentroid(centroid2);
     
-    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
+    pcl::PointXYZ i(-intersectionPoint[0], -intersectionPoint[1], 0);
     
     // Where d1 and d2 are the directions away from the intersection point of the two planes.
     d2 = getDirection(centroid1, i);
@@ -2127,6 +2127,12 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     
     float x_p = c2.x + r[1] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
+    cout<<"OCCLUSION!!!!!"<<"p1Params = "<<p1Params<<endl;
+    cout<<"OCCLUSION!!!!!"<<"p2Params = "<<p2Params<<endl;
+    cout<<"OCCLUSION!!!!!"<<"i = ("<<i.x<<","<<i.y<<")"<<endl;
+    cout<<"OCCLUSION!!!!!"<<"c1 = ("<<c1.x<<","<<c1.y<<")"<<endl;
+    cout<<"OCCLUSION!!!!!"<<"c2 = ("<<c2.x<<","<<c2.y<<")"<<endl;
+    cout<<"OCCLUSION!!!!!"<<"occlusionPoint = ("<<x_p<<","<<y_p<<")"<<endl;
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
@@ -2165,7 +2171,7 @@ bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusion
 
 bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
     float sampleFactor = 5;
-    float occlusionThreshold = .9;
+    float occlusionThreshold = .5;
     pcl::PointXYZ c1;
     pcl::PointXYZ c2;
     Vector2f d1;
@@ -2173,10 +2179,12 @@ bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& sa
     pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
     samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
     if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+        cout<<"PlaneTripletGenerated"<<endl;
         return true;
     } else {
         samplePoints = getPointsToSample(c2, occlusionPoint, plane2, sampleFactor);
         if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+            cout<<"PlaneTripletGenerated"<<endl;
             return true;
         }
     }
