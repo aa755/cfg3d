@@ -2141,8 +2141,8 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     Vector2f r;
     solveLinearEquationPair(row1, row2, b, r);
     
-    float x_p = c2.x + r[1] * d2[0];
-    float y_p = c2.y + r[1] * d2[1];
+    float x_p = c2.x + r[1] * plane2.getPlaneNormal()[0];
+    float y_p = c2.y + r[1] * plane2.getPlaneNormal()[1];
     cout<<"Making potential occlusion plane..."<<endl;
     
     cout<<"\tp1Params = "<<p1Params<<endl;
