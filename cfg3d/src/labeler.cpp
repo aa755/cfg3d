@@ -390,41 +390,26 @@ main(int argc, char** argv) {
         ROS_ERROR("Couldn't read file ");
         return (-1);
     }
-    ROS_INFO("Loaded %d data points from %s with the following fields: %s", (int) (cloud_blob_orig.width * cloud_blob_orig.height), argv[1], pcl::getFieldsList(cloud_blob_orig).c_str());
-    if (pcl::io::loadPCDFile(argv[2], cloud_blob_pred) == -1) {
-        ROS_ERROR("Couldn't read file ");
-        return (-1);
-    }
-    ROS_INFO("Loaded %d data points from %s with the following fields: %s", (int) (cloud_blob_pred.width * cloud_blob_pred.height), argv[2], pcl::getFieldsList(cloud_blob_pred).c_str());
-
+    
 
 
     // Convert to the templated message type
     pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
     pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
 
-    pcl::fromROSMsg(cloud_blob_pred, cloud_pred);
-    pcl::PointCloud<PointT>::Ptr pred_cloud_ptr(new pcl::PointCloud<PointT > (cloud_pred));
-
 
 
     std::vector<int> segmentIndices;
     // get_sorted_indices(*cloud_ptr, segmentIndices, max_segment_num);
-    get_label_mapping(*pred_cloud_ptr, label_mapping_pred);
     get_label_mapping(*orig_cloud_ptr, label_mapping_orig);
 
     
 
 
-    viewer.createViewPort(0.0, 0.0, 0.5, 1.0, viewportOrig);
-    viewer.createViewPort(0.5, 0.0, 1.0, 1.0, viewportPred);
-    //for (int i = 1 ; i <= max_segment_num ; i++ ){
     color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_orig));
 
     color_handler_pred.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_pred));
-    viewer.addPointCloud(*orig_cloud_ptr, color_handler_orig, "orig", viewportOrig);
-    viewer.addPointCloud(*pred_cloud_ptr, color_handler_pred, "pred", viewportPred);
-    //viewer.spinOnce(5000, true);
+    viewer.addPointCloud(*orig_cloud_ptr, color_handler_orig, "orig");
 
 
     srv = new dynamic_reconfigure::Server < cfg3d::labelerConfig > (global_mutex);
@@ -455,6 +440,5 @@ main(int argc, char** argv) {
     return (0);
 
 
-    return (0);
 }
 /* ]--- */

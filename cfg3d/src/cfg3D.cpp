@@ -5,6 +5,7 @@
  * Created on July 26, 2011, 7:41 PM
  */
 
+#include "utils.h"
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
 // #include <opencv2/highgui/highgui.hpp>
@@ -23,13 +24,11 @@
 #include <pcl/surface/convex_hull.h>
 #include <stdlib.h>
 #include <time.h>
-#include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .70
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
-#include "utils.h"
 #include "color.cpp"
 #include "pcl/features/feature.h"
 
