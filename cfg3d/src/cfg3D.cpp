@@ -2122,8 +2122,10 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
     
     // Where d1 and d2 are the directions away from the intersection point of the two planes.
-    d2 = getDirection(centroid1, i);
-    d1 = getDirection(centroid2, i);
+//    d2 = getDirection(centroid1, i);
+//    d1 = getDirection(centroid2, i);
+    d2 = Vector2f(plane2.getPlaneNormal()[0], plane2.getPlaneNormal()[1]);
+    d1 = Vector2f(plane1.getPlaneNormal()[0], plane1.getPlaneNormal()[1]);
     
     
     c1 = getFarthestInDirection(plane1, d2);
