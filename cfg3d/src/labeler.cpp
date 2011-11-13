@@ -116,7 +116,7 @@ sqrG(float y) {
 //typedef my_ns::MyPoint PointT;
 using namespace pcl_visualization;
 
-void get_sorted_indices(pcl::PointCloud<PointT> &incloud, std::vector<int> &segmentindices, int size) {
+void get_sorted_indices(pcl::PointCloud<PointT> &incloud, std::set<int> &segmentindices, int size) {
     std::map<int, int> countmap;
     for (int i = 1; i <= size; i++) {
         countmap[i] = 0;
@@ -128,20 +128,10 @@ void get_sorted_indices(pcl::PointCloud<PointT> &incloud, std::vector<int> &segm
     for (std::map<int, int>::iterator it = countmap.begin(); it != countmap.end(); it++)
         inverted_countmap.insert(std::pair<int, int>(it->second, it->first));
     for (std::multimap<int, int>::reverse_iterator rit = inverted_countmap.rbegin(); rit != inverted_countmap.rend(); rit++)
-        segmentindices.push_back(rit->second);
+        segmentindices.insert(rit->second);
 
 }
 
-void get_label_mapping(pcl::PointCloud<PointT> &incloud, std::map<int, std::set <int> > &label_mapping) {
-    std::map <int, int> seg_label_mapping;
-    for (size_t i = 0; i < incloud.points.size(); ++i) {
-        seg_label_mapping[incloud.points[i].segment] = incloud.points[i].label;
-
-    }
-    for (std::map<int, int>::iterator it = seg_label_mapping.begin(); it != seg_label_mapping.end(); it++)
-        label_mapping[it->second].insert(it->first);
-
-}
 
 bool apply_label_filter(pcl::PointCloud<PointT> &incloud, int label, float color) {
     ROS_INFO("applying filter");
@@ -463,16 +453,8 @@ main(int argc, char** argv) {
         }
     }
 
-    string filename=string(argv[1]).append(".labelColored.pcd");
-    writer.write<PointT > (filename, *cloud_colored_pred, true);
     cout << "normal kill";
     return (0);
-
-
-
-
-    viewer.removePointCloud("orig");
-    viewer.removePointCloud("pred");
 
 
     return (0);

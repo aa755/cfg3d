@@ -1430,6 +1430,9 @@ class Plane : public NonTerminal {
 protected:
     float curvature;
     bool planeParamsComputed;
+    /**
+     * planeParams[0]x+planeParams[1]x+planeParams[2]x+planeParams[3]=0
+     */
     Eigen::Vector4f planeParams;
 public:
 

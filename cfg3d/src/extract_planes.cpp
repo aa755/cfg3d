@@ -67,7 +67,7 @@ public:
 
         // Any object < CUT_THRESHOLD will be abandoned.
         //CUT_THRESHOLD = (int) (LEAFSIZE * LEAFSIZE * 7000000); // 700
-        CUT_THRESHOLD =  2000; //for nonfiltering
+        CUT_THRESHOLD =  700; //for nonfiltering
 
         // Clustering
         cluster_.setClusterTolerance(0.06 * UNIT);
