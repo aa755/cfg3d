@@ -23,7 +23,6 @@
 #include <pcl/surface/convex_hull.h>
 #include <stdlib.h>
 #include <time.h>
-#include <boost//lexical_cast.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .70
 #define HIGH_COST 100

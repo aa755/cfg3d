@@ -11,6 +11,7 @@
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 #include <vector>
+#include <boost//lexical_cast.hpp>
 
 struct null_deleter
 {
