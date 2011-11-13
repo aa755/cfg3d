@@ -2122,18 +2122,19 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
     
     // Where d1 and d2 are the directions away from the intersection point of the two planes.
-//    d2 = getDirection(centroid1, i);
-//    d1 = getDirection(centroid2, i);
-    d2 = Vector2f(plane2.getPlaneNormal()[0], plane2.getPlaneNormal()[1]);
-    d1 = Vector2f(plane1.getPlaneNormal()[0], plane1.getPlaneNormal()[1]);
-    
+    d2 = getDirection(centroid1, i);
+    d1 = getDirection(centroid2, i);
+ 
     
     c1 = getFarthestInDirection(plane1, d2);
     c2 = getFarthestInDirection(plane2, d1);
     
     Vector2f b(c2.x - c1.x, c2.y - c1.y);
-    Vector2f row1(d1[0], -d2[0]);
-    Vector2f row2(d1[1], -d2[1]);
+    Vector2f row1(plane1.getPlaneNormal()[0], -plane2.getPlaneNormal()[0]);
+    Vector2f row2(plane1.getPlaneNormal()[1], -plane2.getPlaneNormal()[1]);
+    
+//    Vector2f row1(d1[0], -d2[0]);
+//    Vector2f row2(d1[1], -d2[1]);
     Vector2f r;
     solveLinearEquationPair(row1, row2, b, r);
     
