@@ -357,19 +357,17 @@ main(int argc, char** argv) {
     ros::init(argc, argv, "labelviewer");
     bool groundSelected = false;
     bool editLabel = false;
-    int targetLabel;
-    if (argc > 2) {
-        editLabel = true;
-        targetLabel = atoi(argv[2]);
+    if(argc!=2)
+    {
+        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <labelsFile>"<<endl;
+        exit(-1);
     }
 
-    boost::numeric::ublas::matrix<double> outMat(4, 4);
 
     std::ifstream labelFile;
     std::string line;
-    labelFile.open("labels.txt");
+    labelFile.open(argv[2]);
 
-    std::cerr << "you can only quit by pressing 9 when the prompt mentions... quitting in other ways will discard any newly added labels\n";
     if (labelFile.is_open()) {
         int count = 1;
         while (labelFile.good()) {
