@@ -270,6 +270,16 @@ public:
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
 
+    pcl::PointXYZ getMaxPoint() {
+        assert(featuresComputed);
+        return maxxyz;
+    }
+    
+    pcl::PointXYZ getMinPoint() {
+        assert(featuresComputed);
+        return minxyz;
+    }
+    
     double getMaxX() {
         assert(featuresComputed);
         return maxxyz.x;
@@ -2101,7 +2111,7 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     Vector2f intersectionPoint;
     Vector2f v1(p1Params[0],p1Params[1]);
     Vector2f v2(p2Params[0],p2Params[1]);
-    Vector2f v4(p1Params[3],p2Params[3]);
+    Vector2f v4(-p1Params[3],-p2Params[3]);
     solveLinearEquationPair(v1, v2, v4, intersectionPoint);
         
     pcl::PointXYZ centroid1;
@@ -2109,15 +2119,15 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     pcl::PointXYZ centroid2;
     plane2.getCentroid(centroid2);
     
-    pcl::PointXYZ i(-intersectionPoint[0], -intersectionPoint[1], 0);
+    pcl::PointXYZ i(intersectionPoint[0], intersectionPoint[1], 0);
     
     // Where d1 and d2 are the directions away from the intersection point of the two planes.
     d2 = getDirection(centroid1, i);
     d1 = getDirection(centroid2, i);
     
     
-    c1 = getFarthestInDirection(plane1, d1);
-    c2 = getFarthestInDirection(plane2, d2);
+    c1 = getFarthestInDirection(plane1, d2);
+    c2 = getFarthestInDirection(plane2, d1);
     
     Vector2f b(c2.x - c1.x, c2.y - c1.y);
     Vector2f row1(d1[0], -d2[0]);
@@ -2127,12 +2137,22 @@ pcl::PointXYZ getPlanePlaneOcclusionPoint(Plane& plane1, Plane& plane2, pcl::Poi
     
     float x_p = c2.x + r[1] * d2[0];
     float y_p = c2.y + r[1] * d2[1];
-    cout<<"OCCLUSION!!!!!"<<"p1Params = "<<p1Params<<endl;
-    cout<<"OCCLUSION!!!!!"<<"p2Params = "<<p2Params<<endl;
-    cout<<"OCCLUSION!!!!!"<<"i = ("<<i.x<<","<<i.y<<")"<<endl;
-    cout<<"OCCLUSION!!!!!"<<"c1 = ("<<c1.x<<","<<c1.y<<")"<<endl;
-    cout<<"OCCLUSION!!!!!"<<"c2 = ("<<c2.x<<","<<c2.y<<")"<<endl;
-    cout<<"OCCLUSION!!!!!"<<"occlusionPoint = ("<<x_p<<","<<y_p<<")"<<endl;
+    cout<<"Making potential occlusion plane..."<<endl;
+    
+    cout<<"\tp1Params = "<<p1Params<<endl;
+    cout<<"\tp2Params = "<<p2Params<<endl;
+    cout<<"\tp1Centroid = "<<centroid1<<endl;
+    cout<<"\tp2Centroid = "<<centroid2<<endl;
+    cout<<"\tp1Max = "<<plane1.getMaxPoint()<<endl;
+    cout<<"\tp1Min = "<<plane1.getMinPoint()<<endl;
+    cout<<"\tp2Max = "<<plane2.getMaxPoint()<<endl;
+    cout<<"\tp2Min = "<<plane2.getMinPoint()<<endl;
+    cout<<"\ti = ("<<i.x<<","<<i.y<<")"<<endl;
+    cout<<"\td1 = ("<<d1[0]<<","<<d1[1]<<")"<<endl;
+    cout<<"\td2 = ("<<d2[0]<<","<<d2[1]<<")"<<endl;
+    cout<<"\tc1 = ("<<c1.x<<","<<c1.y<<")"<<endl;
+    cout<<"\tc2 = ("<<c2.x<<","<<c2.y<<")"<<endl;
+    cout<<"\tocclusionPoint = ("<<x_p<<","<<y_p<<")"<<endl;
     return pcl::PointXYZ(x_p, y_p, 0);
 }
 
@@ -2158,15 +2178,22 @@ vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlus
     return samplePoints;
 }
 
+void printPoint(pcl::PointXYZ point) {
+    cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
+}
+
 bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
     float numOccludedPoints = 0;
     vector<pcl::PointXYZ>::iterator it;
     for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
-        if (occlusionChecker->isOccluded(*it)) {
+        bool isOccluded = occlusionChecker->isOccluded(*it);
+        printPoint(*it);
+        cout<<"^^isOccluded = "<<isOccluded<<endl;
+        if (isOccluded) {
             numOccludedPoints = numOccludedPoints + 1;
         }
     }
-    return numOccludedPoints / (sampleFactor * sampleFactor) > occlusionThreshold;
+    return (numOccludedPoints / (sampleFactor * sampleFactor)) > occlusionThreshold;
 }
 
 bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
@@ -2204,16 +2231,16 @@ public:
     
     NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
         Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
-        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));        
+        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+        cout<<"attempting to hallucinate..."<<endl;
+        plane1->printData();
+        plane2->printData();
         vector<pcl::PointXYZ> hallucinationPoints;
         if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
             return NULL;
         }
         else {
             vector<pcl::PointXYZ>::iterator it;
-            for (it = hallucinationPoints.begin(); it != hallucinationPoints.end(); it++) {
-                cout<<"("<<(*it).x<<","<<(*it).y<<","<<(*it).z<<")"<<endl;
-            }
             
             // Get hallucinated plane
             
