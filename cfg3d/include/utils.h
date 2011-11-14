@@ -7,6 +7,7 @@
 
 #ifndef UTILS_H
 #define	UTILS_H
+#define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #include <boost/dynamic_bitset.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
