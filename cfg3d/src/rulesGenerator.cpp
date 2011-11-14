@@ -211,6 +211,7 @@ int main(int argc, char** argv)
     map<int, string> labelsToText;
     parseLabelsText(argv[3], labelsToText);
 
-    generateRules(nodeToNeighbors, nodeToLabel, labelsToText, "Table");
+//    generateRules(nodeToNeighbors, nodeToLabel, labelsToText, "Table");
+    generateRules(nodeToNeighbors, nodeToLabel, labelsToText, argv[4]);
     return 0;
 }
