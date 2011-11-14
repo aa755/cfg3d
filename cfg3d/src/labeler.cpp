@@ -186,8 +186,6 @@ bool color_segment(pcl::PointCloud<PointT> &incloud, int segment, float color)
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
         if ((int)incloud.points[i].segment == segment) {
-
-            //     std::cerr<<segment_cloud.points[j].label<<",";
             incloud.points[i].rgb = color;
             changed = true;
         }
@@ -195,7 +193,6 @@ bool color_segment(pcl::PointCloud<PointT> &incloud, int segment, float color)
     return changed;
 }
 
-//   int spin=1;
 
 void spinThread() {
     std::cerr << "thread started";
@@ -283,9 +280,6 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
             *selLabels[color]=labels.at(label_mapping_orig[colorToSeg.at(color)]);
 
         }
-                pcl::toROSMsg(cloud_colored_orig, cloud_blob_filtered_orig);
-                color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_filtered_orig));
-                viewer.addPointCloud(cloud_colored_orig, color_handler_orig, "orig");
 
     }
         
@@ -299,9 +293,21 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
             *selLabels[color]=boost::lexical_cast<std::string>(colorToSeg.at(color));
         }
   }
+        
         if(conf.accept_labels)
         {
             
+        }
+        
+        if(conf.merge_preview)
+        {
+            
+        }
+        
+        if(conf.randomize)
+        {
+            randomizeColors(segmentIndices,colorToSeg);
+            conf.randomize=false;
         }
         
         float charCount=0.4;
