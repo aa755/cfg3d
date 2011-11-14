@@ -158,7 +158,7 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
     string conqueringName = labelToText[nodeToLabel[conquering]];
     cout<<"Conquered "<<conquering<<"("<<conqueringName<<")"<<"."<<endl;
     set<int> neighbors = nodeToNeighbors[conquering];
-    
+     
     for (it = neighbors.begin(); it != neighbors.end(); it++) {
         if (conquered.find(*it) == conquered.end()) {
             toConquer.insert(*it);
@@ -198,12 +198,19 @@ void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLa
 
 int main(int argc, char** argv)
 {
+    
+    //    parseGraph("bin/graph.txt", nodeToNeighbors);
     map<int, set<int> > nodeToNeighbors;
-    parseGraph("bin/graph.txt", nodeToNeighbors);
-     map<int, int> nodeToLabel;
-    parseLabels("bin/labels.txt", nodeToLabel);
+    parseGraph(argv[1], nodeToNeighbors);
+    
+    //    parseLabels("bin/labels.txt", nodeToLabel);
+    map<int, int> nodeToLabel;
+    parseLabels(argv[2], nodeToLabel);
+
+    //    parseLabelsText("bin/labelsText.txt", labelsToText);
     map<int, string> labelsToText;
-    parseLabelsText("bin/labelsText.txt", labelsToText);
+    parseLabelsText(argv[3], labelsToText);
+
     generateRules(nodeToNeighbors, nodeToLabel, labelsToText, "Table");
     return 0;
 }
