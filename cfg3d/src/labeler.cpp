@@ -243,85 +243,89 @@ vector <string> getTokens(std::string str)
             color2Seg.at(i)=segmentIndices[i];
         }
     }
-    
-void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
+
+void reconfig(cfg3d::labelerConfig & config, uint32_t level)
+{
     conf = config;
     boost::recursive_mutex::scoped_lock lock(global_mutex);
     pcl::PointCloud<PointT> cloud_colored_orig;
-        selLabels[0]=&conf.red_label;
-        selLabels[1]=&conf.green_label;
-        selLabels[2]=&conf.blue_label;
-        selLabels[3]=&conf.yellow_label;
-        selLabels[4]=&conf.cyan_label;
-        selLabels[5]=&conf.magenta_label;
-        selLabels[6]=&conf.dark_red_label;
-        selLabels[7]=&conf.dark_green_label;
-        selLabels[8]=&conf.dark_blue_label;
-        selLabels[9]=&conf.dark_yellow_label;
-    
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
-        {
-            viewer.removeShape(*selLabels[color]);
-        }
+    selLabels[0] = &conf.red_label;
+    selLabels[1] = &conf.green_label;
+    selLabels[2] = &conf.blue_label;
+    selLabels[3] = &conf.yellow_label;
+    selLabels[4] = &conf.cyan_label;
+    selLabels[5] = &conf.magenta_label;
+    selLabels[6] = &conf.dark_red_label;
+    selLabels[7] = &conf.dark_green_label;
+    selLabels[8] = &conf.dark_blue_label;
+    selLabels[9] = &conf.dark_yellow_label;
+
+    for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
+    {
+        viewer.removeShape(*selLabels[color]);
+    }
 
 
-        viewer.setBackgroundColor (1.0,1.0,1.0);
+    viewer.setBackgroundColor(1.0, 1.0, 1.0);
 
-         cloud_colored_orig=cloud_orig;
-        viewer.removePointCloud("orig");
-        
-    if (conf.show_labels) {
+    cloud_colored_orig = cloud_orig;
+    viewer.removePointCloud("orig");
+
+    if (conf.show_labels)
+    {
         conf.show_labels = false;
         conf.accept_labels = false;
         doUpdate = true;
-         
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) {
-        
-            *selLabels[color]=labels.at(label_mapping_orig[colorToSeg.at(color)]);
+
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
+        {
+
+            *selLabels[color] = labels.at(label_mapping_orig[colorToSeg.at(color)]);
 
         }
 
     }
-        
-    if (conf.show_segments) {
+
+    if (conf.show_segments)
+    {
         conf.show_labels = false;
         conf.accept_labels = false;
         doUpdate = true;
 
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
-        {        
-            *selLabels[color]=boost::lexical_cast<std::string>(colorToSeg.at(color));
-        }
-  }
-        
-        if(conf.accept_labels)
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
         {
-            
+            *selLabels[color] = boost::lexical_cast<std::string > (colorToSeg.at(color));
         }
-        
-        if(conf.merge_preview)
-        {
-            
-        }
-        
-        if(conf.randomize)
-        {
-            randomizeColors(segmentIndices,colorToSeg);
-            conf.randomize=false;
-        }
-        
-        float charCount=0.4;
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
-        {
-            //cout<<labelColors[color]->r*255.0<<labelColors[color]->g*255.0<<labelColors[color]->b*255.0<<endl;
-            viewer.addText (*selLabels[color],charCount*11,50,labelColors[color]->r,labelColors[color]->g,labelColors[color]->b);
-            charCount=charCount+selLabels[color]->size ()+0.9;
-            color_segment (cloud_colored_orig,colorToSeg.at(color),labelColors[color]->getFloatRep());
-        }
-        
-                pcl::toROSMsg(cloud_colored_orig, cloud_blob_filtered_orig);
-                color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_filtered_orig));
-                viewer.addPointCloud(cloud_colored_orig, color_handler_orig, "orig");
+    }
+
+    if (conf.accept_labels)
+    {
+
+    }
+
+    if (conf.merge_preview)
+    {
+
+    }
+
+    if (conf.randomize)
+    {
+        randomizeColors(segmentIndices, colorToSeg);
+        conf.randomize = false;
+    }
+
+    float charCount = 0.4;
+    for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
+    {
+        //cout<<labelColors[color]->r*255.0<<labelColors[color]->g*255.0<<labelColors[color]->b*255.0<<endl;
+        viewer.addText(*selLabels[color], charCount * 11, 50, labelColors[color]->r, labelColors[color]->g, labelColors[color]->b);
+        charCount = charCount + selLabels[color]->size() + 0.9;
+        color_segment(cloud_colored_orig, colorToSeg.at(color), labelColors[color]->getFloatRep());
+    }
+
+    pcl::toROSMsg(cloud_colored_orig, cloud_blob_filtered_orig);
+    color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_filtered_orig));
+    viewer.addPointCloud(cloud_colored_orig, color_handler_orig, "orig");
 
 }
 
