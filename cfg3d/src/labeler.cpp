@@ -274,7 +274,7 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
     if (conf.show_labels)
     {
         conf.show_labels = false;
-        conf.accept_labels = false;
+        conf.show_segments = false;
         doUpdate = true;
 
         for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
@@ -289,7 +289,7 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
     if (conf.show_segments)
     {
         conf.show_labels = false;
-        conf.accept_labels = false;
+        conf.show_segments = false;
         doUpdate = true;
 
         for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
@@ -309,9 +309,14 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
             *selLabels[1] = conf.merge2;
             colorToSeg[0] = boost::lexical_cast<int>(conf.merge1);
             colorToSeg[1] = boost::lexical_cast<int>(conf.merge2);
-        //set false later
+        //it is set false later
     }
 
+    if(conf.merge)
+    {
+        
+    }
+    
     if (conf.randomize)
     {
         randomizeColors(segmentIndices, colorToSeg);

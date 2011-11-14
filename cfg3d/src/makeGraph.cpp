@@ -410,6 +410,15 @@ public:
     }
 };
 
+template<typename PointET>
+Eigen::Vector3f getPoint(PointET p)
+{
+    Eigen::Vector3f temp;
+    for(int i=0;i<3;i++)
+        temp(i)=p.data[i];
+    
+    return temp;
+}
 
   template <typename PointT, typename Normal> 
   void extractEuclideanClustersM( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
@@ -429,6 +438,8 @@ public:
       return;
     }
 
+   // Eigen::Vector3f origin=cloud.sensor_origin_.block<3,1>(0,0);
+   // cout<<origin<<endl;
     // Create a bool vector of processed point indices, and initialize it to false
     std::vector<bool> processed (cloud.points.size (), false);
 
@@ -446,6 +457,8 @@ public:
 
       processed[i] = true;
 
+          Eigen::Vector3f pc=getPoint(cloud.points[i]);
+                  
       while (sq_idx < (int)seed_queue.size ())
       {
         // Search for sq_idx
@@ -460,6 +473,9 @@ public:
           if (processed[nn_indices[j]])                         // Has this point been processed before ?
             continue;
 
+          Eigen::Vector3f pn=getPoint(cloud.points[nn_indices[j]]);
+
+          
          // processed[nn_indices[j]] = true;
           // [-1;1]
           double dot_p = normals.points[i].normal[0] * normals.points[nn_indices[j]].normal[0] +
@@ -533,8 +549,8 @@ int main(int argc, char** argv)
 
 
     int number_neighbours = 50;
-//    float radius = 0.05; // 0.025
-//    float angle = 0.52;
+    float radius = 0.05; // 0.025
+    float angle = 0.52;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
     std::vector<pcl::PointIndices> clusters;
@@ -555,7 +571,8 @@ int main(int argc, char** argv)
 
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
-//    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
+    
+    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
     extractRansacClusters(cloud, clusters);
     
     //sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
