@@ -305,7 +305,11 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if (conf.merge_preview)
     {
-
+            *selLabels[0] = conf.merge1;
+            *selLabels[1] = conf.merge2;
+            colorToSeg[0] = boost::lexical_cast<int>(conf.merge1);
+            colorToSeg[1] = boost::lexical_cast<int>(conf.merge2);
+        //set false later
     }
 
     if (conf.randomize)
@@ -318,6 +322,11 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
     for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
     {
         //cout<<labelColors[color]->r*255.0<<labelColors[color]->g*255.0<<labelColors[color]->b*255.0<<endl;
+        if(conf.merge_preview&&color==2)
+        {
+            conf.merge_preview=false;
+            break;
+        }
         viewer.addText(*selLabels[color], charCount * 11, 50, labelColors[color]->r, labelColors[color]->g, labelColors[color]->b);
         charCount = charCount + selLabels[color]->size() + 0.9;
         color_segment(cloud_colored_orig, colorToSeg.at(color), labelColors[color]->getFloatRep());
