@@ -19,6 +19,10 @@
 
 using namespace std;
 
+void printFileError() {
+    cout<<"Could not open file"<<endl;
+}
+
 int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
 {
     ifstream labelFile;
@@ -33,8 +37,11 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
         while (labelFile.good())
         {
             getline(labelFile, line); //each line is a label
-            if (line.size() == 0)
+            cout<<line<<endl;
+            if (line.size() == 0) 
+            {
                 break;
+            }
 
             getTokens(line, nbrs);
             int segIndex = nbrs.at(0);
@@ -53,23 +60,150 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
                     continue;
 
                 nodeToNeighbors[segIndex].insert(nbrs.at(i));
-                cout << "adding " << nbrs.at(i) << " as a neighbos of " << segIndex << endl;
+                cout << "Adding " << nbrs.at(i) << "<->" << segIndex << endl;
             }
         }
     }
     else
     {
-        cout << "could not open label file...exiting\n";
+        printFileError();
         exit(-1);
     }
+    cout<<endl;
     return max;
-
 }
+
+int parseLabels(char* file, map<int, int> &nodeToLabel)
+{
+    ifstream labelFile;
+    string line;
+    labelFile.open(file);
+
+    vector<string> nbrs;
+
+    int max = 0;
+    if (labelFile.is_open())
+    {
+        while (labelFile.good())
+        {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0) 
+            {
+                break;
+            }
+
+            getTokens(line, nbrs);
+            int node = boost::lexical_cast<int>(nbrs.at(0));
+            int label = boost::lexical_cast<int>(nbrs.at(1));
+            nodeToLabel[node] = label;
+            cout << "Adding " << node << "<->" << label << endl;
+        }
+    }
+    else
+    {
+        printFileError();
+        exit(-1);
+    }
+    cout<<endl;
+    return max;
+}
+
+int parseLabelsText(char* file, map<int, string> &labelsToText)
+{
+    ifstream labelFile;
+    string line;
+    labelFile.open(file);
+
+    vector<string> nbrs;
+
+    int max = 0;
+    if (labelFile.is_open())
+    {
+        while (labelFile.good())
+        {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0) 
+            {
+                break;
+            }
+
+            getTokens(line, nbrs);
+            int label = boost::lexical_cast<int>(nbrs.at(0));
+            string labelText = nbrs.at(1);
+            labelsToText[label] = labelText;
+            cout << "Adding " << label << "<->" << labelText << endl;
+        }
+    }
+    else
+    {
+        printFileError();
+        exit(-1);
+    }
+    cout<<endl;
+    return max;
+}
+
+void printSet(set<int>& intSet) {
+    set<int>::iterator it;
+    for (it = intSet.begin(); it != intSet.end(); it++)
+    {
+        cout<<"\t"<<*it<<endl;
+    }
+}
+
+void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, set<int> >& nodeToNeighbors, map<int, int>& nodeToLabel, map<int, string>& labelToText) {
+    set<int>::iterator it;
+    conquered.insert(conquering);
+    toConquer.erase(conquering);
+    string conqueringName = labelToText[nodeToLabel[conquering]];
+    cout<<"Conquered "<<conquering<<"("<<conqueringName<<")"<<"."<<endl;
+    set<int> neighbors = nodeToNeighbors[conquering];
+    
+    for (it = neighbors.begin(); it != neighbors.end(); it++) {
+        if (conquered.find(*it) == conquered.end()) {
+            toConquer.insert(*it);
+        }
+    }
+    
+    cout<<"To conquer: "<<endl;
+    printSet(toConquer);
+}
+
+void printRule(string leftNonTerminal, string rNT1, string rNT2) {
+    cout<<leftNonTerminal<<" -> "<<rNT1<<" "<<rNT2<<endl;
+}
+
+void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLabel, map<int, string> &labelsToText, string goal) {
+    set<int> conquered;
+    set<int> toConquer;
+    conquer(1, conquered, toConquer, nodeToNeighbors, nodeToLabel, labelsToText);
+    string internalNonTerminal = labelsToText[nodeToLabel[1]];
+    while(!toConquer.empty()) {
+        int conquering = *toConquer.begin();
+        string conqueringName = labelsToText[nodeToLabel[conquering]];
+        conquer(conquering, conquered, toConquer, nodeToNeighbors, nodeToLabel, labelsToText);
+        cout<<"Generating rule: "<<endl;
+        if (toConquer.empty()) {
+            printRule(goal, internalNonTerminal, conqueringName);
+        } else {
+            string previousInternalNonTerminal = internalNonTerminal;
+            internalNonTerminal.append("|").append(conqueringName);
+            printRule(internalNonTerminal, previousInternalNonTerminal, conqueringName);
+        }
+        cout<<endl;
+    }
+}
+
+
 
 int main(int argc, char** argv)
 {
-    cout << "Hello World!" << endl;
     map<int, set<int> > nodeToNeighbors;
-    //    parseGraph("graph.txt", nodeToNeighbors);
+    parseGraph("bin/graph.txt", nodeToNeighbors);
+     map<int, int> nodeToLabel;
+    parseLabels("bin/labels.txt", nodeToLabel);
+    map<int, string> labelsToText;
+    parseLabelsText("bin/labelsText.txt", labelsToText);
+    generateRules(nodeToNeighbors, nodeToLabel, labelsToText, "Table");
     return 0;
 }

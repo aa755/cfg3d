@@ -68,7 +68,19 @@ void getTokens(std::string str,std::vector<int> & out)
         {
 		out.push_back(boost::lexical_cast<int>(t));
         }
+}
+
+void getTokens(std::string str, std::vector<std::string> & out)
+{
+        boost::char_separator<char> sep(",");
+        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
         
+        out.clear();
+
+        BOOST_FOREACH(std::string t, tokens) 
+        {
+		out.push_back(t);
+        }
 }
 
 #endif	/* UTILS_H */
