@@ -314,7 +314,20 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if(conf.merge)
     {
-        
+            int seg1 = boost::lexical_cast<int>(conf.merge1);
+            int seg2 = boost::lexical_cast<int>(conf.merge2);
+            for(vector<int>::iterator it=segmentIndices.begin();it!=segmentIndices.end();it++)
+            {
+                if(*it==seg2)
+                    *it=seg1;
+            }
+            
+            for(vector<PointT>::iterator it=cloud_orig.points.begin() ; it!=cloud_orig.points.begin(); it++)
+            {
+                if((*it).segment==seg2)
+                    (*it).segment=seg1;
+            }
+        randomizeColors(segmentIndices, colorToSeg);        
     }
     
     if (conf.randomize)

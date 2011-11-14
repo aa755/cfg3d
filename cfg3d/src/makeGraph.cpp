@@ -442,6 +442,7 @@ Eigen::Vector3f getPoint(PointET p)
     for(int i=0;i<3;i++)
         origin(i)=cloud.sensor_origin_(i);
     
+    cout<<"origin:"<<endl;
     cout<<origin<<endl;
     // Create a bool vector of processed point indices, and initialize it to false
     std::vector<bool> processed (cloud.points.size (), false);
@@ -460,13 +461,16 @@ Eigen::Vector3f getPoint(PointET p)
 
       processed[i] = true;
 
-          Eigen::Vector3f pc=getPoint(cloud.points[i]);
-          Eigen::Vector3f dir=(pc-origin);
-                  
       while (sq_idx < (int)seed_queue.size ())
       {
+          Eigen::Vector3f pc=getPoint(cloud.points.at(seed_queue[sq_idx]));
+          Eigen::Vector3f dir=(pc-origin);
+                  
+          cout<<"direction:"<<dir<<endl<<"dirnorm"<<dir.norm()<<endl;
+          float rad=2*tolerance*dir.norm();
+          cout<<"rad:"<<rad<<endl;
         // Search for sq_idx
-        if (!tree->radiusSearch (seed_queue[sq_idx], 3*tolerance*dir.norm()+0.3*tolerance, nn_indices, nn_distances))
+        if (!tree->radiusSearch (seed_queue[sq_idx],rad , nn_indices, nn_distances))
         {
           sq_idx++;
           continue;
@@ -481,7 +485,7 @@ Eigen::Vector3f getPoint(PointET p)
           Eigen::Vector3f nbrDir=pn-pc;
           nbrDir.normalize();
           
-          double threshold=3*tolerance*fabs(dir.dot(nbrDir))+0.3*tolerance;
+          double threshold=tolerance*fabs(dir.dot(nbrDir))+0.1*tolerance;
           if(nn_distances[j]>threshold)
               continue;
 
@@ -559,7 +563,7 @@ int main(int argc, char** argv)
 
 
     int number_neighbours = 50;
-    float radius = 0.05; // 0.025
+    float radius =  0.025;
     float angle = 0.52;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
@@ -585,7 +589,7 @@ int main(int argc, char** argv)
     extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
    // extractRansacClusters(cloud, clusters);
     
-    //sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
+    sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
     
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
