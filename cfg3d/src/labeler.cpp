@@ -112,7 +112,7 @@ using namespace pcl_visualization;
 
 void get_sorted_indices(pcl::PointCloud<PointT> &incloud, std::vector<int> &segmentindices) {
     set<int> segs;
-    for(int i=0;i<incloud.size();i++)
+    for(unsigned int i=0;i<incloud.size();i++)
     {
         segs.insert(incloud.points.at(i).segment);
     }
@@ -128,7 +128,7 @@ bool apply_label_filter(pcl::PointCloud<PointT> &incloud, int label, float color
 
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
-        if (incloud.points[i].label == label) {
+        if ((int)incloud.points[i].label == label) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
             incloud.points[i].rgb = color;
@@ -145,7 +145,7 @@ bool apply_label_filter(pcl::PointCloud<PointT> &incloud, vector<int> labels, fl
     for (size_t l = 0; l < labels.size(); l++) {
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
-        if (incloud.points[i].label == labels[l]) {
+        if ((int)incloud.points[i].label == labels[l]) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
             incloud.points[i].rgb = color;
@@ -157,7 +157,6 @@ bool apply_label_filter(pcl::PointCloud<PointT> &incloud, vector<int> labels, fl
 }
 
 bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<PointT> &outcloud, int segment) {
-    ROS_INFO("applying filter");
     bool changed = false;
 
     outcloud.points.erase(outcloud.points.begin(), outcloud.points.end());
@@ -168,7 +167,7 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
 
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
-        if (incloud.points[i].segment == segment) {
+        if ((int)incloud.points[i].segment == segment) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
             outcloud.points[i].rgb = 0.00001;
@@ -180,13 +179,13 @@ bool apply_segment_filter(pcl::PointCloud<PointT> &incloud, pcl::PointCloud<Poin
 
 bool color_segment(pcl::PointCloud<PointT> &incloud, int segment, float color) 
 {
-    ROS_INFO("applying filter");
+    ROS_INFO("applying filter %d",segment);
     bool changed = false;
 
 
     for (size_t i = 0; i < incloud.points.size(); ++i) {
 
-        if (incloud.points[i].segment == segment) {
+        if ((int)incloud.points[i].segment == segment) {
 
             //     std::cerr<<segment_cloud.points[j].label<<",";
             incloud.points[i].rgb = color;
@@ -218,7 +217,7 @@ vector <string> getTokens(std::string str)
         ColorRGB *labelColors[NUM_CLASSES_TO_SHOW];
     std::vector<int> segmentIndices;
     vector<int> colorToSeg;
-    string selLabels[NUM_CLASSES_TO_SHOW];
+    string *selLabels[NUM_CLASSES_TO_SHOW];
 
     void randomizeColors(vector<int> & segmentIndices, vector<int> & color2Seg )
     {
@@ -251,20 +250,23 @@ vector <string> getTokens(std::string str)
 void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
     conf = config;
     boost::recursive_mutex::scoped_lock lock(global_mutex);
-    bool c = false;
     pcl::PointCloud<PointT> cloud_colored_orig;
+        selLabels[0]=&conf.red_label;
+        selLabels[1]=&conf.green_label;
+        selLabels[2]=&conf.blue_label;
+        selLabels[3]=&conf.yellow_label;
+        selLabels[4]=&conf.cyan_label;
+        selLabels[5]=&conf.magenta_label;
+        selLabels[6]=&conf.dark_red_label;
+        selLabels[7]=&conf.dark_green_label;
+        selLabels[8]=&conf.dark_blue_label;
+        selLabels[9]=&conf.dark_yellow_label;
+    
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
+        {
+            viewer.removeShape(*selLabels[color]);
+        }
 
-
-         selLabels[0]=conf.red_label;
-        selLabels[1]=conf.green_label;
-        selLabels[2]=conf.blue_label;
-        selLabels[3]=conf.yellow_label;
-        selLabels[4]=conf.cyan_label;
-        selLabels[5]=conf.magenta_label;
-        selLabels[6]=conf.dark_red_label;
-        selLabels[7]=conf.dark_green_label;
-        selLabels[8]=conf.dark_blue_label;
-        selLabels[9]=conf.dark_yellow_label;
 
         viewer.setBackgroundColor (1.0,1.0,1.0);
 
@@ -278,7 +280,7 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
          
         for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) {
         
-            selLabels[color]=labels.at(label_mapping_orig[colorToSeg.at(color)]);
+            *selLabels[color]=labels.at(label_mapping_orig[colorToSeg.at(color)]);
 
         }
                 pcl::toROSMsg(cloud_colored_orig, cloud_blob_filtered_orig);
@@ -292,16 +294,22 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level) {
         conf.accept_labels = false;
         doUpdate = true;
 
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) {        
-            selLabels[color]=boost::lexical_cast<std::string>(colorToSeg.at(color));
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
+        {        
+            *selLabels[color]=boost::lexical_cast<std::string>(colorToSeg.at(color));
         }
   }
+        if(conf.accept_labels)
+        {
+            
+        }
         
         float charCount=0.4;
-        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) {
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++) 
+        {
             //cout<<labelColors[color]->r*255.0<<labelColors[color]->g*255.0<<labelColors[color]->b*255.0<<endl;
-            viewer.addText (selLabels[color],charCount*11,50,labelColors[color]->r,labelColors[color]->g,labelColors[color]->b);
-            charCount=charCount+selLabels[color].size ()+0.9;
+            viewer.addText (*selLabels[color],charCount*11,50,labelColors[color]->r,labelColors[color]->g,labelColors[color]->b);
+            charCount=charCount+selLabels[color]->size ()+0.9;
             color_segment (cloud_colored_orig,colorToSeg.at(color),labelColors[color]->getFloatRep());
         }
         
@@ -315,9 +323,7 @@ int
 main(int argc, char** argv) {
 
     ros::init(argc, argv, "labelviewer");
-    bool groundSelected = false;
-    bool editLabel = false;
-    if(argc!=2)
+    if(argc!=3)
     {
         cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <labelsFile>"<<endl;
         exit(-1);
