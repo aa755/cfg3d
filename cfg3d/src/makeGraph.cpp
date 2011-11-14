@@ -438,8 +438,11 @@ Eigen::Vector3f getPoint(PointET p)
       return;
     }
 
-   // Eigen::Vector3f origin=cloud.sensor_origin_.block<3,1>(0,0);
-   // cout<<origin<<endl;
+    Eigen::Vector3f origin;
+    for(int i=0;i<3;i++)
+        origin(i)=cloud.sensor_origin_(i);
+    
+    cout<<origin<<endl;
     // Create a bool vector of processed point indices, and initialize it to false
     std::vector<bool> processed (cloud.points.size (), false);
 
@@ -458,11 +461,12 @@ Eigen::Vector3f getPoint(PointET p)
       processed[i] = true;
 
           Eigen::Vector3f pc=getPoint(cloud.points[i]);
+          Eigen::Vector3f dir=(pc-origin);
                   
       while (sq_idx < (int)seed_queue.size ())
       {
         // Search for sq_idx
-        if (!tree->radiusSearch (seed_queue[sq_idx], tolerance, nn_indices, nn_distances))
+        if (!tree->radiusSearch (seed_queue[sq_idx], 3*tolerance*dir.norm()+0.3*tolerance, nn_indices, nn_distances))
         {
           sq_idx++;
           continue;
@@ -474,6 +478,12 @@ Eigen::Vector3f getPoint(PointET p)
             continue;
 
           Eigen::Vector3f pn=getPoint(cloud.points[nn_indices[j]]);
+          Eigen::Vector3f nbrDir=pn-pc;
+          nbrDir.normalize();
+          
+          double threshold=3*tolerance*fabs(dir.dot(nbrDir))+0.3*tolerance;
+          if(nn_distances[j]>threshold)
+              continue;
 
           
          // processed[nn_indices[j]] = true;
@@ -573,7 +583,7 @@ int main(int argc, char** argv)
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
     
     extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
-    extractRansacClusters(cloud, clusters);
+   // extractRansacClusters(cloud, clusters);
     
     //sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
     
@@ -608,6 +618,7 @@ cloud_seg.sensor_origin_=cloud_temp.sensor_origin_;
    pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg,true);
 
    std::cout << total << std::endl;
+   exit(1);
 
     OccupancyMapAdv occupancy(cloud_seg);
 
