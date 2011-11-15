@@ -21,6 +21,9 @@ struct null_deleter
     }
 };
 
+double sqr(double d) {
+    return d*d;
+}
 
 template<typename X>
 boost::shared_ptr<X> createStaticShared(X * x)

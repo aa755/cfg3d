@@ -300,7 +300,28 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if (conf.accept_labels)
     {
-
+        conf.accept_labels=false;
+        doUpdate=true;
+        string message="notFound:";
+        for(int i=0;i<NUM_CLASSES_TO_SHOW;i++)
+        {
+            bool found=false;
+            for(unsigned int j=0;j<labels.size();j++)
+            {
+                if(selLabels[i]->compare(labels.at(j))==0)
+                {
+                    found=true;
+                    label_mapping_orig[colorToSeg[i]]=j;
+                }
+            }
+            
+            if(!found)
+            {
+                message.append(",");
+                message.append(*selLabels[i]);
+            }
+        }
+        conf.message=message;
     }
 
     if (conf.merge_preview)
@@ -322,9 +343,9 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
                     *it=seg1;
             }
             
-            for(vector<PointT>::iterator it=cloud_orig.points.begin() ; it!=cloud_orig.points.begin(); it++)
+            for(vector<PointT, Eigen::aligned_allocator<PointT> >::iterator it=cloud_orig.points.begin() ; it!=cloud_orig.points.end(); it++)
             {
-                if((*it).segment==seg2)
+                if((int)(*it).segment==seg2)
                     (*it).segment=seg1;
             }
         randomizeColors(segmentIndices, colorToSeg);        
@@ -401,7 +422,7 @@ main(int argc, char** argv) {
 
 
     // read from file
-    if (pcl::io::loadPCDFile(argv[1], cloud_blob_orig) == -1) {
+    if ( pcl::io::loadPCDFile<PointT > (argv[1], cloud_orig) == -1) {
         ROS_ERROR("Couldn't read file ");
         return (-1);
     }
@@ -409,8 +430,8 @@ main(int argc, char** argv) {
 
 
     // Convert to the templated message type
-    pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
-    pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
+  //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
+   // pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
 
 
 
@@ -420,11 +441,12 @@ main(int argc, char** argv) {
     
 
 
-    color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_orig));
+ //   color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_orig));
 
-    viewer.addPointCloud(*orig_cloud_ptr, color_handler_orig, "orig");
+  //  viewer.addPointCloud(*orig_cloud_ptr, color_handler_orig, "orig");
 
 
+    
     srv = new dynamic_reconfigure::Server < cfg3d::labelerConfig > (global_mutex);
     dynamic_reconfigure::Server < cfg3d::labelerConfig >::CallbackType f = boost::bind(&reconfig, _1, _2);
 
@@ -441,6 +463,7 @@ main(int argc, char** argv) {
             conf.exit = false;
             srv->updateConfig(conf);
             //savePCDAndLabels ();
+            
             break;
         }
         if (doUpdate) {

@@ -466,9 +466,9 @@ Eigen::Vector3f getPoint(PointET p)
           Eigen::Vector3f pc=getPoint(cloud.points.at(seed_queue[sq_idx]));
           Eigen::Vector3f dir=(pc-origin);
                   
-          cout<<"direction:"<<dir<<endl<<"dirnorm"<<dir.norm()<<endl;
-          float rad=2*tolerance*dir.norm();
-          cout<<"rad:"<<rad<<endl;
+          //cout<<"direction:"<<dir<<endl<<"dirnorm"<<dir.norm()<<endl;
+          float rad=sqr(dir.norm())*0.0075+tolerance;
+          //cout<<"rad:"<<rad<<endl;
         // Search for sq_idx
         if (!tree->radiusSearch (seed_queue[sq_idx],rad , nn_indices, nn_distances))
         {
@@ -485,8 +485,9 @@ Eigen::Vector3f getPoint(PointET p)
           Eigen::Vector3f nbrDir=pn-pc;
           nbrDir.normalize();
           
-          double threshold=tolerance*fabs(dir.dot(nbrDir))+0.1*tolerance;
-          if(nn_distances[j]>threshold)
+          double threshold=fabs(dir.dot(nbrDir))*dir.norm()*0.0075+tolerance;
+          
+          if(nn_distances[j]>threshold*threshold)
               continue;
 
           
@@ -549,7 +550,7 @@ int main(int argc, char** argv)
         pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
         pcl::PointCloud<PointInT> cloud;
         cloud.points.reserve(cloud_temp.size());
-        
+        cloud.sensor_origin_=cloud_temp.sensor_origin_;
         //remove Nans
     for (size_t i = 0; i < cloud_temp.size(); i++)
     {
@@ -563,7 +564,7 @@ int main(int argc, char** argv)
 
 
     int number_neighbours = 50;
-    float radius =  0.025;
+    float radius =  0.05;
     float angle = 0.52;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;

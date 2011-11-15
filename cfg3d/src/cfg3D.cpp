@@ -1431,9 +1431,6 @@ public:
 }; 
 
    
-double sqr(double d) {
-    return d*d;
-}
 
 class Plane : public NonTerminal {
 protected:
