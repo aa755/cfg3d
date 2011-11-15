@@ -481,14 +481,6 @@ Eigen::Vector3f getPoint(PointET p)
           if (processed[nn_indices[j]])                         // Has this point been processed before ?
             continue;
 
-          Eigen::Vector3f pn=getPoint(cloud.points[nn_indices[j]]);
-          Eigen::Vector3f nbrDir=pn-pc;
-          nbrDir.normalize();
-          
-          double threshold=fabs(dir.dot(nbrDir))*dir.norm()*0.0075+tolerance;
-          
-          if(nn_distances[j]>threshold*threshold)
-              continue;
 
           
          // processed[nn_indices[j]] = true;
@@ -563,8 +555,8 @@ int main(int argc, char** argv)
         pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
 
 
-    int number_neighbours = 50;
-    float radius =  0.05;
+    int number_neighbours = 200;
+    float radius =  0.04;
     float angle = 0.52;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;

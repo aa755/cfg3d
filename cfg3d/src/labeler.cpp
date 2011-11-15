@@ -357,6 +357,23 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
         conf.randomize = false;
     }
 
+    if (conf.add_new_label)
+    {
+        randomizeColors(segmentIndices, colorToSeg);
+        conf.add_new_label = false;
+
+        for(unsigned int j=0;j<labels.size();j++)
+            {
+                if(conf.new_label.compare(labels.at(j))==0)
+                {
+                    conf.message="new label already exists!";
+                    doUpdate=true;
+                    break;
+                }
+            }
+        labels.push_back(conf.new_label);
+    }
+
     float charCount = 0.4;
     for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
     {
@@ -400,7 +417,8 @@ main(int argc, char** argv) {
 
     std::ifstream labelFile;
     std::string line;
-    labelFile.open(argv[2]);
+    char *labelFileC=argv[2];
+    labelFile.open(labelFileC);
 
             labels.clear();
             labels.push_back("n");
@@ -419,6 +437,7 @@ main(int argc, char** argv) {
         exit(-1);
     }
 
+            labelFile.close();
 
 
     // read from file
@@ -452,8 +471,15 @@ main(int argc, char** argv) {
 
 
     srv->setCallback(f);
-    conf.exit = false;
-
+    conf.message="all is well";
+    conf.accept_labels=false;
+    conf.add_new_label=false;
+    conf.exit=false;
+    conf.merge=false;
+    conf.merge_preview=false;
+    conf.randomize=false;
+    conf.show_labels=false;
+    
     bool isDone = false;
     //ROS_INFO ("Press q to quit.");
     while (!isDone) {
@@ -462,7 +488,18 @@ main(int argc, char** argv) {
         if (conf.exit) {
             conf.exit = false;
             srv->updateConfig(conf);
+            
             //savePCDAndLabels ();
+            ofstream labelFileO;
+            labelFileO.open(labelFileC);
+            for(int i=0;i<labels.size();i++)
+            {
+                labelFileO<<labels.at(i)<<endl;
+            }
+            labelFileO.close();
+           pcl::io::savePCDFile<PointT>("merged_"+std::string(argv[1]), cloud_orig,true);
+           
+           //write map
             
             break;
         }
