@@ -57,7 +57,7 @@
 #include "pcl/kdtree/kdtree.h"
 #include "pcl/kdtree/tree_types.h"
 #include <pcl/features/normal_3d.h>
-
+#include "utils.h"
 #include "pcl/io/pcd_io.h"
 #include "point_types.h"
 
@@ -211,6 +211,7 @@ vector <string> getTokens(std::string str)
         }
 	return out;
 }
+
         ColorRGB *labelColors[NUM_CLASSES_TO_SHOW];
     std::vector<int> segmentIndices;
     vector<int> colorToSeg;
@@ -326,6 +327,8 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if (conf.merge_preview)
     {
+        conf.merge_preview=false;
+        doUpdate=true;
             *selLabels[0] = conf.merge1;
             *selLabels[1] = conf.merge2;
             colorToSeg[0] = boost::lexical_cast<int>(conf.merge1);
@@ -335,6 +338,8 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if(conf.merge)
     {
+        conf.merge=false;
+        doUpdate=true;
             int seg1 = boost::lexical_cast<int>(conf.merge1);
             int seg2 = boost::lexical_cast<int>(conf.merge2);
             for(vector<int>::iterator it=segmentIndices.begin();it!=segmentIndices.end();it++)
@@ -355,12 +360,14 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
     {
         randomizeColors(segmentIndices, colorToSeg);
         conf.randomize = false;
+        doUpdate=true;
     }
 
     if (conf.add_new_label)
     {
         randomizeColors(segmentIndices, colorToSeg);
         conf.add_new_label = false;
+        doUpdate=true;
 
         for(unsigned int j=0;j<labels.size();j++)
             {
@@ -397,10 +404,10 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 int
 main(int argc, char** argv) {
 
-    ros::init(argc, argv, "labelviewer");
-    if(argc!=3)
+    ros::init(argc, argv, "labeler");
+    if(argc!=3 && argc!=4)
     {
-        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <labelsFile>"<<endl;
+        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <labelsFile> [segLabelMap]"<<endl;
         exit(-1);
     }
         labelColors[0]= new ColorRGB(1,0,0);
@@ -415,17 +422,17 @@ main(int argc, char** argv) {
         labelColors[9]= new ColorRGB(0.5,0,0.5);
 
 
-    std::ifstream labelFile;
+    std::ifstream fileI;
     std::string line;
     char *labelFileC=argv[2];
-    labelFile.open(labelFileC);
+    fileI.open(labelFileC);
 
             labels.clear();
             labels.push_back("n");
-    if (labelFile.is_open()) {
+    if (fileI.is_open()) {
         int count = 1;
-        while (labelFile.good()) {
-            getline(labelFile, line); //each line is a label
+        while (fileI.good()) {
+            getline(fileI, line); //each line is a label
             if (line.size() == 0)
                 break;
             cout << "adding label " << line << " with value:" << count << endl;
@@ -437,7 +444,33 @@ main(int argc, char** argv) {
         exit(-1);
     }
 
-            labelFile.close();
+    fileI.close();
+
+    if (argc == 4)
+    {
+        fileI.open(argv[3]);
+        if (fileI.is_open())
+        {
+            while (fileI.good())
+            {
+                getline(fileI, line); //each line is a label
+                if (line.size() == 0)
+                    break;
+
+                vector<int> nums;
+                getTokens(line, nums);
+                label_mapping_orig[nums.at(0)] = nums.at(1);
+
+            }
+        }
+        else
+        {
+            cout << "could not open the segLabelMap file you specified .it is optional..exiting\n";
+            exit(-1);
+        }
+
+
+    }
 
 
     // read from file
@@ -490,17 +523,27 @@ main(int argc, char** argv) {
             srv->updateConfig(conf);
             
             //savePCDAndLabels ();
-            ofstream labelFileO;
-            labelFileO.open(labelFileC);
+            ofstream fileO;
+            fileO.open(labelFileC);
             for(int i=0;i<labels.size();i++)
             {
-                labelFileO<<labels.at(i)<<endl;
+                fileO<<labels.at(i)<<endl;
             }
-            labelFileO.close();
-           pcl::io::savePCDFile<PointT>("merged_"+std::string(argv[1]), cloud_orig,true);
-           
-           //write map
+            fileO.close();
             
+            string pcdFile(argv[1]);
+            string pcdFileName=pcdFile.substr(pcdFile.length()-4);
+            
+           pcl::io::savePCDFile<PointT>(pcdFileName+"_merged.pcd" , cloud_orig,true);
+           
+            fileO.open((pcdFileName+"_labelmap.txt").data());
+           map<int,int>::iterator it;
+           for(it=label_mapping_orig.begin();it!=label_mapping_orig.end();it++)
+           {
+               cout<<it->first<<","<<it->second<<endl;
+           }
+           fileO.close();
+           
             break;
         }
         if (doUpdate) {
