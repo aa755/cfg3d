@@ -116,7 +116,7 @@ void get_sorted_indices(pcl::PointCloud<PointT> &incloud, std::vector<int> &segm
     {
         segs.insert(incloud.points.at(i).segment);
     }
-
+    segs.erase(0);
     segmentindices.insert(segmentindices.begin(),segs.begin(),segs.end());
 }
 
@@ -234,6 +234,34 @@ vector <string> getTokens(std::string str)
         
     }
     
+    void randomizeColors(vector<int> & segmentIndices, vector<int> & color2Seg , int label)
+    {
+        color2Seg.resize(NUM_CLASSES_TO_SHOW);
+        vector<int> temp;
+
+           map<int,int>::iterator it;
+           for(it=label_mapping_orig.begin();it!=label_mapping_orig.end();it++)
+           {
+               if(it->second==label)
+                   temp.push_back(it->first);
+               
+           }
+        
+        int randIndex;
+        for(int i=0;i<NUM_CLASSES_TO_SHOW;i++)
+        {
+            if(temp.empty())
+            {
+                color2Seg[i]=-1; // no segment
+                continue;
+            }
+            randIndex=rand() % temp.size();
+            color2Seg[i]=temp.at(randIndex);
+            temp.erase(temp.begin()+randIndex);
+        }
+        
+    }
+    
     void sizeSortColors(vector<int> & segmentIndices, vector<int> & color2Seg )
     {
         color2Seg.resize(NUM_CLASSES_TO_SHOW);
@@ -327,7 +355,6 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
     if (conf.merge_preview)
     {
-        conf.merge_preview=false;
         doUpdate=true;
             *selLabels[0] = conf.merge1;
             *selLabels[1] = conf.merge2;
@@ -362,6 +389,26 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
         conf.randomize = false;
         doUpdate=true;
     }
+    
+    if (conf.showOnlyLabel)
+    {
+        conf.showOnlyLabel = false;
+        int index=-1;
+        for(unsigned int j=0;j<labels.size();j++)
+            {
+                if(conf.label.compare(labels.at(j))==0)
+                {
+                    index=j;
+                }
+            }
+        
+        if(index!=-1)
+            randomizeColors(segmentIndices, colorToSeg,index);
+        else
+            conf.message="no segment has that label";
+        
+        doUpdate=true;
+    }
 
     if (conf.add_new_label)
     {
@@ -371,14 +418,14 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
 
         for(unsigned int j=0;j<labels.size();j++)
             {
-                if(conf.new_label.compare(labels.at(j))==0)
+                if(conf.label.compare(labels.at(j))==0)
                 {
                     conf.message="new label already exists!";
                     doUpdate=true;
                     break;
                 }
             }
-        labels.push_back(conf.new_label);
+        labels.push_back(conf.label);
     }
 
     float charCount = 0.4;
@@ -532,7 +579,9 @@ main(int argc, char** argv) {
             fileO.close();
             
             string pcdFile(argv[1]);
-            string pcdFileName=pcdFile.substr(pcdFile.length()-4);
+            string pcdFileName=pcdFile.substr(0,pcdFile.length()-4);
+            cout<<pcdFileName<<endl;
+            cout<<pcdFile<<endl;
             
            pcl::io::savePCDFile<PointT>(pcdFileName+"_merged.pcd" , cloud_orig,true);
            
@@ -540,10 +589,13 @@ main(int argc, char** argv) {
            map<int,int>::iterator it;
            for(it=label_mapping_orig.begin();it!=label_mapping_orig.end();it++)
            {
-               cout<<it->first<<","<<it->second<<endl;
+               if(it->second==0)
+                   continue;
+               
+               fileO<<it->first<<","<<it->second<<endl;
            }
            fileO.close();
-           
+           cout<<"done saving"<<endl;
             break;
         }
         if (doUpdate) {
