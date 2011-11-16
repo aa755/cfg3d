@@ -334,6 +334,9 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
         string message="notFound:";
         for(int i=0;i<NUM_CLASSES_TO_SHOW;i++)
         {
+            if(colorToSeg[i]==-1)
+                continue;
+            
             bool found=false;
             for(unsigned int j=0;j<labels.size();j++)
             {
@@ -388,6 +391,11 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
         randomizeColors(segmentIndices, colorToSeg);
         conf.randomize = false;
         doUpdate=true;
+
+        for (size_t color = 0; color < NUM_CLASSES_TO_SHOW; color++)
+        {
+            *selLabels[color] = boost::lexical_cast<std::string > (colorToSeg.at(color));
+        }
     }
     
     if (conf.showOnlyLabel)
@@ -572,7 +580,7 @@ main(int argc, char** argv) {
             //savePCDAndLabels ();
             ofstream fileO;
             fileO.open(labelFileC);
-            for(int i=0;i<labels.size();i++)
+            for(int i=1;i<labels.size();i++) // ignore the 1st one "n"
             {
                 fileO<<labels.at(i)<<endl;
             }
