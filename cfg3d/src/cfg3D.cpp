@@ -2576,6 +2576,29 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
+/**
+ * New set of rules.
+ */
+class Scene_Planes : public Rule {
+};
+
+class Planes_Plane : public Rule {
+};
+
+class Planes_PlanesPlane : public Rule {
+};
+
+class Plane_Seg : public Rule {
+};
+
+/**
+ * Adding new set of rules. 
+ * @param rules
+ */
+void appendGeneralRuleInstances(vector<RulePtr> & rules) {
+    rules.push_back(RulePtr());
+}
+
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
