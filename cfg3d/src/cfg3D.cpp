@@ -377,7 +377,6 @@ public:
     }
 };
 
-//typedef priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> SymbolPriorityQueue;
 /**
  * also supports hashing
  */
@@ -1488,7 +1487,14 @@ public:
         return fabs(planeParams[2]);
     }
 
-    void computePlaneParams()
+    double planeDeviation(Plane& plane) {
+        Eigen::Vector4f otherPlaneParam = plane.getPlaneParams();
+        return fabs(planeParams[0] - otherPlaneParam[0]) + 
+                fabs(planeParams[1] - otherPlaneParam[1]) +
+                fabs(planeParams[2] - otherPlaneParam[2]);
+    }
+    
+    void computePlaneParamsAndSetCost()
     {
         if (planeParamsComputed)
             return;
@@ -1518,6 +1524,35 @@ public:
 
         double sumSquaredDistances = eigen_values(0);
         setAbsoluteCost(sumSquaredDistances);
+    }
+    
+    double returnPlaneParams()
+    {
+        computeFeatures();
+        Eigen::Vector4f xyz_centroid_;
+
+        for (int i = 0; i < 3; i++)
+            xyz_centroid_(i) = centroid.data[i];
+        xyz_centroid_(3) = 1;
+
+        Eigen::Matrix3d covMat; //
+        computeCovarianceMat(covMat);
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> ei_symm(covMat);
+        EIGEN_ALIGN16 Eigen::Vector3d eigen_values = ei_symm.eigenvalues();
+        EIGEN_ALIGN16 Eigen::Matrix3d eigen_vectors = ei_symm.eigenvectors();
+
+        planeParams[0] = eigen_vectors(0, 0);
+        planeParams[1] = eigen_vectors(1, 0);
+        planeParams[2] = eigen_vectors(2, 0);
+        planeParams[3] = 0;
+
+        // Hessian form (D = nc . p_plane (centroid here) + p)
+        planeParams[3] = -1 * planeParams.dot(xyz_centroid_);
+        planeParamsComputed = true;
+
+        double sumSquaredDistances = eigen_values(0);
+        return sumSquaredDistances;
     }
     
     Eigen::Vector3d getPlaneNormal() {
@@ -1558,11 +1593,31 @@ public:
     }   
 };
 
+/**
+ * Defining new Planes NonTerminal.
+ */
+class Planes : public NonTerminal{
+public:
+    vector<Plane*> planes;
+    void addPlane(Plane& plane) {
+        planes.push_back(&plane);
+    }
+    
+    vector<Plane*> getPlanes() {
+        return planes;
+    }
+};
+
 bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
-// Checks if x is on top of y
+/**
+ * Checks if x is on top of y.
+ * @param x
+ * @param y
+ * @return 
+ */ 
 bool isOnTop(Symbol* x, Symbol* y) {
     if (x->getMinZ() - y->getMaxZ() < -0.1) 
     {
@@ -1575,7 +1630,12 @@ bool isOnTop(Symbol* x, Symbol* y) {
     }
 }
 
-// Checks if x is above value
+/**
+ * Checks if x is above value.
+ * @param x
+ * @param value
+ * @return 
+ */ 
 bool isOnTop(Symbol* x, float value) {
     if (x->getMinZ() - value < -0.1) 
     {
@@ -1772,13 +1832,9 @@ class RScene : public Rule {
         {
             combineAndPushGivenTypes<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
         }
-            
-        
     }
 
 public:
-    
-    
     template<typename RHS_Type1, typename RHS_Type2>
     NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
@@ -1794,8 +1850,6 @@ public:
         return LHS;
     }
     
-    
-    
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
     {
          combineAndPushGeneric<SceneRHS_Type1,SceneRHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
@@ -1803,9 +1857,75 @@ public:
 
 };
 
+/**
+ * 
+ * @param extractedSym
+ * @param pqueue
+ * @param terminals
+ * @param iterationNo
+ */
+//template<typename SceneRHS_Type>
+//class RScene : public Rule {
+//    
+//    public:
+//    template<typename RHS_Type>
+//    NonTerminal* applyRule(RHS_Type* RHS_unordered)
+//    {
+//        Scene* LHS = new Scene();
+//        LHS->addChild(RHS_unordered);
+//        LHS->setAdditionalCost(0);
+//        LHS->computeSpannedTerminals();
+//        cout<<"S->fc\n";        
+//        cerr<<"S->fc: cost "<<LHS->getCost()<<"\n";    
+//        return LHS;
+//    }
+//    
+//    template<typename TypeExtracted>
+//    void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+//        TypeExtracted * RHS_extracted = dynamic_cast<TypeExtracted *> (extractedSym);
+//        addToPqueueIfNotDuplicate(applyRule<TypeExtracted,>(RHS_extracted), pqueue);
+//    }
+//
+//    template<typename RHS_Type>
+//    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+//        combineAndPushGivenTypes<RHS_Type>(extractedSym,pqueue,terminals,iterationNo);
+//    }
+//    
+//     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+//    {
+//         combineAndPushGeneric<SceneRHS_Type>(extractedSym,pqueue,terminals,iterationNo);
+//    }
+//
+//};
+
+
 class Leg : public NonTerminal
 {
-    
+public:
+    double computeLegLegCost(Leg* leg2) {
+        Vector3d leg1PlaneNormal = dynamic_cast<Plane*>(children.at(0))->getPlaneNormal();
+        Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
+        Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
+        double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
+        if (cosine <= .1) {
+            return 0;
+        } else if (.1 < cosine && cosine <= .8) {
+            return HIGH_COST;
+        } else {
+            pcl::PointXYZ leg1Centroid;
+            getCentroid(leg1Centroid);
+            pcl::PointXYZ leg2Centroid;
+            leg2Plane->getCentroid(leg2Centroid);
+            Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
+                    leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
+            double coplanarity = fabs((vectorBetweenCentroids).dot(leg1PlaneNormal));
+            if (coplanarity > .2) {
+                return 0.01/coplanarity;
+            } else {
+                return HIGH_COST;
+            }
+        }
+    }
 };
 
 class Table : public NonTerminal {
@@ -2070,7 +2190,7 @@ public:
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
-        LHS->computePlaneParams();
+        LHS->computePlaneParamsAndSetCost();
         return LHS;
     }
 
@@ -2344,7 +2464,7 @@ template<>
 template<>
     bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
-        output->computePlaneParams();
+        output->computePlaneParamsAndSetCost();
         return true;
     }
 
@@ -2506,31 +2626,6 @@ template<>
         return true;
     }
 
-double computeLegLegCost(Leg* leg1, Leg* leg2) {
-    Plane* leg1Plane = dynamic_cast<Plane*>(leg1->children.at(0));
-    Vector3d leg1PlaneNormal = leg1Plane->getPlaneNormal();
-    Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
-    Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
-    double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
-    if (cosine <= .1) {
-        return 0;
-    } else if (.1 < cosine && cosine <= .8) {
-        return HIGH_COST;
-    } else {
-        pcl::PointXYZ leg1Centroid;
-        leg1Plane->getCentroid(leg1Centroid);
-        pcl::PointXYZ leg2Centroid;
-        leg2Plane->getCentroid(leg2Centroid);
-        Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
-                leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
-        double coplanarity = fabs((vectorBetweenCentroids).dot(leg1PlaneNormal));
-        if (coplanarity > .2) {
-            return 0.01/coplanarity;
-        } else {
-            return HIGH_COST;
-        }
-    }
-}
 
 template<>
     bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2, vector<Terminal*> & terminals)
@@ -2541,7 +2636,8 @@ template<>
         vector<Leg*>::iterator it;
         double costCount = 0;
         for (it = legs.begin(); it != legs.end(); it++) {
-            costCount = costCount + computeLegLegCost(*it, input2);
+                costCount = costCount + (*it)->computeLegLegCost(input2);
+//            costCount = costCount + computeLegLegCost(*it, input2);
         }
         output->setAdditionalCost(costCount);
         return true;
@@ -2585,7 +2681,6 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
     
-    
     // computer
      rules.push_back(RulePtr(new SingleRule<Computer, PlaneTriplet>()));
 //    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
@@ -2602,6 +2697,61 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
+}
+
+/**
+ * Templated rules for new parsing rules.
+ * @param output
+ * @param input1
+ * @param input2
+ * @param terminals
+ * @return 
+ */
+template<>
+    bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
+        vector<Plane*> planes = input1->getPlanes();
+        vector<Plane*>::iterator it;
+        double deviationSum = 0;
+        for (it = planes.begin(); it != planes.end(); it++) {
+            deviationSum = deviationSum + input2->planeDeviation((**it));
+        }
+        // Should we add some threshold here?
+        output->setAdditionalCost(deviationSum);
+        return true;
+    }
+
+/**
+ * No cost for creating a Planes with just one Plane
+ * @param output
+ * @param input
+ * @param terminals
+ * @return 
+ */
+template<>
+    bool SingleRule<Planes, Plane> :: setCost(Planes* output, Plane* input, vector<Terminal*> & terminals) {
+        output->setAbsoluteCost(0);
+        return true;
+    }
+
+//template<>
+//    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane* output, Plane* input1, Terminal* input2, vector<Terminal*> & terminals) {
+//        return false;
+//    }
+
+
+/**
+ * Adding new set of rules. 
+ * @param rules
+ */
+void appendGeneralRuleInstances(vector<RulePtr> & rules) {
+//    
+    rules.push_back(RulePtr(new RScene<Planes, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Planes, Planes, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Planes, Plane>()));
+//
+    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+//
+    rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
 }
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
