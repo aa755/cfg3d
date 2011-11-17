@@ -375,7 +375,6 @@ public:
     }
 };
 
-//typedef priority_queue<Symbol *,vector<Symbol *>,SymbolComparison> SymbolPriorityQueue;
 /**
  * also supports hashing
  */
@@ -1530,11 +1529,21 @@ public:
     }   
 };
 
+/**
+ * Defining new Planes NonTerminal.
+ */
+class Planes : public NonTerminal{};
+
 bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
-// Checks if x is on top of y
+/**
+ * Checks if x is on top of y.
+ * @param x
+ * @param y
+ * @return 
+ */ 
 bool isOnTop(Symbol* x, Symbol* y) {
     if (x->getMinZ() - y->getMaxZ() < -0.1) 
     {
@@ -1547,7 +1556,12 @@ bool isOnTop(Symbol* x, Symbol* y) {
     }
 }
 
-// Checks if x is above value
+/**
+ * Checks if x is above value.
+ * @param x
+ * @param value
+ * @return 
+ */ 
 bool isOnTop(Symbol* x, float value) {
     if (x->getMinZ() - value < -0.1) 
     {
@@ -1744,13 +1758,9 @@ class RScene : public Rule {
         {
             combineAndPushGivenTypes<RHS_Type2,RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);            
         }
-            
-        
     }
 
 public:
-    
-    
     template<typename RHS_Type1, typename RHS_Type2>
     NonTerminal* applyRule(RHS_Type1 * RHS_unordered1, RHS_Type2 * RHS_unordered2)
     {
@@ -1766,14 +1776,54 @@ public:
         return LHS;
     }
     
-    
-    
      void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
     {
          combineAndPushGeneric<SceneRHS_Type1,SceneRHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
     }
 
 };
+
+/**
+ * 
+ * @param extractedSym
+ * @param pqueue
+ * @param terminals
+ * @param iterationNo
+ */
+//template<typename SceneRHS_Type>
+//class RScene : public Rule {
+//    
+//    public:
+//    template<typename RHS_Type>
+//    NonTerminal* applyRule(RHS_Type* RHS_unordered)
+//    {
+//        Scene* LHS = new Scene();
+//        LHS->addChild(RHS_unordered);
+//        LHS->setAdditionalCost(0);
+//        LHS->computeSpannedTerminals();
+//        cout<<"S->fc\n";        
+//        cerr<<"S->fc: cost "<<LHS->getCost()<<"\n";    
+//        return LHS;
+//    }
+//    
+//    template<typename TypeExtracted>
+//    void combineAndPushGivenTypes(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+//        TypeExtracted * RHS_extracted = dynamic_cast<TypeExtracted *> (extractedSym);
+//        addToPqueueIfNotDuplicate(applyRule<TypeExtracted,>(RHS_extracted), pqueue);
+//    }
+//
+//    template<typename RHS_Type>
+//    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */) {
+//        combineAndPushGivenTypes<RHS_Type>(extractedSym,pqueue,terminals,iterationNo);
+//    }
+//    
+//     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals , long iterationNo /* = 0 */)
+//    {
+//         combineAndPushGeneric<SceneRHS_Type>(extractedSym,pqueue,terminals,iterationNo);
+//    }
+//
+//};
+
 
 class Leg : public NonTerminal
 {
@@ -2576,27 +2626,32 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
-/**
- * New set of rules.
- */
-class Scene_Planes : public Rule {
-};
+template<>
+    bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
+        return false;
+    }
 
-class Planes_Plane : public Rule {
-};
+template<>
+    bool SingleRule<Planes, Plane> :: setCost(Planes* output, Plane* input, vector<Terminal*> & terminals) {
+        return false;
+    }
 
-class Planes_PlanesPlane : public Rule {
-};
+template<>
+    bool DoubleRule<Plane, Plane, Terminal> :: setCost(Plane* output, Plane* input1, Terminal* input2, vector<Terminal*> & terminals) {
+        return false;
+    }
 
-class Plane_Seg : public Rule {
-};
 
 /**
  * Adding new set of rules. 
  * @param rules
  */
 void appendGeneralRuleInstances(vector<RulePtr> & rules) {
-    rules.push_back(RulePtr());
+    rules.push_back(RulePtr(new RScene<Planes, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Planes, Planes, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Planes, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<Plane, Plane, Terminal>()));
+    rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
 }
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
