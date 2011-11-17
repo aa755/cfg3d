@@ -150,6 +150,8 @@ protected:
 
     }
 public:
+    virtual void labelSubtree()=0;
+    virtual void labelSubtree(int label)=0;
 
     bool isATerminal();
 
@@ -578,6 +580,15 @@ public:
         return 1;
     }
 
+    virtual void labelSubtree()
+    {
+    }
+    
+    virtual void labelSubtree(int label)
+    {
+        //update evaluation counts
+    }
+    
 };
 
 class HallucinatedTerminal : public Terminal {
@@ -713,6 +724,23 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    
+    virtual void labelSubtree()
+    {
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            children.at(i)->labelSubtree();
+        }        
+    }
+    
+    virtual void labelSubtree(int label)
+    {
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            children.at(i)->labelSubtree(label);
+        }                
+    }
+    
     vector<Symbol*> children;
     friend class Terminal;
     
