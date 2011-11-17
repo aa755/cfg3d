@@ -2683,19 +2683,22 @@ template<>
     bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
         vector<Plane*> planes = input1->getPlanes();
         vector<Plane*>::iterator it;
-        double maxDeviation = 0;
-        double currentDeviation = 0;;
+        double deviationSum = 0;
         for (it = planes.begin(); it != planes.end(); it++) {
-            currentDeviation = input2->planeDeviation((**it));
-            if (currentDeviation > maxDeviation) {
-                maxDeviation = currentDeviation;
-            }
+            deviationSum = deviationSum + input2->planeDeviation((**it));
         }
         // Should we add some threshold here?
-        output->setAdditionalCost(maxDeviation);
+        output->setAdditionalCost(deviationSum);
         return true;
     }
 
+/**
+ * No cost for creating a Planes with just one Plane
+ * @param output
+ * @param input
+ * @param terminals
+ * @return 
+ */
 template<>
     bool SingleRule<Planes, Plane> :: setCost(Planes* output, Plane* input, vector<Terminal*> & terminals) {
         output->setAbsoluteCost(0);
