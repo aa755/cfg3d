@@ -1873,7 +1873,31 @@ public:
 
 class Leg : public NonTerminal
 {
-    
+public:
+    double computeLegLegCost(Leg* leg2) {
+        Vector3d leg1PlaneNormal = dynamic_cast<Plane*>(children.at(0))->getPlaneNormal();
+        Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
+        Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
+        double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
+        if (cosine <= .1) {
+            return 0;
+        } else if (.1 < cosine && cosine <= .8) {
+            return HIGH_COST;
+        } else {
+            pcl::PointXYZ leg1Centroid;
+            getCentroid(leg1Centroid);
+            pcl::PointXYZ leg2Centroid;
+            leg2Plane->getCentroid(leg2Centroid);
+            Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
+                    leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
+            double coplanarity = fabs((vectorBetweenCentroids).dot(leg1PlaneNormal));
+            if (coplanarity > .2) {
+                return 0.01/coplanarity;
+            } else {
+                return HIGH_COST;
+            }
+        }
+    }
 };
 
 class Table : public NonTerminal {
@@ -2574,31 +2598,6 @@ template<>
         return true;
     }
 
-double computeLegLegCost(Leg* leg1, Leg* leg2) {
-    Plane* leg1Plane = dynamic_cast<Plane*>(leg1->children.at(0));
-    Vector3d leg1PlaneNormal = leg1Plane->getPlaneNormal();
-    Plane* leg2Plane = dynamic_cast<Plane*>(leg2->children.at(0));
-    Vector3d leg2PlaneNormal = leg2Plane->getPlaneNormal();
-    double cosine = fabs(leg1PlaneNormal.dot(leg2PlaneNormal));
-    if (cosine <= .1) {
-        return 0;
-    } else if (.1 < cosine && cosine <= .8) {
-        return HIGH_COST;
-    } else {
-        pcl::PointXYZ leg1Centroid;
-        leg1Plane->getCentroid(leg1Centroid);
-        pcl::PointXYZ leg2Centroid;
-        leg2Plane->getCentroid(leg2Centroid);
-        Vector3d vectorBetweenCentroids(leg1Centroid.x - leg2Centroid.x, 
-                leg1Centroid.y - leg2Centroid.y, leg1Centroid.z - leg2Centroid.z);
-        double coplanarity = fabs((vectorBetweenCentroids).dot(leg1PlaneNormal));
-        if (coplanarity > .2) {
-            return 0.01/coplanarity;
-        } else {
-            return HIGH_COST;
-        }
-    }
-}
 
 template<>
     bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2, vector<Terminal*> & terminals)
@@ -2609,7 +2608,8 @@ template<>
         vector<Leg*>::iterator it;
         double costCount = 0;
         for (it = legs.begin(); it != legs.end(); it++) {
-            costCount = costCount + computeLegLegCost(*it, input2);
+                costCount = costCount + (*it)->computeLegLegCost(input2);
+//            costCount = costCount + computeLegLegCost(*it, input2);
         }
         output->setAdditionalCost(costCount);
         return true;
