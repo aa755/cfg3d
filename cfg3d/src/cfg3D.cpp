@@ -2683,12 +2683,16 @@ template<>
     bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
         vector<Plane*> planes = input1->getPlanes();
         vector<Plane*>::iterator it;
-        double deviationSum = 0;
+        double closenessSum = 0;
         for (it = planes.begin(); it != planes.end(); it++) {
-            deviationSum = deviationSum + input2->planeDeviation((**it));
+            double closeness = 1/(input2->planeDeviation((**it)));
+            if (closeness > 10) {
+                return false;
+            }
+            closenessSum = closenessSum + closeness;
         }
         // Should we add some threshold here?
-        output->setAdditionalCost(deviationSum);
+        output->setAdditionalCost(closenessSum);
         return true;
     }
 
@@ -2701,7 +2705,7 @@ template<>
  */
 template<>
     bool SingleRule<Planes, Plane> :: setCost(Planes* output, Plane* input, vector<Terminal*> & terminals) {
-        output->setAbsoluteCost(0);
+        output->setAdditionalCost(0);
         return true;
     }
 
@@ -2728,8 +2732,8 @@ void appendGeneralRuleInstances(vector<RulePtr> & rules) {
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
-    appendRuleInstances(rules);
-
+//    appendRuleInstances(rules);
+    appendGeneralRuleInstances(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
