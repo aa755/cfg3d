@@ -1811,7 +1811,7 @@ class Boundary : public NonTerminal
     
 };
 
-class SceneGeneric : public NonTerminal
+class SceneGeneric : public Scene
 {
     
 };
@@ -2479,7 +2479,7 @@ template<>
         return true;
     }
 
-template<>
+template<> 
     bool DoubleRule<Boundary, FloorSurface, Wall> :: setCost(Boundary * output, FloorSurface * input1, Wall * input2, vector<Terminal*> & terminals)
     {
  //       cerr<<"correct cost"; // needs specialization
@@ -2488,7 +2488,7 @@ template<>
     }
 
 template<>
-    bool DoubleRule<SceneGeneric, FloorSurface, Wall> :: setCost(SceneGeneric * output, FloorSurface * input1, Wall * input2, vector<Terminal*> & terminals)
+    bool DoubleRule<SceneGeneric, Floor, Wall> :: setCost(SceneGeneric * output, Floor * input1, Wall * input2, vector<Terminal*> & terminals)
     {
  //       cerr<<"correct cost"; // needs specialization
         int numSpannedPoints=input1->getNumPoints()+input2->getNumPoints();
@@ -2714,7 +2714,7 @@ template<>
     }
 
 template<>
-    bool DoubleRule<TableTop, TableTop, Computer> :: setCost(TableTop* output, TableTop* input1, Computer* input2, vector<Terminal*> & terminals) {
+    bool DoubleRule<TableTop, TableTop, PlanePair> :: setCost(TableTop* output, TableTop* input1, PlanePair* input2, vector<Terminal*> & terminals) {
         if (isOnTop(input2, input1->GetEldestChild())) 
         {
             output->setAdditionalCost(0);
@@ -2785,8 +2785,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
     
     // computer
-    rules.push_back(RulePtr(new SingleRule<Computer, PlanePair>()));
-//    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
+  //  rules.push_back(RulePtr(new SingleRule<Computer, PlanePair>()));
+  //  rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
@@ -2795,7 +2795,7 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
     // table
-    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Computer>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, PlanePair>()));
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Monitor>()));
     rules.push_back(RulePtr(new SingleRule<TableTop, TableTopSurface>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
