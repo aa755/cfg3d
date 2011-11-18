@@ -99,6 +99,7 @@ double infinity() {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+int NUMPointsToBeParsed;
 OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
@@ -679,7 +680,7 @@ protected:
         cv::convexHull(cv::Mat(unionHullUnion), rectConvexHull);
       
     }
-
+    
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
         ColorRGB avg(0,0,0);
@@ -1070,6 +1071,23 @@ void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<
         }
     }
 }
+
+class RecursiveNonTerminal : public NonTerminal
+{
+protected:
+    Symbol *eldestChild;
+public:
+    void SetEldestChild(Symbol* eldestChild)
+    {
+        this->eldestChild = eldestChild;
+    }
+
+    Symbol* GetEldestChild() const
+    {
+        return eldestChild;
+    }
+    
+};
 
 int NonTerminal::id_counter = 0;
 
@@ -1647,7 +1665,7 @@ bool isOnTop(Symbol* x, float value) {
     }
 }
 
-class Floor : public Plane {
+class FloorSurface : public Plane {
 public: 
     /**
      * The cost of considering a Plane as the Floor is simply the distance of the Plane
@@ -1793,6 +1811,11 @@ class Boundary : public NonTerminal
     
 };
 
+class SceneGeneric : public NonTerminal
+{
+    
+};
+
 class Wall : public NonTerminal
 {
     
@@ -1842,7 +1865,7 @@ public:
         LHS->addChild(RHS_unordered1);
         LHS->addChild(RHS_unordered2);
         LHS->setAdditionalCost(0);
-        LHS->computeSpannedTerminals();
+        LHS->computeSpannedTerminals();        
         cout<<"S->fc\n";        
         cerr<<"S->fc: cost "<<LHS->getCost()<<"\n";        
 //        cerr<<RHS_plane1->set_membership<<"\n";        
@@ -1929,6 +1952,9 @@ public:
 };
 
 class Table : public NonTerminal {
+};
+
+class Floor : public RecursiveNonTerminal {
 };
 
 class Legs: public NonTerminal {
@@ -2142,12 +2168,12 @@ private:
 
 class TableTopObjects : public NonTerminal{};
 
-class TableTop : public NonTerminal
+class TableTop : public RecursiveNonTerminal
 {
 public:
     TableTopSurface * getTableTopsurface()
     {
-        return dynamic_cast<TableTopSurface*>(children.at(0));
+        return dynamic_cast<TableTopSurface*>(GetEldestChild());
     }
     
      double computeCostOfAddingLegs(Legs *legs)
@@ -2454,13 +2480,28 @@ template<>
     }
 
 template<>
-    bool DoubleRule<Boundary, Floor, Wall> :: setCost(Boundary * output, Floor * input1, Wall * input2, vector<Terminal*> & terminals)
+    bool DoubleRule<Boundary, FloorSurface, Wall> :: setCost(Boundary * output, FloorSurface * input1, Wall * input2, vector<Terminal*> & terminals)
     {
  //       cerr<<"correct cost"; // needs specialization
         output->setAdditionalCost(0);
         return true;
     }
 
+template<>
+    bool DoubleRule<SceneGeneric, FloorSurface, Wall> :: setCost(SceneGeneric * output, FloorSurface * input1, Wall * input2, vector<Terminal*> & terminals)
+    {
+ //       cerr<<"correct cost"; // needs specialization
+        int numSpannedPoints=input1->getNumPoints()+input2->getNumPoints();
+        float coverage=((float)numSpannedPoints)/((float)NUMPointsToBeParsed);
+        if(coverage<0.75)
+            return false;
+        else
+        {
+                output->setAdditionalCost(NUMPointsToBeParsed-numSpannedPoints);
+                return true;
+        }
+    }
+    
 template<>
     bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
@@ -2510,6 +2551,29 @@ template<>
     }
 
 template<>
+    bool SingleRule<Floor, FloorSurface> :: setCost(Floor* output, FloorSurface* input, vector<Terminal*> & terminals)
+    {
+        output->SetEldestChild(input);
+        output->setAdditionalCost(0);
+        return true;
+    }
+
+template<>
+    bool DoubleRule<Floor, Floor, Table> :: setCost(Floor* output, Floor* input1, Table* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input2, input1->GetEldestChild())) 
+        {
+            output->setAdditionalCost(0);
+            output->SetEldestChild(input1->GetEldestChild());
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
+
+template<>
     bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
         if(additionalCost>(0.3*0.3)*input->getNumPoints() || ! input->isHorizontalEnough())
@@ -2522,7 +2586,7 @@ template<>
     }
 
 template<>
-    bool SingleRule<Floor, Plane> :: setCost(Floor * output, Plane* input, vector<Terminal*> & terminals) {
+    bool SingleRule<FloorSurface, Plane> :: setCost(FloorSurface * output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->getZSquaredSum();
         if(additionalCost>(0.2*0.2)*input->getNumPoints() || ! input->isHorizontalEnough() )
             return false;
@@ -2628,6 +2692,43 @@ template<>
 
 
 template<>
+    bool SingleRule<TableTop, TableTopSurface> :: setCost(TableTop* output, TableTopSurface* input, vector<Terminal*> & terminals)
+    {
+        output->setAdditionalCost(0);
+        output->SetEldestChild(input);
+        return true;
+    }
+
+template<>
+    bool DoubleRule<TableTop, TableTop, Monitor> :: setCost(TableTop* output, TableTop* input1, Monitor* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input2, input1->GetEldestChild())) 
+        {
+            output->setAdditionalCost(0);
+            output->SetEldestChild(input1->GetEldestChild());
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
+template<>
+    bool DoubleRule<TableTop, TableTop, Computer> :: setCost(TableTop* output, TableTop* input1, Computer* input2, vector<Terminal*> & terminals) {
+        if (isOnTop(input2, input1->GetEldestChild())) 
+        {
+            output->setAdditionalCost(0);
+            output->SetEldestChild(input1->GetEldestChild());
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
+
+template<>
     bool DoubleRule<Legs, Legs, Leg> :: setCost(Legs* output, Legs* input1, Leg* input2, vector<Terminal*> & terminals)
     {
         output->setLegs(input1->getLegs());
@@ -2668,21 +2769,23 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     // planes
     rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-    rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
+    //rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
     
     // boundary, wall, floor
-    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<FloorSurface, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
-    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
+//    rules.push_back(RulePtr(new DoubleRule<Boundary,Floor,Wall>()));
+    rules.push_back(RulePtr(new DoubleRule<SceneGeneric,Floor,Wall>()));
+    rules.push_back(RulePtr(new SingleRule<Floor,FloorSurface>()));
+    rules.push_back(RulePtr(new DoubleRule<Floor,Floor,Table>()));
 
     // table
-    rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Leg, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Legs,Leg>()));
     rules.push_back(RulePtr(new DoubleRule<Legs,Legs,Leg>()));
     
     // computer
-     rules.push_back(RulePtr(new SingleRule<Computer, PlaneTriplet>()));
+    rules.push_back(RulePtr(new SingleRule<Computer, PlanePair>()));
 //    rules.push_back(RulePtr(new DoubleRule<Computer, Plane, Plane>()));
     
     // monitor
@@ -2692,9 +2795,12 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
     // table
-    rules.push_back(RulePtr(new DoubleRule<TableTopObjects, Computer, Monitor>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Computer>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Monitor>()));
+    rules.push_back(RulePtr(new SingleRule<TableTop, TableTopSurface>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
-    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTopSurface, TableTopObjects>()));
+    
+    //need to fix this  all tables might not be neighbors
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
@@ -2772,6 +2878,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         pq.pushTerminal(temp);
     }
 
+    NUMPointsToBeParsed=0;
     for(unsigned int i=0;i<scene.size();i++)
     {
         if(rand()%10 != 1)
@@ -2779,7 +2886,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
         if(segIndex>0 && segIndex<=maxSegIndex)
+        {
             terminals.at(segIndex-1)->addPointIndex(i);
+            NUMPointsToBeParsed++;
+        }
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
@@ -2823,7 +2933,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
-        if (typeid (*min) == typeid (Scene)) {
+        if (typeid (*min) == typeid (SceneGeneric)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
