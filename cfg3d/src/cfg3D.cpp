@@ -2683,16 +2683,27 @@ template<>
     bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
         vector<Plane*> planes = input1->getPlanes();
         vector<Plane*>::iterator it;
-        double closenessSum = 0;
+        double maxCloseness = 0;
         for (it = planes.begin(); it != planes.end(); it++) {
             double closeness = 1/(input2->planeDeviation((**it)));
             if (closeness > 10) {
                 return false;
             }
-            closenessSum = closenessSum + closeness;
+            if (closeness > maxCloseness) {
+                maxCloseness = closeness;
+            }
         }
+        output->setAdditionalCost(maxCloseness);        
+//        double closenessSum = 0;
+//        for (it = planes.begin(); it != planes.end(); it++) {
+//            double closeness = 1/(input2->planeDeviation((**it)));
+//            if (closeness > 10) {
+//                return false;
+//            }
+//            closenessSum = closenessSum + closeness;
+//        }
         // Should we add some threshold here?
-        output->setAdditionalCost(closenessSum);
+//        output->setAdditionalCost(closenessSum);
         return true;
     }
 
