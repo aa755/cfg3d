@@ -1108,7 +1108,7 @@ public:
         for (int i = 0; i < Terminal::totalNumTerminals; i++) {
             if (sym->isNeighbor(i)) {
                 allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, eligibleNTs,iterationNo);
-            }
+            }  
         }
 
     }
@@ -1630,23 +1630,6 @@ bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
-/**
- * Checks if x is on top of y.
- * @param x
- * @param y
- * @return 
- */ 
-bool isOnTop(Symbol* x, Symbol* y) {
-    if (x->getMinZ() - y->getMaxZ() < -0.1) 
-    {
-       // cerr<<"ontop violated";
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
 
 /**
  * Checks if x is above value.
@@ -1656,6 +1639,33 @@ bool isOnTop(Symbol* x, Symbol* y) {
  */ 
 bool isOnTop(Symbol* x, float value) {
     if (x->getMinZ() - value < -0.1) 
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+/**
+ * Checks if x is on top of y.
+ * @param x
+ * @param y
+ * @return 
+ */ 
+bool isOnTop(Symbol* x, Symbol* y) {
+    return isOnTop(x,(float)y->getMaxZ());
+}
+
+/**
+ * Checks if x is above value.
+ * @param x
+ * @param value
+ * @return 
+ */ 
+bool isOnTop(float value, Symbol * x) {
+    if ( value -x->getMaxZ() < -0.1) 
     {
         return false;
     }
@@ -2527,19 +2537,18 @@ template<>
     bool SingleRule<Leg, Plane> :: setCost(Leg* output, Plane* input, vector<Terminal*> & terminals)
     {
     //cerr<<"called"<<fabs(input->getMaxZ() - TABLE_HEIGHT)<<","<<(input->getMaxZ())<<endl;
+        double maxZDiff=(TABLE_HEIGHT-input->getMaxZ());
+
+        if(isVerticalEnough(input) &&  isOnTop(TABLE_HEIGHT,input) && maxZDiff <0.20 ) // makes 75 degrees or less with vertical
+        {
         Vector4f planeParams = input->getPlaneParams();
         double normalZ=fabs(planeParams[2]);
-        double maxZDiff=fabs(input->getMaxZ() - TABLE_HEIGHT);
-
-        if(normalZ>.25 || maxZDiff >0.30)
-//        if( maxZDiff >0.2)
-            return false;
-        else 
-        {
-            output->setAdditionalCost(normalZ + maxZDiff);
+            output->setAdditionalCost(normalZ + fabs(maxZDiff));
 //            output->setAdditionalCost( maxZDiff);
             return true;
         }
+        else 
+            return false;
     }
 
 template<>
@@ -2792,12 +2801,12 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new SingleRule<Monitor, Plane>()));  
     
     // whole scene
-    rules.push_back(RulePtr(new RScene<Table,Boundary>()));
+    //rules.push_back(RulePtr(new RScene<Table,Boundary>()));
     
     // table
+    rules.push_back(RulePtr(new SingleRule<TableTop, TableTopSurface>()));
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, PlanePair>()));
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Monitor>()));
-    rules.push_back(RulePtr(new SingleRule<TableTop, TableTopSurface>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
     
     //need to fix this  all tables might not be neighbors
