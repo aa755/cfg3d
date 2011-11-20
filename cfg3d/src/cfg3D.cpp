@@ -1611,21 +1611,6 @@ public:
     }   
 };
 
-/**
- * Defining new Planes NonTerminal.
- */
-class Planes : public NonTerminal{
-public:
-    vector<Plane*> planes;
-    void addPlane(Plane& plane) {
-        planes.push_back(&plane);
-    }
-    
-    vector<Plane*> getPlanes() {
-        return planes;
-    }
-};
-
 bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
@@ -2844,67 +2829,9 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
-/**
- * Templated rules for new parsing rules.
- * @param output
- * @param input1
- * @param input2
- * @param terminals
- * @return 
- */
-template<>
-    bool DoubleRule<Planes, Planes, Plane> :: setCost(Planes* output, Planes* input1, Plane* input2, vector<Terminal*> & terminals) {
-//        vector<Plane*> planes = input1->getPlanes();
-//        vector<Plane*>::iterator it;
-//        double maxCloseness = 0;
-//        for (it = planes.begin(); it != planes.end(); it++) {
-//            double closeness = 1/(input2->planeDeviation((**it)));
-//            if (closeness > 10) {
-//                return false;
-//            }
-//            if (closeness > maxCloseness) {
-//                maxCloseness = closeness;
-//            }
-//            output->addPlane(**it);
-//        }
-        output->addPlane(*input2);
-        output->setAdditionalCost(1); 
-        return true;
-    }
-
-/**
- * No cost for creating a Planes with just one Plane
- * @param output
- * @param input
- * @param terminals
- * @return 
- */
-template<>
-    bool SingleRule<Planes, Plane> :: setCost(Planes* output, Plane* input, vector<Terminal*> & terminals) {
-        output->addPlane(*input);
-        output->setAdditionalCost(1);
-        return true;
-    }
-
-/**
- * Adding new set of rules. 
- * @param rules
- */
-void appendGeneralRuleInstances(vector<RulePtr> & rules) {
-//    
-    rules.push_back(RulePtr(new RScene<Planes, Plane>()));
-    rules.push_back(RulePtr(new DoubleRule<Planes, Planes, Plane>()));
-    rules.push_back(RulePtr(new SingleRule<Planes, Plane>()));
-//
-    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-//
-    rules.push_back(RulePtr(new SingleRule<Plane, Terminal>()));
-}
-
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
-//    appendRuleInstances(rules);
-    appendGeneralRuleInstances(rules);
+    appendRuleInstances(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
