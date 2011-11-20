@@ -2509,7 +2509,9 @@ template<>
             return false;
         else
         {
-                output->setAdditionalCost(NUMPointsToBeParsed-numSpannedPoints);
+        cout<<"S->fc\n";        
+                output->setAdditionalCost(5.0/coverage);
+        cerr<<"S->fc: cost "<<output->getCost()<<"\n";        
                 return true;
         }
     }
@@ -2603,7 +2605,7 @@ template<>
             return false;
         else 
         {
-            output->setAdditionalCost(additionalCost);
+            output->setAdditionalCost(additionalCost/10); // need not be planar
             return true;
         }                   
     }
@@ -2903,8 +2905,8 @@ void appendGeneralRuleInstances(vector<RulePtr> & rules) {
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
-//    appendRuleInstances(rules);
-    appendGeneralRuleInstances(rules);
+    appendRuleInstances(rules);
+//    appendGeneralRuleInstances(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
