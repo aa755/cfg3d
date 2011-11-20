@@ -14,6 +14,8 @@
 #include <vector>
 #include <boost//lexical_cast.hpp>
 
+using namespace std;
+
 struct null_deleter
 {
     void operator()(void const *) const
@@ -61,27 +63,25 @@ public:
     }
 };
 
-void getTokens(std::string str,std::vector<int> & out)
-{
+void getTokens(string str, vector<int>& out) {
         boost::char_separator<char> sep(",");
         boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
         
         out.clear();
 
-        BOOST_FOREACH(std::string t, tokens) 
+        BOOST_FOREACH(string t, tokens) 
         {
 		out.push_back(boost::lexical_cast<int>(t));
         }
 }
 
-void getTokens(std::string str, std::vector<std::string> & out)
-{
+void getTokens(string str, vector<string>& out) {
         boost::char_separator<char> sep(",");
         boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
         
         out.clear();
 
-        BOOST_FOREACH(std::string t, tokens) 
+        BOOST_FOREACH(string t, tokens) 
         {
 		out.push_back(t);
         }
