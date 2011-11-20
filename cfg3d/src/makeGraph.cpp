@@ -545,10 +545,6 @@ Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     return terminal1;
 }
 
-bool parallelEnough(Terminal& terminal1, Terminal& terminal2) {
-    return false;
-}
-
 bool closeEnough(Terminal& terminal1, Terminal& terminal2) {
     return false;
 }
