@@ -615,7 +615,7 @@ cloud_seg.sensor_origin_=cloud_temp.sensor_origin_;
    pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg,true);
 
    std::cout << total << std::endl;
-   exit(1);
+ //  exit(1);
 
     OccupancyMapAdv occupancy(cloud_seg);
 
