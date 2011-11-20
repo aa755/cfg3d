@@ -1,3 +1,4 @@
+#include "structures.cpp"
 #include "OccupancyMap.h"
 #include <iostream>
 #include <fstream>
@@ -534,10 +535,26 @@ bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndice
     return (seg1.indices.size()> seg2.indices.size());
 }
 
+//TODO: Fix segment numbers.
+Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
+    vector<int> terminal2PointIndices = terminal2.getPointIndices();
+    vector<int>::iterator it;
+    for (it = terminal2PointIndices.begin(); it != terminal2PointIndices.end(); it++) {
+        terminal1.addPointIndex(*it);
+    }
+    return terminal1;
+}
+
+bool parallelEnough(Terminal& terminal1, Terminal& terminal2) {
+    return false;
+}
+
+bool closeEnough(Terminal& terminal1, Terminal& terminal2) {
+    return false;
+}
+
 int main(int argc, char** argv)
 {
-
-        pcl::PointCloud<PointOutT> cloud_seg;
         pcl::PointCloud<PointInT> cloud_temp;
         pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
         pcl::PointCloud<PointInT> cloud;
@@ -586,44 +603,51 @@ int main(int argc, char** argv)
     
     std::cout << clusters.size() << "clusters found in pcd of size " << cloud.size() << std::endl;
 
-cloud_seg.points.resize(cloud.size());
-cloud_seg.sensor_origin_=cloud_temp.sensor_origin_;
+    scene.points.resize(cloud.size());
+    scene.sensor_origin_=cloud_temp.sensor_origin_;
 
     for (size_t i = 0; i < cloud.size(); i++)
     {
-        cloud_seg.points[i].clone(cloud.points[i]);
-        cloud_seg.points[i].segment=0;
-
+        scene.points[i].clone(cloud.points[i]);
+        scene.points[i].segment=0;
     }
 
+    // Scene initialized
+
+    cout<<"We're here!"<<endl;
 
     int total = 0;
 
     for (size_t i = 0; i < clusters.size(); i++)
     {
+        cout<<"Cluster "<<i<<endl;
         if(clusters[i].indices.size()<MIN_SEG_SIZE)
             continue;
         
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
-            cloud_seg.points[clusters[i].indices[j]].segment = i + 1;
+            scene.points[clusters[i].indices[j]].segment = i + 1;
+            
+            cout<<"Segment "<<i<<", Point: ("<<scene.points[clusters[i].indices[j]].x
+                    <<", "<<scene.points[clusters[i].indices[j]].y
+                    <<", "<<scene.points[clusters[i].indices[j]].z<<")"<<endl;
         }
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-    
-   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), cloud_seg,true);
-
+    cout<<"Before"<<endl;
+   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), scene,true);
+cout<<"After"<<endl;
    std::cout << total << std::endl;
    exit(1);
 
-    OccupancyMapAdv occupancy(cloud_seg);
+    OccupancyMapAdv occupancy(scene);
 
         
     std::ofstream logFile;
     logFile.open((std::string(argv[1])+".nbrMap.txt").data(),ios::out);
     set<int>::iterator sit;
-
+cout<<"After2"<<endl;
     int tIndex;
     for (size_t i = 0; i < clusters.size(); i++)
     {
