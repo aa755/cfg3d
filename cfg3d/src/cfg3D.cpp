@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <time.h>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define TABLE_HEIGHT .70
+#define TABLE_HEIGHT .73
 #define HIGH_COST 100
 #include <stack>
 #include "point_struct.h"
@@ -1739,7 +1739,9 @@ public:
 };
 
 class Corner : public NonTerminal {
-    // TODO: Do we need anything in here? This class feels cold and empty inside.
+};
+
+class KeyboardTray : public NonTerminal {
 };
 
 class Scene : public NonTerminal {
@@ -2595,6 +2597,18 @@ template<>
     }
 
 template<>
+    bool SingleRule<KeyboardTray, Plane> :: setCost(KeyboardTray* output, Plane* input, vector<Terminal*> & terminals) {
+        double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT-0.1);
+        if(additionalCost>(0.3*0.3)*input->getNumPoints())
+            return false;
+        else 
+        {
+            output->setAdditionalCost(additionalCost);
+            return true;
+        }                   
+    }
+
+template<>
     bool SingleRule<FloorSurface, Plane> :: setCost(FloorSurface * output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->getZSquaredSum();
         if(additionalCost>(0.2*0.2)*input->getNumPoints() || ! input->isHorizontalEnough() )
@@ -2723,6 +2737,22 @@ template<>
     }
 
 template<>
+    bool DoubleRule<TableTop, TableTop, KeyboardTray> :: setCost(TableTop* output, TableTop* input1, KeyboardTray* input2, vector<Terminal*> & terminals) {
+    float difference=input1->GetEldestChild()->getMinZ() - input2->getMinZ();
+    
+        if ( 0.03<difference && difference<0.18  ) 
+        {
+            output->setAdditionalCost(0);
+            output->SetEldestChild(input1->GetEldestChild());
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    }
+
+template<>
     bool DoubleRule<TableTop, TableTop, PlanePair> :: setCost(TableTop* output, TableTop* input1, PlanePair* input2, vector<Terminal*> & terminals) {
         if (isOnTop(input2, input1->GetEldestChild())) 
         {
@@ -2808,6 +2838,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, PlanePair>()));
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Monitor>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
+    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, KeyboardTray>()));
+    rules.push_back(RulePtr(new SingleRule<KeyboardTray, Plane>()));
     
     //need to fix this  all tables might not be neighbors
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
