@@ -593,17 +593,23 @@ public:
         //update evaluation counts
     }
     
-    // TODO implement
     double closestTwoPointsDistance(Terminal& otherTerminal) {
-        vector<int>::iterator it; 
-//        vector<int> otherTerminal.getPointIndices();
+        vector<int>::iterator otherIt; 
+        vector<int>::iterator thisIt;
+        vector<int> otherPointIndices = otherTerminal.getPointIndices();
         double closestDistance = infinity();
-//        
-//        for () {
-//            if (closestDistance < ) {
-//            }
-//        }
-        return 0;
+        
+        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
+            for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
+                PointT thisPoint = getPointFromScene(scene, *thisIt);
+                PointT otherPoint = getPointFromScene(scene, *otherIt);
+                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
+                if (distanceToConsider < closestDistance) {
+                    closestDistance = distanceToConsider;
+                }
+            }
+        }
+        return closestDistance;
     }
     
 };
@@ -1218,8 +1224,8 @@ public:
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
-    bool isParallelEnough(Plane* plane, double value) {
-        return dotProduct(plane) > value;
+    bool isParallelEnough(Plane& plane, double value) {
+        return dotProduct(&plane) > value;
     }
     
     double costOfAddingPoint(PointT & p) {

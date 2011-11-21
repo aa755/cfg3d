@@ -545,8 +545,44 @@ Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     return terminal1;
 }
 
-bool closeEnough(Terminal& terminal1, Terminal& terminal2) {
-    return false;
+bool goodEnough(Terminal& terminal1, Terminal& terminal2) {
+    Plane terminal1Plane;
+    terminal1Plane.addChild(&terminal1);
+    terminal1Plane.computeSpannedTerminals();
+    terminal1Plane.computePlaneParamsAndSetCost();
+    
+    Plane terminal2Plane;
+    terminal2Plane.addChild(&terminal2);
+    terminal2Plane.computeSpannedTerminals();
+    terminal2Plane.computePlaneParamsAndSetCost();
+    
+    double distanceThreshold = .3;
+    double parallelThreshold = .3;
+    return terminal1.closestTwoPointsDistance(terminal2) < distanceThreshold && 
+            terminal1Plane.isParallelEnough(terminal2Plane, parallelThreshold);
+}
+
+vector<Terminal*> mergeTerminalsProcess(vector<Terminal*> terminalsToMerge) {
+    vector<Terminal*> mergedTerminals;
+    vector<Terminal*>::iterator base;
+    while(!terminalsToMerge.empty()) {
+        base = terminalsToMerge.begin();
+        if (terminalsToMerge.size() == 1) {
+            mergedTerminals.push_back(*base);
+        } else {
+            // Try to merge base with all terminals in terminalsToMerge
+            vector<Terminal*>::iterator mergee = (terminalsToMerge.begin())++;
+            while(mergee != terminalsToMerge.end()) {
+                if (goodEnough(**base, **mergee)) {
+                    mergeTerminals(**base, **mergee);
+                    terminalsToMerge.erase(mergee);
+                } else {
+                    mergee++;
+                }
+            }
+        }
+    }
+    return mergedTerminals;
 }
 
 int main(int argc, char** argv)
