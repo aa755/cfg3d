@@ -1257,6 +1257,8 @@ int main(int argc, char** argv) {
         cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    fileName=string(argv[1]);
+    fileName=fileName.substr(0, fileName.length()-4);
 
     occlusionChecker = new OccupancyMap<PointT>(scene);
 
