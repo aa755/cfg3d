@@ -668,7 +668,8 @@ int main(int argc, char** argv)
         total += clusters[i].indices.size();
     }
     cout<<"Before"<<endl;
-   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), scene,true);
+//   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), scene,true);
+    pcl::io::savePCDFile<PointOutT>("abc.pcd", scene,true);
 cout<<"After"<<endl;
    std::cout << total << std::endl;
    exit(1);
@@ -677,6 +678,7 @@ cout<<"After1"<<endl;
 
         
     std::ofstream logFile;
+//    logFile.open((std::string(argv[1])+".nbrMap.txt").data(),ios::out);
     logFile.open((std::string(argv[1])+".nbrMap.txt").data(),ios::out);
     set<int>::iterator sit;
 cout<<"After2"<<endl;
