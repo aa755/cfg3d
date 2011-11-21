@@ -672,8 +672,8 @@ int main(int argc, char** argv)
     pcl::io::savePCDFile<PointOutT>("abc.pcd", scene,true);
 cout<<"After"<<endl;
    std::cout << total << std::endl;
-   exit(1);
-cout<<"After1"<<endl;
+ //  exit(1);
+
     OccupancyMapAdv occupancy(scene);
 
         
