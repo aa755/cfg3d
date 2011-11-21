@@ -609,10 +609,6 @@ vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlus
     return samplePoints;
 }
 
-void printPoint(pcl::PointXYZ point) {
-    cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
-}
-
 bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
     float numOccludedPoints = 0;
     vector<pcl::PointXYZ>::iterator it;
