@@ -391,6 +391,7 @@ public:
     }
 }; 
 
+
 template<typename SceneRHS_Type1, typename SceneRHS_Type2>
 class RScene : public Rule {
     template<typename TypeExtracted, typename TypeCombinee>

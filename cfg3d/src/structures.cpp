@@ -24,6 +24,7 @@
 #include "point_struct.h"
 #include "color.cpp"
 #include "pcl/features/feature.h"
+#include <math.h>
 
 //sac_model_plane.h
 
@@ -86,9 +87,22 @@ double infinity() {
     return numeric_limits<double>::infinity();
 }
 
+//double sqr(double value) {
+//    return value * value;
+//}
+
+double pointPointDistance(PointT& point1, PointT& point2) {
+    return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
+}
+
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+
+PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
+    return fromScene.points[pointIndex];
+}
+
 int NUMPointsToBeParsed;
 OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
@@ -577,6 +591,19 @@ public:
     virtual void labelSubtree(int label)
     {
         //update evaluation counts
+    }
+    
+    // TODO implement
+    double closestTwoPointsDistance(Terminal& otherTerminal) {
+        vector<int>::iterator it; 
+//        vector<int> otherTerminal.getPointIndices();
+        double closestDistance = infinity();
+//        
+//        for () {
+//            if (closestDistance < ) {
+//            }
+//        }
+        return 0;
     }
     
 };
@@ -1191,6 +1218,10 @@ public:
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
+    bool isParallelEnough(Plane* plane, double value) {
+        return dotProduct(plane) > value;
+    }
+    
     double costOfAddingPoint(PointT & p) {
             assert(planeParamsComputed);
             double ret=pcl::pointToPlaneDistance<PointT > (p, planeParams);
