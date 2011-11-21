@@ -33,7 +33,7 @@ using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 30
 #include "OccupancyMap.h"
-
+string fileName;
 class NonTerminal;
 class Terminal;
 class NTSetComparison {
@@ -1377,8 +1377,10 @@ class Scene : public NonTerminal {
         sceneOut=scene;
         std::ofstream graphvizFile;
         std::ofstream NTmembershipFile;
-        graphvizFile.open("tree.dot", ios::out);
-        NTmembershipFile.open("membership.txt", ios::out);
+        string treeFileName=fileName+".dot";
+        graphvizFile.open(treeFileName.data(), ios::out);
+        string membersipFileName=fileName+"_membership.txt";
+        NTmembershipFile.open(membersipFileName.data(), ios::out);
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(this);
         
