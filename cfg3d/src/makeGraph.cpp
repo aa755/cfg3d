@@ -535,7 +535,6 @@ bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndice
     return (seg1.indices.size()> seg2.indices.size());
 }
 
-//TODO: Fix segment numbers.
 Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     vector<int> terminal2PointIndices = terminal2.getPointIndices();
     vector<int>::iterator it;
@@ -546,47 +545,110 @@ Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
 }
 
 bool goodEnough(Terminal& terminal1, Terminal& terminal2) {
+    
     Plane terminal1Plane;
     terminal1Plane.addChild(&terminal1);
-    terminal1Plane.computeSpannedTerminals();
-    terminal1Plane.computePlaneParamsAndSetCost();
+    terminal1Plane.addPointIndices(terminal1.getPointIndices());
+    cout<<"Before computeFeatures"<<endl;
+    terminal1Plane.computeFeatures();
+    cout<<"After computeFeatures"<<endl;
+    terminal1Plane.computePlaneParams();
+//    terminal1Plane.computeCentroidAndColorAndNumPoints();
     
     Plane terminal2Plane;
     terminal2Plane.addChild(&terminal2);
-    terminal2Plane.computeSpannedTerminals();
-    terminal2Plane.computePlaneParamsAndSetCost();
+    terminal2Plane.addPointIndices(terminal2.getPointIndices());
+    terminal2Plane.computeFeatures();
+    terminal2Plane.computePlaneParams();
+//    terminal2Plane.computeCentroidAndColorAndNumPoints();
     
-    double distanceThreshold = .3;
-    double parallelThreshold = .3;
+    double distanceThreshold = .6;
+    double parallelThreshold = .8;
     return terminal1.closestTwoPointsDistance(terminal2) < distanceThreshold && 
             terminal1Plane.isParallelEnough(terminal2Plane, parallelThreshold);
 }
-
-vector<Terminal*> mergeTerminalsProcess(vector<Terminal*> terminalsToMerge) {
-    vector<Terminal*> mergedTerminals;
-    vector<Terminal*>::iterator base;
-    while(!terminalsToMerge.empty()) {
-        base = terminalsToMerge.begin();
-        if (terminalsToMerge.size() == 1) {
-            mergedTerminals.push_back(*base);
-        } else {
-            // Try to merge base with all terminals in terminalsToMerge
-            vector<Terminal*>::iterator mergee = (terminalsToMerge.begin())++;
-            while(mergee != terminalsToMerge.end()) {
-                if (goodEnough(**base, **mergee)) {
-                    mergeTerminals(**base, **mergee);
-                    terminalsToMerge.erase(mergee);
-                } else {
-                    mergee++;
-                }
-            }
+/**
+ * 
+ * @param baseTerminal
+ * @param terminalsToMerge
+ * @return true if we merged baseTerminal with one of terminalsToMerge
+ *      if true, baseTerminal grown, terminalsToMerge size - 1
+ */
+bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& terminalsToMerge) {
+    vector<Terminal>::iterator it;
+    for (it = terminalsToMerge.begin(); it != terminalsToMerge.end(); it++) {
+        if(goodEnough(baseTerminal, *it)) {
+            mergeTerminals(baseTerminal, *it);
+            terminalsToMerge.erase(it);
+            return true;
         }
+    }
+    return false;
+}
+
+vector<Terminal> mergeTerminalsProcess(vector<Terminal> terminalsToMerge) {
+    vector<Terminal> mergedTerminals;
+    while(!terminalsToMerge.empty()) {
+        Terminal baseTerminal = terminalsToMerge.at(0);
+        terminalsToMerge.erase(terminalsToMerge.begin());
+        while (runThroughTerminalsToMerge(baseTerminal, terminalsToMerge)) {
+        }
+        mergedTerminals.push_back(baseTerminal);
     }
     return mergedTerminals;
 }
 
+vector<Terminal> getTerminalsFromClusters(std::vector<pcl::PointIndices> clusters) {
+    vector<Terminal> unmergedTerminals;
+    for (unsigned int i = 0; i < clusters.size(); i++)
+    {
+        Terminal terminal(i + 1);
+//        cout<<"i = "<<i<<endl;
+        for (unsigned int j = 0; j < clusters.at(i).indices.size(); j++) {
+//            cout<<"\tj = "<<j<<endl;
+            terminal.addPointIndex(clusters.at(i).indices.at(j));
+        }
+        unmergedTerminals.push_back(terminal);
+    }
+    return unmergedTerminals;
+}
+
+std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) {
+    vector<Terminal>::iterator terminalIterator;
+    std::vector<pcl::PointIndices> newClusters;
+    for (terminalIterator = terminals.begin(); terminalIterator != terminals.end(); terminalIterator++) {
+        Terminal terminal = *terminalIterator;
+        vector<int> pointIndices = terminal.getPointIndices();
+        
+        pcl::PointIndices content;
+        content.indices = pointIndices;
+        
+        newClusters.push_back(content);
+    }
+    return newClusters;
+}
+
+int main1(int argc, char** argv) {
+    
+    vector<int> vect;
+    vect.push_back(1);
+    vect.push_back(2);
+    vect.push_back(3);
+    vect.push_back(4);
+    vector<int>::iterator it = vect.begin();
+    it++;
+    vect.erase(it);
+    cout<<"vector size after erase: "<<vect.size()<<endl;
+    cout<<"it element: "<<*it<<endl;
+    cout<<"increment it"<<endl;
+    it++;
+    cout<<"it element: "<<*it<<endl;
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
+    cout<<"Starting..."<<endl;
         pcl::PointCloud<PointInT> cloud_temp;
         pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
         pcl::PointCloud<PointInT> cloud;
@@ -645,7 +707,13 @@ int main(int argc, char** argv)
     }
 
     // Scene initialized
-
+    vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
+    cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
+    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals);
+    cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
+    clusters = clusterFromTerminals(mergedTerminals);
+    cout<<"Cluster Size = "<<clusters.size()<<endl;
+    
     cout<<"We're here!"<<endl;
 
     int total = 0;
@@ -667,19 +735,17 @@ int main(int argc, char** argv)
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-    cout<<"Before"<<endl;
-   pcl::io::savePCDFile<PointOutT>("segmented_"+std::string(argv[1]), scene,true);
-cout<<"After"<<endl;
+   pcl::io::savePCDFile<PointOutT>("abc.pcd", scene,true);
    std::cout << total << std::endl;
- //  exit(1);
-
+   
     OccupancyMapAdv occupancy(scene);
-
         
     std::ofstream logFile;
-    logFile.open((std::string(argv[1])+".nbrMap.txt").data(),ios::out);
+    
+    return 1;
+    logFile.open(std::string("abc.nbr.txt").data(),ios::out);
     set<int>::iterator sit;
-cout<<"After2"<<endl;
+    
     int tIndex;
     for (size_t i = 0; i < clusters.size(); i++)
     {

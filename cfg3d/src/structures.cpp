@@ -108,13 +108,17 @@ OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
+void printPoint(pcl::PointXYZ point) {
+    cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
+}
+
 class Symbol {
 protected:
     /** total weight to derive all these leaves
      * =max(cost  deriving any child) + cost of applying the rule that gave this
      *  required for being a superior CFG
      */
-    bool featuresComputed;
+//    bool featuresComputed;
     double cost;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
@@ -155,6 +159,7 @@ protected:
 
     }
 public:
+    bool featuresComputed;
     virtual void labelSubtree()=0;
     virtual void labelSubtree(int label)=0;
 
@@ -338,14 +343,19 @@ public:
         assert(featuresComputed);
         return zSquaredSum - 2 * centroid.z * numPoints * c + numPoints * c*c;
     }
-    
+     
     void computeFeatures()
     {
-        if(featuresComputed)
+        if(featuresComputed) {
             return;
+        }
         featuresComputed=true;
+        cout<<"before computeZSquaredSum"<<endl;
+        cout<<"featuresComputed"<<featuresComputed<<endl;
         computeZSquaredSum();
+        cout<<"before computeMinMaxXYZ"<<endl;
         computeMinMaxXYZ();
+        cout<<"before computeCentroidAndColorAndNumPoints"<<endl;
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
         computeCovarianceMatrixWoMean();
@@ -411,6 +421,27 @@ protected:
     }
     
 public:
+    
+    void computeCentroidAndColorAndNumPoints() {
+        centroid.x = 0;
+        centroid.y = 0;
+        centroid.z = 0;
+        ColorRGB avg(0,0,0);
+        for (size_t i = 0; i < pointIndices.size(); i++) {
+            PointT & point = scene.points[pointIndices[i]];
+            centroid.x += point.x;
+            centroid.y += point.y;
+            centroid.z += point.z;
+            avg+=ColorRGB(point.rgb);
+        }
+        numPoints=pointIndices.size();
+        centroid.x /= numPoints;
+        centroid.y /= numPoints;
+        centroid.z /= numPoints;
+        avgColor/=numPoints;
+        avgColor=avg.getFloatRep();
+    }
+    
     vector<int> & getPointIndices() {
         assert(pointIndices.size() > 0);
         return pointIndices;
@@ -508,28 +539,6 @@ public:
         }
     }
     
-    
-    void computeCentroidAndColorAndNumPoints() {
-        centroid.x = 0;
-        centroid.y = 0;
-        centroid.z = 0;
-        ColorRGB avg(0,0,0);
-        for (size_t i = 0; i < pointIndices.size(); i++) {
-            PointT & point = scene.points[pointIndices[i]];
-            centroid.x += point.x;
-            centroid.y += point.y;
-            centroid.z += point.z;
-            avg+=ColorRGB(point.rgb);
-        }
-        numPoints=pointIndices.size();
-        centroid.x /= numPoints;
-        centroid.y /= numPoints;
-        centroid.z /= numPoints;
-        avgColor/=numPoints;
-        avgColor=avg.getFloatRep();
-    }
-    
-    
     void addPointIndex(int index)
     {
         pointIndices.push_back(index);
@@ -598,17 +607,57 @@ public:
         vector<int>::iterator thisIt;
         vector<int> otherPointIndices = otherTerminal.getPointIndices();
         double closestDistance = infinity();
+        cout<<"This Terminal centroid: "<<endl;
+        printPoint(centroid);
+        cout<<"Other Terminal centroid: "<<endl;
+        printPoint(otherTerminal.centroid);
+        return sqrt(sqr(centroid.x - otherTerminal.centroid.x) + sqr(centroid.y - otherTerminal.centroid.y) + sqr(centroid.z - otherTerminal.centroid.z));
         
-        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
-            for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
-                PointT thisPoint = getPointFromScene(scene, *thisIt);
-                PointT otherPoint = getPointFromScene(scene, *otherIt);
-                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
-                if (distanceToConsider < closestDistance) {
-                    closestDistance = distanceToConsider;
-                }
-            }
-        }
+        
+        // Randomization to reduce space
+//        vector<int> indices1;
+//        vector<int> indices2;
+//        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
+//            if (rand()%100 < 1) {
+//                indices1.push_back(*thisIt);
+//            }
+//        }
+//        
+//        for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
+//            if (rand()%100 < 1) {
+//                indices2.push_back(*otherIt);
+//            }
+//        }
+//        
+//        cout<<"terminal1 number of randomized chosen point indices = "<<indices1.size()<<endl;
+//        cout<<"terminal2 number of randomized chosen point indices = "<<indices2.size()<<endl;
+//        
+//        int counter = 0;
+//        for (thisIt = indices1.begin(); thisIt != indices1.end(); thisIt++) {
+//            for (otherIt = indices2.begin(); otherIt != indices2.end(); otherIt++) {
+//                PointT thisPoint = getPointFromScene(scene, *thisIt);
+//                PointT otherPoint = getPointFromScene(scene, *otherIt);
+//                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
+//                if (distanceToConsider < closestDistance) {
+//                    closestDistance = distanceToConsider;
+//                    cout<<"closestDistance so far = "<<closestDistance<<endl;;                    
+//                }
+//                counter++;
+//                cout<<"counter = "<<counter<<endl;
+//            }
+//        }
+        
+        //N^2 method
+//        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
+//            for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
+//                PointT thisPoint = getPointFromScene(scene, *thisIt);
+//                PointT otherPoint = getPointFromScene(scene, *otherIt);
+//                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
+//                if (distanceToConsider < closestDistance) {
+//                    closestDistance = distanceToConsider;
+//                }
+//            }
+//        }
         return closestDistance;
     }
     
@@ -1138,7 +1187,6 @@ public:
 class Plane : public NonTerminal {
 protected:
     float curvature;
-    bool planeParamsComputed;
     Eigen::Vector3d eigenValsAscending;
     
     /**
@@ -1147,13 +1195,27 @@ protected:
     
     Eigen::Vector4f planeParams;
 public:
-
+    bool planeParamsComputed;
+    vector<int> pointIndices;
     double zSquaredSum;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Plane() : NonTerminal() {
         planeParamsComputed = false;
     }
 
+    void addPointIndices(vector<int> newPointIndices)
+    {
+        vector<int>::iterator it;
+        for (it = newPointIndices.begin(); it != newPointIndices.end(); it++) {
+            pointIndices.push_back(*it);
+        }
+    }
+    
+    void addPointIndex(int index)
+    {
+        pointIndices.push_back(index);
+    }
+    
     bool isHorizontalEnough() {
         return getZNormal() >= .88;
     }
@@ -1171,6 +1233,13 @@ public:
         return fabs(planeParams[0] - otherPlaneParam[0]) + 
                 fabs(planeParams[1] - otherPlaneParam[1]) +
                 fabs(planeParams[2] - otherPlaneParam[2]);
+    }
+    
+    void computePlaneParams() {
+        pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
+        normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
+        assert(fabs(getNorm()-1)<0.05);
+        planeParamsComputed = true;
     }
     
     void computePlaneParamsAndSetCost()
