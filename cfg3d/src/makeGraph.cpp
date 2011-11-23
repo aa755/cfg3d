@@ -649,27 +649,6 @@ std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) 
     return newClusters;
 }
 
-int main1(int argc, char** argv) {
-//    pcl::PointXYZ p1(1,2,3);
-//    pcl::PointXYZ p2(5,2,6);
-//    cout<<pointPointDistance(p1,p2)<<endl;
-//    
-//    vector<int> vect;
-//    vect.push_back(1);
-//    vect.push_back(2);
-//    vect.push_back(3);
-//    vect.push_back(4);
-//    vector<int>::iterator it = vect.begin();
-//    it++;
-//    vect.erase(it);
-//    cout<<"vector size after erase: "<<vect.size()<<endl;
-//    cout<<"it element: "<<*it<<endl;
-//    cout<<"increment it"<<endl;
-//    it++;
-//    cout<<"it element: "<<*it<<endl;
-//    return 0;
-}
-
 int main(int argc, char** argv)
 {
     cout<<"Starting..."<<endl;
@@ -738,14 +717,11 @@ int main(int argc, char** argv)
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);
     cout<<"Cluster Size = "<<clusters.size()<<endl;
-    
-    cout<<"We're here!"<<endl;
 
     int total = 0;
 
     for (size_t i = 0; i < clusters.size(); i++)
     {
-        cout<<"Cluster "<<i<<endl;
         if(clusters[i].indices.size()<MIN_SEG_SIZE)
             continue;
         
@@ -756,15 +732,23 @@ int main(int argc, char** argv)
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-   pcl::io::savePCDFile<PointOutT>("abc.pcd", scene,true);
+   
+    char toAppendTo[strlen(argv[1])-3];
+   
+   strncpy(toAppendTo, argv[1], strlen(argv[1])-3);
+   toAppendTo[strlen(toAppendTo) - 1] = '\0';
+   string toAppendToString = toAppendTo;
+   string segmentedPCD = toAppendToString.append("_segmented.pcd");
+   
+   pcl::io::savePCDFile<PointOutT>(segmentedPCD, scene,true);
    std::cout << total << std::endl;
    
     OccupancyMapAdv occupancy(scene);
         
     std::ofstream logFile;
     
-    return 1;
-    logFile.open(std::string("abc.nbr.txt").data(),ios::out);
+    string neighborMap = toAppendToString.append(".nbr.txt");
+    logFile.open(neighborMap.data(),ios::out);
     set<int>::iterator sit;
     
     int tIndex;
@@ -787,7 +771,6 @@ int main(int argc, char** argv)
             for(sit=segNbrs.begin();sit!=segNbrs.end();sit++)
                 logFile<<","<<*sit;
             logFile<<endl;
-
     }
 
     logFile.close();
