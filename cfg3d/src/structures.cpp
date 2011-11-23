@@ -1242,6 +1242,12 @@ public:
         planeParamsComputed = true;
     }
     
+    bool checkSize(NonTerminal * candidate)
+    {
+        if(getLength()<candidate->getMinLength())
+            return false;
+    }
+    
     void computePlaneParamsAndSetCost()
     {
         if (planeParamsComputed)
