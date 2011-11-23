@@ -938,6 +938,8 @@ template<>
                 !isCloseEnoughToCompMonTop(input)) {
                 return false;
             } else {
+     //           if()
+                
                 double distanceFromTable = fabs(input->getMinZ() - TABLE_HEIGHT);
                 output->setAdditionalCost(distanceFromTable + input->getZNormal());
                 return true;
@@ -1080,8 +1082,8 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, PlanePair>()));
     rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, Monitor>()));
     rules.push_back(RulePtr(new SingleRule<TableTopSurface, Plane>()));
-    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, KeyboardTray>()));
-    rules.push_back(RulePtr(new SingleRule<KeyboardTray, Plane>()));
+//    rules.push_back(RulePtr(new DoubleRule<TableTop, TableTop, KeyboardTray>()));
+//    rules.push_back(RulePtr(new SingleRule<KeyboardTray, Plane>()));
     
     //need to fix this  all tables might not be neighbors
     rules.push_back(RulePtr(new DoubleRule<Table,TableTop,Legs>()));
