@@ -528,7 +528,7 @@ Eigen::Vector3f getPoint(PointET p)
 
   }
 
-#define MIN_SEG_SIZE 50
+#define MIN_SEG_SIZE 300
 
 bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndices & seg2) 
 {
@@ -733,11 +733,8 @@ int main(int argc, char** argv)
         total += clusters[i].indices.size();
     }
    
-    char toAppendTo[strlen(argv[1])-3];
-   
-   strncpy(toAppendTo, argv[1], strlen(argv[1])-3);
-   toAppendTo[strlen(toAppendTo) - 1] = '\0';
-   string toAppendToString = toAppendTo;
+   string filename=string(argv[1]);
+   string toAppendToString = filename;//filename.substr(0, filename.length()-4);
    string segmentedPCD = toAppendToString.append("_segmented.pcd");
    
    pcl::io::savePCDFile<PointOutT>(segmentedPCD, scene,true);
@@ -747,7 +744,7 @@ int main(int argc, char** argv)
         
     std::ofstream logFile;
     
-    string neighborMap = toAppendToString.append(".nbr.txt");
+    string neighborMap = toAppendToString.append("_nbr.txt");
     logFile.open(neighborMap.data(),ios::out);
     set<int>::iterator sit;
     
