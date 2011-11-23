@@ -468,7 +468,7 @@ Eigen::Vector3f getPoint(PointET p)
           Eigen::Vector3f dir=(pc-origin);
                   
           //cout<<"direction:"<<dir<<endl<<"dirnorm"<<dir.norm()<<endl;
-          float rad=sqr(dir.norm())*0.0075+tolerance;
+          float rad=sqr(dir.norm())*0.0025+tolerance;
           //cout<<"rad:"<<rad<<endl;
         // Search for sq_idx
         if (!tree->radiusSearch (seed_queue[sq_idx],rad , nn_indices, nn_distances))

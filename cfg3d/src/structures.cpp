@@ -584,7 +584,7 @@ public:
     }
 
 
-    void printData() {
+    virtual void printData() {
         cout << "t\t:" << index << endl;
     }
 
@@ -756,25 +756,6 @@ protected:
       
     }
     
-    void computeCovarianceMatrixWoMean()
-    {
-        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
-        for (size_t i = 0; i < children.size(); i++)
-        {
-            covarianceMatrixWoMean+=children.at(i)->getCovarianceMatrixWoMean();
-        }
-        
-    }
-
-    bool isSpanExclusive(NonTerminal * nt) {
-        return !(spanned_terminals.intersects(nt->spanned_terminals));
-    }
-
-    /**
-     * compute leaves by concatenating
-     * leaves of children */
-    bool costSet;
-public:
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
         ColorRGB avg(0,0,0);
@@ -797,6 +778,46 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+    }
+    
+    void computeCovarianceMatrixWoMean()
+    {
+        covarianceMatrixWoMean=Eigen::Matrix3d::Zero();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            covarianceMatrixWoMean+=children.at(i)->getCovarianceMatrixWoMean();
+        }
+        
+    }
+
+    bool isSpanExclusive(NonTerminal * nt) {
+        return !(spanned_terminals.intersects(nt->spanned_terminals));
+    }
+
+    /**
+     * compute leaves by concatenating
+     * leaves of children */
+    bool costSet;
+public:
+    
+    virtual float getMinLength()
+    {
+        return 0.01; 
+    }
+    
+    virtual float getMaxLength()
+    {
+        return 60; 
+    }
+
+    virtual float getMinWidth()
+    {
+        return 0.01; 
+    }
+    
+    virtual float getMaxWidth()
+    {
+        return 60; 
     }
     
     virtual void labelSubtree()
@@ -907,7 +928,7 @@ public:
 //        
 //    }
 
-    void printData() {
+    virtual void printData() {
         cout << id << "\t:" << spanned_terminals << endl;
         for (uint i = 0; i < spanned_terminals.size(); i++) {
             if(spanned_terminals.test(i)) {
@@ -1169,10 +1190,12 @@ public:
 class Plane : public NonTerminal {
 protected:
     float curvature;
-//    bool planeParamsComputed;
+    Eigen::Vector3d eigenValsAscending;
+    
     /**
      * planeParams[0]x+planeParams[1]x+planeParams[2]x+planeParams[3]=0
-     */
+     */    
+    
     Eigen::Vector4f planeParams;
 public:
     bool planeParamsComputed;
@@ -1237,6 +1260,12 @@ public:
         planeParamsComputed = true;
     }
     
+    bool checkSize(NonTerminal * candidate)
+    {
+        if(getLength()<candidate->getMinLength())
+            return false;
+    }
+    
     void computePlaneParamsAndSetCost()
     {
         if (planeParamsComputed)
@@ -1265,6 +1294,7 @@ public:
         planeParams[3] = -1 * planeParams.dot(xyz_centroid_);
         planeParamsComputed = true;
 
+        eigenValsAscending=eigen_values;
         double sumSquaredDistances = eigen_values(0);
         setAbsoluteCost(sumSquaredDistances);
     }
@@ -1304,6 +1334,17 @@ public:
     
     Eigen::Vector4f getPlaneParams() {
         return planeParams;
+    }
+    
+    float getLength()
+    {
+        assert(featuresComputed);
+        return sqrt(eigenValsAscending(2)/getNumPoints()); // rms
+    }
+    float getWidth()
+    {
+        assert(featuresComputed);
+        return sqrt(eigenValsAscending(1)/getNumPoints()); // rms
     }
     
     // If this quantity is greater, then the two planes are more parallel
@@ -1759,6 +1800,13 @@ public:
         return cost;
     }
     
+//    void printData()
+//    {
+//        NonTerminal::printData();
+//        Plane * child = dynamic_cast<Plane *> (children.at(0));
+//        cout<<"length:"<<child->getLength()<<endl;
+//        cout<<"width:"<<child->getWidth()<<endl;
+//    }
     
     /**
      * here, we are trying to find out whether the given legs fit this top 
