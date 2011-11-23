@@ -574,7 +574,7 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         basePlane.getCentroid(p1Centroid);
         
                
-        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid));
+        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
     } else {
         otherTerminal = terminal1;
         basePlane = terminal2Plane;
