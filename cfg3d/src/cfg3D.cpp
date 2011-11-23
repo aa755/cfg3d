@@ -767,10 +767,11 @@ template<>
     {
         Vector4f planeParams = input->getPlaneParams();
         double additionalCost=fabs(planeParams[2]);
-        if(additionalCost>0.2)
+        if(additionalCost>0.2 || !input->checkSize(output))
             return false;
         else 
         {
+            
             output->setAdditionalCost(additionalCost);
             return true;
         }           
@@ -827,7 +828,7 @@ template<>
 template<>
     bool SingleRule<TableTopSurface, Plane> :: setCost(TableTopSurface* output, Plane* input, vector<Terminal*> & terminals) {
         double additionalCost=input->computeZMinusCSquared(TABLE_HEIGHT);
-        if(additionalCost>(0.3*0.3)*input->getNumPoints() || ! input->isHorizontalEnough())
+        if(additionalCost>(0.3*0.3)*input->getNumPoints() || ! input->isHorizontalEnough()|| !input->checkSize(output) )
             return false;
         else 
         {
@@ -934,7 +935,8 @@ template<>
                 !isCloseEnoughToCompMonTop(input)) {
                 return false;
             } else {
-     //           if()
+                if( !input->checkSize(output))
+                    return false;
                 
                 double distanceFromTable = fabs(input->getMinZ() - TABLE_HEIGHT);
                 output->setAdditionalCost(distanceFromTable + input->getZNormal());

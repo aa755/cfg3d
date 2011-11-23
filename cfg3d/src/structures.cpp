@@ -1246,6 +1246,14 @@ public:
     {
         if(getLength()<candidate->getMinLength())
             return false;
+        if(getLength()>candidate->getMaxLength())
+            return false;
+        if(getWidth()<candidate->getMinWidth())
+            return false;
+        if(getWidth()>candidate->getMaxWidth())
+            return false;
+        
+        return true;
     }
     
     void computePlaneParamsAndSetCost()
@@ -1321,12 +1329,12 @@ public:
     float getLength()
     {
         assert(featuresComputed);
-        return sqrt(eigenValsAscending(2)/getNumPoints()); // rms
+        return 2*sqrt(eigenValsAscending(2)/getNumPoints()); // rms
     }
     float getWidth()
     {
         assert(featuresComputed);
-        return sqrt(eigenValsAscending(1)/getNumPoints()); // rms
+        return 2*sqrt(eigenValsAscending(1)/getNumPoints()); // rms
     }
     
     // If this quantity is greater, then the two planes are more parallel
@@ -1554,7 +1562,29 @@ class Scene : public NonTerminal {
 
 class Computer : public NonTerminal{};
 
-class Monitor : public NonTerminal{};
+class Monitor : public NonTerminal
+{
+    virtual float getMinLength()
+    {
+        return 0.15; 
+    }
+    
+    virtual float getMaxLength()
+    {
+        return 0.4; 
+    }
+
+    virtual float getMinWidth()
+    {
+        return 0.10; 
+    }
+    
+    virtual float getMaxWidth()
+    {
+        return 0.35; 
+    }
+    
+};
 
 class Boundary : public NonTerminal
 {
@@ -1568,6 +1598,25 @@ class SceneGeneric : public Scene
 
 class Wall : public NonTerminal
 {
+    virtual float getMinLength()
+    {
+        return 1.0; 
+    }
+    
+    virtual float getMaxLength()
+    {
+        return 10; 
+    }
+
+    virtual float getMinWidth()
+    {
+        return 0.5; 
+    }
+    
+    virtual float getMaxWidth()
+    {
+        return 10; 
+    }
     
 };
 
@@ -1666,6 +1715,25 @@ public:
 class TableTopSurface: public Plane {
 
 public:
+    virtual float getMinLength()
+    {
+        return 0.6; 
+    }
+    
+    virtual float getMaxLength()
+    {
+        return 2.5; 
+    }
+
+    virtual float getMinWidth()
+    {
+        return 0.2; 
+    }
+    
+    virtual float getMaxWidth()
+    {
+        return 0.7; 
+    }
 
     void additionalFinalize()
     {
