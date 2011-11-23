@@ -544,27 +544,48 @@ Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     return terminal1;
 }
 
-bool goodEnough(Terminal& terminal1, Terminal& terminal2) {
+bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOrigin) {
+    
+    terminal1.computeFeatures();
+    terminal2.computeFeatures();
     
     Plane terminal1Plane;
     terminal1Plane.addChild(&terminal1);
     terminal1Plane.addPointIndices(terminal1.getPointIndices());
-    cout<<"Before computeFeatures"<<endl;
     terminal1Plane.computeFeatures();
-    cout<<"After computeFeatures"<<endl;
     terminal1Plane.computePlaneParams();
-//    terminal1Plane.computeCentroidAndColorAndNumPoints();
     
     Plane terminal2Plane;
     terminal2Plane.addChild(&terminal2);
     terminal2Plane.addPointIndices(terminal2.getPointIndices());
     terminal2Plane.computeFeatures();
     terminal2Plane.computePlaneParams();
-//    terminal2Plane.computeCentroidAndColorAndNumPoints();
     
-    double distanceThreshold = .6;
+    double distanceThreshold;
     double parallelThreshold = .8;
-    return terminal1.closestTwoPointsDistance(terminal2) < distanceThreshold && 
+    
+    Plane basePlane;
+    Terminal otherTerminal;
+    if (terminal1.getNumPoints() > terminal2.getNumPoints()) {
+        basePlane = terminal1Plane;
+        otherTerminal = terminal2;
+        
+        pcl::PointXYZ p1Centroid;
+        basePlane.getCentroid(p1Centroid);
+        
+               
+        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
+    } else {
+        otherTerminal = terminal1;
+        basePlane = terminal2Plane;
+        
+        pcl::PointXYZ p2Centroid;
+        basePlane.getCentroid(p2Centroid);
+        
+        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid));;
+    }
+    
+    return basePlane.getCentroidProximity(otherTerminal) < distanceThreshold && 
             terminal1Plane.isParallelEnough(terminal2Plane, parallelThreshold);
 }
 /**
@@ -574,10 +595,10 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2) {
  * @return true if we merged baseTerminal with one of terminalsToMerge
  *      if true, baseTerminal grown, terminalsToMerge size - 1
  */
-bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& terminalsToMerge) {
+bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& terminalsToMerge, pcl::PointXYZ cameraOrigin) {
     vector<Terminal>::iterator it;
     for (it = terminalsToMerge.begin(); it != terminalsToMerge.end(); it++) {
-        if(goodEnough(baseTerminal, *it)) {
+        if(goodEnough(baseTerminal, *it, cameraOrigin)) {
             mergeTerminals(baseTerminal, *it);
             terminalsToMerge.erase(it);
             return true;
@@ -586,12 +607,12 @@ bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& termin
     return false;
 }
 
-vector<Terminal> mergeTerminalsProcess(vector<Terminal> terminalsToMerge) {
+vector<Terminal> mergeTerminalsProcess(vector<Terminal> terminalsToMerge, pcl::PointXYZ cameraOrigin) {
     vector<Terminal> mergedTerminals;
     while(!terminalsToMerge.empty()) {
         Terminal baseTerminal = terminalsToMerge.at(0);
         terminalsToMerge.erase(terminalsToMerge.begin());
-        while (runThroughTerminalsToMerge(baseTerminal, terminalsToMerge)) {
+        while (runThroughTerminalsToMerge(baseTerminal, terminalsToMerge, cameraOrigin)) {
         }
         mergedTerminals.push_back(baseTerminal);
     }
@@ -626,24 +647,6 @@ std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) 
         newClusters.push_back(content);
     }
     return newClusters;
-}
-
-int main1(int argc, char** argv) {
-    
-    vector<int> vect;
-    vect.push_back(1);
-    vect.push_back(2);
-    vect.push_back(3);
-    vect.push_back(4);
-    vector<int>::iterator it = vect.begin();
-    it++;
-    vect.erase(it);
-    cout<<"vector size after erase: "<<vect.size()<<endl;
-    cout<<"it element: "<<*it<<endl;
-    cout<<"increment it"<<endl;
-    it++;
-    cout<<"it element: "<<*it<<endl;
-    return 0;
 }
 
 int main(int argc, char** argv)
@@ -709,41 +712,43 @@ int main(int argc, char** argv)
     // Scene initialized
     vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
     cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
-    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals);
+    pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
+    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);
     cout<<"Cluster Size = "<<clusters.size()<<endl;
-    
-    cout<<"We're here!"<<endl;
 
     int total = 0;
 
     for (size_t i = 0; i < clusters.size(); i++)
     {
-        cout<<"Cluster "<<i<<endl;
         if(clusters[i].indices.size()<MIN_SEG_SIZE)
             continue;
         
         for (size_t j = 0; j < clusters[i].indices.size(); j++)
         {
-            scene.points[clusters[i].indices[j]].segment = i + 1;
-            
-            cout<<"Segment "<<i<<", Point: ("<<scene.points[clusters[i].indices[j]].x
-                    <<", "<<scene.points[clusters[i].indices[j]].y
-                    <<", "<<scene.points[clusters[i].indices[j]].z<<")"<<endl;
+            scene.points[clusters[i].indices[j]].segment = i + 1;            
         }
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-   pcl::io::savePCDFile<PointOutT>("abc.pcd", scene,true);
+   
+    char toAppendTo[strlen(argv[1])-3];
+   
+   strncpy(toAppendTo, argv[1], strlen(argv[1])-3);
+   toAppendTo[strlen(toAppendTo) - 1] = '\0';
+   string toAppendToString = toAppendTo;
+   string segmentedPCD = toAppendToString.append("_segmented.pcd");
+   
+   pcl::io::savePCDFile<PointOutT>(segmentedPCD, scene,true);
    std::cout << total << std::endl;
    
     OccupancyMapAdv occupancy(scene);
         
     std::ofstream logFile;
     
-    return 1;
-    logFile.open(std::string("abc.nbr.txt").data(),ios::out);
+    string neighborMap = toAppendToString.append(".nbr.txt");
+    logFile.open(neighborMap.data(),ios::out);
     set<int>::iterator sit;
     
     int tIndex;
@@ -766,7 +771,6 @@ int main(int argc, char** argv)
             for(sit=segNbrs.begin();sit!=segNbrs.end();sit++)
                 logFile<<","<<*sit;
             logFile<<endl;
-
     }
 
     logFile.close();
