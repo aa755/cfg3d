@@ -1219,7 +1219,7 @@ public:
         pointIndices.push_back(index);
     }
     
-    bool isHorizontalEnough() {
+       bool isHorizontalEnough() {
         return getZNormal() >= .88;
     }
 
@@ -1244,6 +1244,14 @@ public:
         Vector3d vectorBetweenCentroids = pointPointVector(otherCentroid, thisCentroid);
         
         return projectionOntoNormal(vectorBetweenCentroids).norm();
+    }
+    
+    bool isPlanarEnough(float distance)
+    {
+        if(eigenValsAscending(0)>0.02*0.02*getNumPoints())
+            return false;
+        
+        return true;
     }
     
     double planeDeviation(Plane& plane) {
