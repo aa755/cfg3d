@@ -95,6 +95,14 @@ double pointPointDistance(PointT& point1, PointT& point2) {
     return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
 }
 
+Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
+    return Vector3d(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z);
+}
+
+double pointPointDistance(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
+    return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
+}
+
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
@@ -350,12 +358,8 @@ public:
             return;
         }
         featuresComputed=true;
-        cout<<"before computeZSquaredSum"<<endl;
-        cout<<"featuresComputed"<<featuresComputed<<endl;
         computeZSquaredSum();
-        cout<<"before computeMinMaxXYZ"<<endl;
         computeMinMaxXYZ();
-        cout<<"before computeCentroidAndColorAndNumPoints"<<endl;
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
         computeCovarianceMatrixWoMean();
@@ -612,7 +616,6 @@ public:
         cout<<"Other Terminal centroid: "<<endl;
         printPoint(otherTerminal.centroid);
         return sqrt(sqr(centroid.x - otherTerminal.centroid.x) + sqr(centroid.y - otherTerminal.centroid.y) + sqr(centroid.z - otherTerminal.centroid.z));
-        
         
         // Randomization to reduce space
 //        vector<int> indices1;
@@ -1205,6 +1208,21 @@ public:
         return fabs(planeParams[2]);
     }
 
+    Vector3d projectionOntoNormal(Vector3d otherVector) {
+        return otherVector.dot(getPlaneNormal()) * getPlaneNormal();
+    }
+    
+    double getCentroidProximity(Symbol& other) {
+        pcl::PointXYZ otherCentroid;
+        other.getCentroid(otherCentroid);
+        
+        pcl::PointXYZ thisCentroid = centroid;
+        
+        Vector3d vectorBetweenCentroids = pointPointVector(otherCentroid, thisCentroid);
+        
+        return projectionOntoNormal(vectorBetweenCentroids).norm();
+    }
+    
     double planeDeviation(Plane& plane) {
         Eigen::Vector4f otherPlaneParam = plane.getPlaneParams();
         return fabs(planeParams[0] - otherPlaneParam[0]) + 
