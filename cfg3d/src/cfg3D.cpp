@@ -1108,8 +1108,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     NUMPointsToBeParsed=0;
     for(unsigned int i=0;i<scene.size();i++)
     {
-     //   if(rand()%10 != 1)
-       //     continue;
+        if(rand()%10 != 1)
+            continue;
         int segIndex=scene.points[i].segment;
   //      cout<<"seg "<<segIndex<<endl;
         if(segIndex>0 && segIndex<=maxSegIndex)

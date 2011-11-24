@@ -1369,7 +1369,7 @@ public:
     
     bool isAllCloseEnough(Terminal* terminal) {
         vector<int>& termPointIndices = terminal->getPointIndices();
-        for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it+=10) {
+        for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
             if (!isCloseEnough(scene.points[*it])) {
                 return false;
             }
