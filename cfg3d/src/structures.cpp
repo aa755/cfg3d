@@ -405,6 +405,45 @@ class SymbolPriorityQueue;
     {
         return scene.points[pointIndex].data[coordinateIndex];
     }
+    
+float  getSmallestDistance (pcl::PointCloud<PointT> &scene,boost::shared_ptr <std::vector<int> > & indices1,boost::shared_ptr <std::vector<int> > & indices2)
+{
+  float min_distance = FLT_MAX;
+  boost::shared_ptr <std::vector<int> > small_cloud;
+  boost::shared_ptr <std::vector<int> >  big_cloud;
+  if (indices1->size() > indices2->size()){
+    small_cloud = indices2;
+    big_cloud = indices1;
+  }else {
+    small_cloud = indices1;
+    big_cloud = indices2;
+  }
+
+  pcl::KdTreeFLANN<PointT>::Ptr tree (new pcl::KdTreeFLANN<PointT>);//= boost::make_shared<pcl::KdTreeFLANN<PointT> > ();
+  pcl::PointCloud<PointT>::Ptr scenePtr=createStaticShared<pcl::PointCloud<PointT> >(&scene);
+
+  tree->setInputCloud (scenePtr,big_cloud);
+  std::vector<int> nn_indices;
+  nn_indices.resize(2);
+  std::vector<float> nn_distances;
+  nn_distances.resize(2);
+  //float tolerance = 0.3;
+
+  std::vector<int>::iterator it;
+  for (it=small_cloud->begin(); it != small_cloud->end(); it++)
+  {
+
+        //if (!tree->radiusSearch ((*small_cloud).points[i], tolerance, nn_indices, nn_distances))
+        tree->nearestKSearch (scene.points[*it], 2 , nn_indices, nn_distances);
+
+                 if (min_distance > nn_distances[1])
+                 {
+                     min_distance = nn_distances[1];
+                 }
+  }
+  return min_distance;
+}
+
 
 class Terminal : public Symbol 
 {
