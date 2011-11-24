@@ -23,6 +23,8 @@
 typedef pcl::PointXYZRGBCamSL PointOutT;
 typedef pcl::PointXYZRGB PointInT;
 
+int** intArrPointer;
+
 void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices, pcl::PointCloud<PointInT> & cloud_seg)
 {
     int it1 = 0;
@@ -582,11 +584,18 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         pcl::PointXYZ p2Centroid;
         basePlane.getCentroid(p2Centroid);
         
-        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid));;
+        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
     }
     
-    return basePlane.getCentroidProximity(otherTerminal) < distanceThreshold && 
+     boost::shared_ptr <std::vector<int> > terminal1BoostPtr = terminal1.getPointIndicesBoostPtr();
+     boost::shared_ptr <std::vector<int> > terminal2BoostPtr = terminal2.getPointIndicesBoostPtr();
+    
+    return getSmallestDistance(scene, terminal1BoostPtr, terminal2BoostPtr) < distanceThreshold && 
+           basePlane.getCentroidProximity(otherTerminal) < distanceThreshold && 
             terminal1Plane.isParallelEnough(terminal2Plane, parallelThreshold);
+    
+//    return basePlane.getCentroidProximity(otherTerminal) < distanceThreshold && 
+//            terminal1Plane.isParallelEnough(terminal2Plane, parallelThreshold);
 }
 /**
  * 

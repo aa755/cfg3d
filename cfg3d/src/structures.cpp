@@ -406,7 +406,7 @@ class SymbolPriorityQueue;
         return scene.points[pointIndex].data[coordinateIndex];
     }
     
-float  getSmallestDistance (pcl::PointCloud<PointT> &scene,boost::shared_ptr <std::vector<int> > & indices1,boost::shared_ptr <std::vector<int> > & indices2)
+float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> > & indices1, boost::shared_ptr <std::vector<int> > & indices2)
 {
   float min_distance = FLT_MAX;
   boost::shared_ptr <std::vector<int> > small_cloud;
@@ -495,7 +495,7 @@ public:
         
     }
 
-    boost::shared_ptr <const std::vector<int> > getPointIndicesBoostPtr() {
+    boost::shared_ptr <std::vector<int> > getPointIndicesBoostPtr() {
         assert(pointIndices.size() > 0);
         return createStaticShared<std::vector<int> >(& pointIndices);
     }
@@ -643,64 +643,6 @@ public:
     virtual void labelSubtree(int label)
     {
         //update evaluation counts
-    }
-    
-    double closestTwoPointsDistance(Terminal& otherTerminal) {
-        vector<int>::iterator otherIt; 
-        vector<int>::iterator thisIt;
-        vector<int> otherPointIndices = otherTerminal.getPointIndices();
-        double closestDistance = infinity();
-        cout<<"This Terminal centroid: "<<endl;
-        printPoint(centroid);
-        cout<<"Other Terminal centroid: "<<endl;
-        printPoint(otherTerminal.centroid);
-        return sqrt(sqr(centroid.x - otherTerminal.centroid.x) + sqr(centroid.y - otherTerminal.centroid.y) + sqr(centroid.z - otherTerminal.centroid.z));
-        
-        // Randomization to reduce space
-//        vector<int> indices1;
-//        vector<int> indices2;
-//        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
-//            if (rand()%100 < 1) {
-//                indices1.push_back(*thisIt);
-//            }
-//        }
-//        
-//        for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
-//            if (rand()%100 < 1) {
-//                indices2.push_back(*otherIt);
-//            }
-//        }
-//        
-//        cout<<"terminal1 number of randomized chosen point indices = "<<indices1.size()<<endl;
-//        cout<<"terminal2 number of randomized chosen point indices = "<<indices2.size()<<endl;
-//        
-//        int counter = 0;
-//        for (thisIt = indices1.begin(); thisIt != indices1.end(); thisIt++) {
-//            for (otherIt = indices2.begin(); otherIt != indices2.end(); otherIt++) {
-//                PointT thisPoint = getPointFromScene(scene, *thisIt);
-//                PointT otherPoint = getPointFromScene(scene, *otherIt);
-//                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
-//                if (distanceToConsider < closestDistance) {
-//                    closestDistance = distanceToConsider;
-//                    cout<<"closestDistance so far = "<<closestDistance<<endl;;                    
-//                }
-//                counter++;
-//                cout<<"counter = "<<counter<<endl;
-//            }
-//        }
-        
-        //N^2 method
-//        for (thisIt = pointIndices.begin(); thisIt != pointIndices.end(); thisIt++) {
-//            for (otherIt = otherPointIndices.begin(); otherIt != otherPointIndices.end(); otherIt++) {
-//                PointT thisPoint = getPointFromScene(scene, *thisIt);
-//                PointT otherPoint = getPointFromScene(scene, *otherIt);
-//                double distanceToConsider = pointPointDistance(thisPoint, otherPoint);
-//                if (distanceToConsider < closestDistance) {
-//                    closestDistance = distanceToConsider;
-//                }
-//            }
-//        }
-        return closestDistance;
     }
     
 };
