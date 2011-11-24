@@ -437,8 +437,8 @@ public:
         LHS->addChild(RHS_unordered2);
         LHS->setAdditionalCost(0);
         LHS->computeSpannedTerminals();        
-        cout<<"S->fc\n";        
-        cerr<<"S->fc: cost "<<LHS->getCost()<<"\n";        
+        //cout<<"S->fc\n";        
+        cout<<"S->fc: cost "<<LHS->getCost()<<"\n";        
 //        cerr<<RHS_plane1->set_membership<<"\n";        
 //        cerr<<RHS_plane2->set_membership<<"\n";        
         return LHS;
@@ -748,9 +748,9 @@ template<>
             return false;
         else
         {
-        cout<<"S->fc\n";        
+     //   cout<<"S->fc\n";        
                 output->setAdditionalCost(5.0/coverage);
-        cerr<<"S->fc: cost "<<output->getCost()<<"\n";        
+        cout<<"S->fc: cost "<<output->getCost()<<"\n";        
                 return true;
         }
     }
@@ -1088,6 +1088,12 @@ void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<Table,TableTopSurface,Legs>()));
 }
 
+void outputOnBothStreams(string str)
+{
+    cout<<str<<endl;
+    cerr<<str<<endl;
+}
+
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstances(rules);
@@ -1154,7 +1160,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         if(min==NULL)
         {
-            cerr<<"parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n";
+            outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
             exit(-1);
         }
         
