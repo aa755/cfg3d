@@ -1309,7 +1309,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type2))
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule (RHS_extracted, RHS_combinee,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -1330,7 +1330,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type1))
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -1361,7 +1361,7 @@ public:
         assert(3 == 2); // needs specialization
     }
         
-    NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    NonTerminal* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS1);
@@ -1389,7 +1389,7 @@ class SingleRule : public Rule
     void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRule(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
         
         if(newNT!=NULL)
         {
@@ -1417,7 +1417,7 @@ public:
         assert(3 == 2);
     }
         
-    NonTerminal* applyRule(RHS_Type* RHS, vector<Terminal*> & terminals)
+    NonTerminal* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);

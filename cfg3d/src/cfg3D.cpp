@@ -228,7 +228,27 @@ public:
 };
 
 class Rule {
+protected:
+    vector<float> features;
+    ofstream featureFile;
 public:
+    
+    const vector<float> & getFeatures() const
+    {
+        return features;
+    }
+    
+    virtual void computeFeatures(){};
+    
+    void writeFeaturesToFile()
+    {
+        vector<float>::iterator it;
+        for(it=features.begin();it!=features.end();it++)
+        {
+            featureFile<<*it;
+        }
+    }
+    
     /**
      * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
      * @param pqueue : the priority queue
@@ -250,6 +270,7 @@ class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
+    
     void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
 
@@ -263,7 +284,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type2))
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule (RHS_extracted, RHS_combinee,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -284,7 +305,7 @@ class DoubleRule : public Rule
             if (typeid (*nt) == typeid (RHS_Type1))
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRule(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -310,17 +331,35 @@ public:
      * @param output
      * @param input
      */
+    DoubleRule(bool learning=false)
+    {
+        if(learning)
+        {
+                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
+                featureFile.open(filename.data(),ios::app); // append to file
+        }
+    }
+    
     bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(3 == 2); // needs specialization
     }
         
-    NonTerminal* applyRule(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS1);
-        LHS->addChild(RHS2);
-        LHS->computeSpannedTerminals();
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        computeFeatures();
+        writeFeaturesToFile();
+        return LHS;
+    }
+    
+    LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        
+        // below to be replaced by generic learned rules
+        // computeFeatures();
+        
         if(setCost(LHS,RHS1,RHS2, terminals)) {
             return LHS;
         }
@@ -329,6 +368,15 @@ public:
             delete LHS;
             return NULL;
         }
+    }
+    
+    LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS1);
+        LHS->addChild(RHS2);
+        LHS->computeSpannedTerminals();
+        return LHS;
     }
 
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
@@ -343,7 +391,7 @@ class SingleRule : public Rule
     void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRule(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
         
         if(newNT!=NULL)
         {
@@ -360,6 +408,15 @@ class SingleRule : public Rule
     }
 
 public:
+    SingleRule(bool learning=false)
+    {
+        if(learning)
+        {
+                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
+                featureFile.open(filename.data(),ios::app); // append to file
+        }
+    }
+    
     
      /**
      * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
@@ -371,11 +428,23 @@ public:
         assert(3 == 2);
     }
         
-    NonTerminal* applyRule(RHS_Type* RHS, vector<Terminal*> & terminals)
+    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS);
-        LHS->computeSpannedTerminals();
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        computeFeatures();
+        writeFeaturesToFile();
+        return LHS;
+        
+    }
+    
+    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        // to be replace by generic features
+        //computeFeatures()
+        
         if(setCost(LHS, RHS,terminals))
              return LHS;
         else
@@ -385,6 +454,14 @@ public:
         }
     }
 
+    LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+    
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
@@ -645,66 +722,66 @@ bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& sa
     return false;
 }
 
-class RPlaneTriplet_PlanePairPlane : public Rule {
-public:
-    int get_Nof_RHS_symbols() {
-        return 2;
-    }
-
-    void get_typenames(vector<string> & names) {
-        names.push_back(typeid (PlanePair).name());
-        names.push_back(typeid (Plane).name());
-    }
-    
-    NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
-        Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
-        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
-        cout<<"attempting to hallucinate..."<<endl;
-        plane1->printData();
-        plane2->printData();
-        vector<pcl::PointXYZ> hallucinationPoints;
-        if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
-            return NULL;
-        }
-        else {
-            vector<pcl::PointXYZ>::iterator it;
-            
-            // Get hallucinated plane
-            
-            Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
-                    cout<<"hallucination\n---------"<<endl;
-        plane1->printData();
-        plane2->printData();
-        cout<<hallucinatedSegment->getIndex()<<endl;
-        cout<<"--------"<<endl;
-
-            SingleRule<Plane, Terminal> rule;
-            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
-            RHS_hallucinatedPlane->declareOptimal();
-            
-            PlaneTriplet* LHS = new PlaneTriplet();
-            
-            LHS->addChild(RHS_planePair);
-            LHS->computeSpannedTerminals();
-            
-            LHS->addChild(RHS_hallucinatedPlane);
-            LHS->setAdditionalCost(1);
-            
-            return LHS;
-        }
-    }
-
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
-    {
-        if (typeid (*extractedSym) == typeid (PlanePair))
-        {
-            PlanePair* planePair = dynamic_cast<PlanePair*> (extractedSym);
-            // Try to hallucinate.
-            NonTerminal *newNT = applyRule(planePair, terminals);
-            addToPqueueIfNotDuplicate(newNT,pqueue);
-        }
-    }
-};
+//class RPlaneTriplet_PlanePairPlane : public Rule {
+//public:
+//    int get_Nof_RHS_symbols() {
+//        return 2;
+//    }
+//
+//    void get_typenames(vector<string> & names) {
+//        names.push_back(typeid (PlanePair).name());
+//        names.push_back(typeid (Plane).name());
+//    }
+//    
+//    NonTerminal* applyRule(PlanePair* RHS_planePair , vector<Terminal*> & terminals) {
+//        Plane* plane1 = dynamic_cast<Plane*>(RHS_planePair->getChild(0));
+//        Plane* plane2 = dynamic_cast<Plane*>(RHS_planePair->getChild(1));
+//        cout<<"attempting to hallucinate..."<<endl;
+//        plane1->printData();
+//        plane2->printData();
+//        vector<pcl::PointXYZ> hallucinationPoints;
+//        if (!canHallucinatePlane(*plane1, *plane2, hallucinationPoints)) {
+//            return NULL;
+//        }
+//        else {
+//            vector<pcl::PointXYZ>::iterator it;
+//            
+//            // Get hallucinated plane
+//            
+//            Terminal* hallucinatedSegment = new HallucinatedTerminal(hallucinationPoints);
+//                    cout<<"hallucination\n---------"<<endl;
+//        plane1->printData();
+//        plane2->printData();
+//        cout<<hallucinatedSegment->getIndex()<<endl;
+//        cout<<"--------"<<endl;
+//
+//            SingleRule<Plane, Terminal> rule;
+//            Plane* RHS_hallucinatedPlane = dynamic_cast<Plane*>(rule.applyRule(hallucinatedSegment, terminals));
+//            RHS_hallucinatedPlane->declareOptimal();
+//            
+//            PlaneTriplet* LHS = new PlaneTriplet();
+//            
+//            LHS->addChild(RHS_planePair);
+//            LHS->computeSpannedTerminals();
+//            
+//            LHS->addChild(RHS_hallucinatedPlane);
+//            LHS->setAdditionalCost(1);
+//            
+//            return LHS;
+//        }
+//    }
+//
+//    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+//    {
+//        if (typeid (*extractedSym) == typeid (PlanePair))
+//        {
+//            PlanePair* planePair = dynamic_cast<PlanePair*> (extractedSym);
+//            // Try to hallucinate.
+//            NonTerminal *newNT = applyRule(planePair, terminals);
+//            addToPqueueIfNotDuplicate(newNT,pqueue);
+//        }
+//    }
+//};
 
 /// Templated Rules Marker TRM
 template<>
