@@ -27,7 +27,6 @@
 #include <math.h>
 
 //sac_model_plane.h
-
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
@@ -465,7 +464,7 @@ class SymbolPriorityQueue;
         return scene.points[pointIndex].data[coordinateIndex];
     }
     
-float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> > & indices1, boost::shared_ptr <std::vector<int> > & indices2)
+float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> >  indices1, boost::shared_ptr <std::vector<int> >  indices2)
 {
   float min_distance = FLT_MAX;
   boost::shared_ptr <std::vector<int> > small_cloud;
@@ -507,6 +506,7 @@ float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <st
 class Terminal : public Symbol 
 {
 protected:
+    map<int,float> minDistances;
     vector<int> pointIndices;
     /** segment index
      */
@@ -523,6 +523,39 @@ protected:
     }
     
 public:
+    
+    void computeMinDistanceBwNbrTerminals(vector<Terminal*> & terminals)
+    {
+        neighbors.iteratorReset();
+        int nindex;
+        float distance;
+        while(neighbors.nextOnBit(nindex))
+        {
+            if(terminals.at(nindex)->getMinDistanceFromTerminal(index,distance)) // minDistance is symmetric, check if it was already computed
+            {
+                // neighbor relation is not symmetric
+                neighbors[nindex]=distance;
+            }
+            else
+            {
+                neighbors[index]=getSmallestDistance(scene, getPointIndicesBoostPtr(),terminals.at(nindex)->getPointIndicesBoostPtr());
+            }
+        }
+    }
+    
+    bool getMinDistanceFromTerminal(int index0Based, float & distance_ret)
+    {
+        map<int,float>::iterator it;
+        it=minDistances.find(index0Based);
+        if(it==minDistances.end())
+            return false;
+        else
+        {
+            distance_ret=it->second;
+            return true;
+        }
+                    
+    }
     
     void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
@@ -969,13 +1002,8 @@ public:
 //    }
 
     virtual void printData() {
-        cout << id << "\t:" << spanned_terminals << endl;
-        for (uint i = 0; i < spanned_terminals.size(); i++) {
-            if(spanned_terminals.test(i)) {
-                cout<<i+1<<", ";
-            }
-        }
-        cout<<endl;
+        //cout << id << "\t:" << spanned_terminals << endl;
+        spanned_terminals.print1BasedIndices();
     }
 
     size_t getNumTerminals() {

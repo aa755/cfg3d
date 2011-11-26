@@ -13,7 +13,7 @@
 #include <boost/tokenizer.hpp>
 #include <vector>
 #include <boost//lexical_cast.hpp>
-
+#include <iostream>
 using namespace std;
 
 struct null_deleter
@@ -60,6 +60,17 @@ public:
         
         index=position;
         return position!=(int)npos;
+    }
+    
+    void print1BasedIndices()
+    {
+        iteratorReset();
+        int index;
+        while(nextOnBit(index))
+        {
+            std::cout<<index+1<<",";
+        }
+        std::cout<<endl;
     }
 };
 

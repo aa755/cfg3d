@@ -739,7 +739,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
-        terminals[i]->computeFeatures();
+        terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
+        terminals.at(i)->computeFeatures();
     }
     
     for(unsigned int i=0;i<terminals.size();i++)
