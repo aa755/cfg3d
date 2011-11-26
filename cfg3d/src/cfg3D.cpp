@@ -335,6 +335,7 @@ public:
     {
         if(learning)
         {
+            // LHS__RHS1_RHS2
                 string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
                 featureFile.open(filename.data(),ios::app); // append to file
         }
