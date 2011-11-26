@@ -85,6 +85,7 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
 double infinity() {
     return numeric_limits<double>::infinity();
 }
+Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
 //double sqr(double value) {
 //    return value * value;
@@ -166,6 +167,28 @@ protected:
 
     }
 public:
+    float getMinDistance(Symbol * other)
+    {
+        resetSpannedTerminalIterator();
+        other->resetSpannedTerminalIterator();
+        
+        int index1,index2;
+        float minDistance=numeric_limits<float>::infinity();
+        while(nextSpannedTerminal(index1))
+        {
+            while(other->nextSpannedTerminal(index2))
+            {
+                float distance=segMinDistances(index1,index2);
+                if(distance<minDistance)
+                {
+                    minDistance=distance;
+                }
+                    
+            }
+            
+        }
+        return minDistance;
+    }
     
     const pcl::PointXYZ & getCentroid() const
     {
@@ -443,6 +466,9 @@ public:
     {
         return covarianceMatrixWoMean;
     }
+    
+    virtual void resetSpannedTerminalIterator()=0;
+    virtual bool nextSpannedTerminal(int & index)=0;
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -521,8 +547,25 @@ protected:
                     covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
 
     }
-    
+    bool start;
 public:
+    virtual void resetSpannedTerminalIterator()
+    {
+        start=true;
+    }
+    virtual bool nextSpannedTerminal(int & tindex)
+    {
+        if(start)
+        {
+            tindex=index;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+            
+    }
     
     void computeMinDistanceBwNbrTerminals(vector<Terminal*> & terminals)
     {
@@ -872,7 +915,17 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    virtual void resetSpannedTerminalIterator()
+    {
+        spanned_terminals.iteratorReset();
+    }
     
+    virtual bool nextSpannedTerminal(int & tindex)
+    {
+        return spanned_terminals.nextOnBit(tindex);
+    }
+    
+        
     virtual float getMinLength()
     {
         return 0.01; 
