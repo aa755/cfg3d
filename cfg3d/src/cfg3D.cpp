@@ -345,17 +345,15 @@ public:
         assert(3 == 2); // needs specialization
     }
 
-    void appendPairFeatures(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
-        Symbol *rhs1;
-        Symbol *rhs2;
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->centroidDistance(rhs2));
         features.push_back(rhs1->centroidHorizontalDistance(rhs2));
         features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
-        Plane * plane1=dynamic_cast<Plane *>(RHS1);
-        Plane * plane2=dynamic_cast<Plane *>(RHS2);
+        Plane * plane1=dynamic_cast<Plane *>(rhs1);
+        Plane * plane2=dynamic_cast<Plane *>(rhs2);
         if(plane1!=NULL && plane2 !=NULL)
         {
             features.push_back(plane1->dotProduct(plane2));
@@ -366,14 +364,32 @@ public:
         //area ratio on plane defined by normal
     }
     
-    void appendAllFeatures(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
     {
+        features.clear();
         
-        output->appendFeatures();
+        vector<Symbol*> RHS1Expanded;
+        vector<Symbol*> RHS2Expanded;
+        rhs1->expandIntermediates(RHS1Expanded);
+        rhs2->expandIntermediates(RHS2Expanded);
+        vector<Symbol*>::iterator it1;
+        vector<Symbol*>::iterator it2;
+        
+        for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
+        {
+            for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
+            {
+                appendPairFeatures(*it1,*it2);
+            }
+        }
+        
+        output->computeFeatures();
+        output->appendFeatures(features);
     }
     
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         appendAllFeatures(LHS,RHS1,RHS2,terminals);
         writeFeaturesToFile();
@@ -446,6 +462,7 @@ public:
     
     void computeFeatures(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
     {
+        features.clear();
         input->appendFeatures(features);
     }
     
@@ -461,6 +478,7 @@ public:
         
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         computeFeatures();

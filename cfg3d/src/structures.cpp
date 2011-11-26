@@ -180,8 +180,10 @@ public:
         temp.y=centroid.y;
         return temp;
     }
+
     
-    void appendFeatures(vector<float> & features)
+    
+    virtual void appendFeatures(vector<float> & features)
     {
         
     }
@@ -264,6 +266,11 @@ public:
 
     boost::dynamic_bitset<> & getNeigborTerminalBitset() {
         return neighbors;
+    }
+
+    virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
+    {
+        nonIntermediateChildren.push_back(this);
     }
     
     virtual void computeCentroidAndColorAndNumPoints()=0 ;
@@ -1152,6 +1159,18 @@ class NonTerminalIntermediate : public NonTerminal
     {
         // intermediate types dont contribute to features
     }
+    
+    virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
+    {
+        vector<Symbol*>::iterator it;
+        for(it=children.begin();it!=children.end();it++)
+        {
+            NonTerminal * child = dynamic_cast<NonTerminal*>(*it);
+            assert(child!=NULL);
+            child->expandIntermediates(nonIntermediateChildren);
+        }
+    }
+
 };
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
