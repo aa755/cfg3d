@@ -2035,3 +2035,519 @@ public:
 };
 
 class PlaneTriplet : public NonTerminal {};
+
+
+/**
+ * when an NT is extracted, this class will help in finding possible candidates
+ * for combination. it uses a stack now, because, it might be useful
+ * later to ignore all the parents of an (bad)NT
+ */
+class FindNTsToCombineWith {
+    stack<NonTerminal*> eligibleNTs;
+    long iterationNo;
+    Symbol *extractedSym;
+
+public:
+    FindNTsToCombineWith(Symbol * sym, vector<Terminal*> & allTerminals, long iterationNo_) {
+        extractedSym = sym;
+        iterationNo = iterationNo_;
+        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
+            if (sym->isNeighbor(i)) {
+                allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, eligibleNTs,iterationNo);
+            }  
+        }
+
+    }
+
+    NonTerminal * nextEligibleNT() {
+        if (eligibleNTs.empty())   
+            return NULL;
+
+        NonTerminal *ret = eligibleNTs.top(); // only unvisited and eligible items were pushed to stack
+        eligibleNTs.pop();
+
+        //push it's parents which are eligible
+        // to add a possibility of ignoring all it's ancestors, postpone
+        //next step to nest call by temporarily storing return value
+        ret->pushEligibleNonDuplicateOptimalParents(extractedSym, eligibleNTs,iterationNo);
+        return ret;
+    }
+};
+
+/**
+ * abstraction of a priority queue which can do additional book-keeping later
+ * duplicate check needs to be done on all members, even those whioch have been extracted from PQ
+ * check for duplicate:
+ *      if duplicate in sth already extracted from PQ
+ *              don't do anything
+ *      else if found in PQ
+ *              if cost is more than that in PQ
+ *                      ignore
+ *              else
+ *                      add to PQ
+ *                      if possible, delete the copy which was present in PQ
+ *
+ *
+ * consider using Trie
+ *
+ */
+class SymbolPriorityQueue {
+    /**these 2 contain same elements ... stored in a different way
+     */
+    priority_queue<Symbol *, vector<Symbol *>, SymbolComparison> costSortedQueue; // optimized to give least cost
+    map<string,vector<NTSet> > NTsetsInPQ; // optimized for duplicate check
+    
+   
+    map<string,vector<NTSet> > NTsetsExtracted;
+
+    NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > & bins)
+    {
+        int numTerminals = sym->getNumTerminals();
+        assert(numTerminals > 0);
+        vector<NTSet> & typeBin=bins[string(typeid(*sym).name())];
+
+        if(typeBin.size()==0)
+            typeBin.resize(totalNumTerminals,NTSet()); // first time => allocate bins
+        
+        return typeBin.at(numTerminals-1);
+        
+    }
+
+    NTSet & getBinOfExtractedSymbols(NonTerminal * sym)
+    {
+        return getBin(sym,NTsetsExtracted);
+    }
+    
+    NTSet & getBinOfPQSymbols(NonTerminal * sym)
+    {
+        return getBin(sym,NTsetsInPQ);        
+    }
+
+    bool CheckIfBetterDuplicateExists(NonTerminal * sym) {
+        assert(4==2); //not used for now
+        NTSet & bin = getBinOfExtractedSymbols(sym);
+        NTSet::iterator lb;
+        lb = bin.lower_bound(sym);
+        if (lb != bin.end() && (*lb)->isDuplicate(sym)) {
+            //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            return true;
+        }
+
+        NTSet & bin1 = getBinOfPQSymbols(sym);
+        lb = bin1.lower_bound(sym);
+        if (lb != bin1.end() && (*lb)->isDuplicate(sym)) {
+            //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            if (sym->getCost() >= (*lb)->getCost())
+                return true;
+        }
+        return false;
+    }
+
+
+    int totalNumTerminals;
+public:
+
+    
+    
+    SymbolPriorityQueue(int totalNumTerminals_) //: NTsetsExtracted(numTerminals, NTSet()), NTsetsInPQ(numTerminals, NTSet()) {
+    {
+        totalNumTerminals=totalNumTerminals_;
+    }
+
+
+    /**
+     * extracted before => was better or same cost
+     *
+     */
+    bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym) {
+        NTSet & bin = getBinOfExtractedSymbols(sym);
+        NTSet::iterator lb;
+        lb = bin.lower_bound(sym);
+        if (lb != bin.end() && (*lb)->isDuplicate(sym)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * also check for duplicate and don't add if a duplicate with smaller cost
+     * exists
+     * @param sym
+     * @return true if inserted
+     */
+    bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
+        if (sym->getCost() >= HIGH_COST) {
+            return false;
+        }
+        
+        if (CheckIfBetterDuplicateWasExtracted(sym))
+            return false;
+
+        NTSet & bin1 = getBinOfPQSymbols(sym);
+        NTSet::iterator lb;
+        lb = bin1.lower_bound(sym);
+        if (lb != bin1.end() && (*lb)->isDuplicate(sym)) {
+            //   cout<<"duplicate:\n"<<set_membership<<"\n"<<(*lb)->set_membership<<endl;
+            if (sym->getCost() < (*lb)->getCost())
+            {
+                // duplicate of higher cost already exixted => update
+                //PQ order can't be updated so add an duplicate pointer to the same object
+                // when this object will be extracted, set the optimal field
+                (*lb)->markDuplicate();
+                bin1.erase(lb);
+                bin1.insert(--lb,sym);
+                //(*lb)=sym; // the set is not sorted by cost, it is sorted by bitset => order is same
+                costSortedQueue.push(sym);
+                return true;
+            }
+            
+            //else there is already a duplicate of lower cost => no change required
+            return false ; //in both cases, the pointer should be deleted
+        }
+        else
+        {
+            bin1.insert(sym);
+            costSortedQueue.push(sym);
+            return true;
+        }
+
+//        std::pair<NTSet::iterator, bool> ret =getBinOfPQSymbols(sym).insert(sym); // will be inserted only if not duplicate
+//        if(ret.second)
+//            costSortedQueue.push(sym);
+//        return ret.second; // true if inserted, else duplicate
+    }
+
+    /**
+     * no need to check for duplicate
+     * @param sym
+     */
+    void pushTerminal(Terminal * sym) {
+        costSortedQueue.push(sym);
+    }
+
+    Symbol * pop(bool & duplicate) {
+        if(costSortedQueue.empty())
+            return NULL;
+        Symbol * top = costSortedQueue.top();
+        assert(top!=NULL);
+        costSortedQueue.pop();
+        duplicate=false;
+        if (typeid (*top) != typeid (Terminal)) {
+            NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
+            
+            if(nt->isMarkDuplicate())
+            {
+                duplicate=true;
+                //cout<<"mdup"<<endl;
+                return top;
+            }
+            
+            std::pair<NTSet::iterator, bool> res=getBinOfExtractedSymbols(nt).insert(nt); // set => no duplicates
+            assert(res.second);
+            getBinOfPQSymbols(nt).erase(nt);
+        }
+
+        return top;
+    }
+
+    size_t size() {
+        return costSortedQueue.size();
+    }
+
+};
+
+class Rule {
+protected:
+    vector<float> features;
+    ofstream featureFile;
+public:
+    
+    const vector<float> & getFeatures() const
+    {
+        return features;
+    }
+    
+//    virtual void computeFeatures(){};
+    
+    void writeFeaturesToFile()
+    {
+        vector<float>::iterator it;
+        for(it=features.begin();it!=features.end();it++)
+        {
+            featureFile<<*it;
+        }
+    }
+    
+    /**
+     * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
+     * @param pqueue : the priority queue
+     * @param terminals : set of all terminals
+     */
+    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
+
+    virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
+      //  newNT->computeSetMembership(); // required for duplicate check
+        if(newNT==NULL)
+            return;
+        if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
+            delete newNT;
+    }
+};
+
+template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
+class DoubleRule : public Rule
+{
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    
+    void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+
+        RHS_Type1 * RHS_extracted = dynamic_cast<RHS_Type1 *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL)
+        {
+            if (typeid (*nt) == typeid (RHS_Type2))
+            {
+                RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
+                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+    }
+
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+
+        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL)
+        {
+            if (typeid (*nt) == typeid (RHS_Type1))
+            {
+                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+    }
+
+    //    template<typename RHS_Type1, typename RHS_Type2>
+
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (RHS_Type1))
+        {
+            combineAndPushForParam1(extractedSym, pqueue, terminals, iterationNo);
+        }
+        else if (typeid (*extractedSym) == typeid (RHS_Type2))
+        {
+            combineAndPushForParam2(extractedSym, pqueue, terminals, iterationNo);
+        }
+    }
+
+public:
+    /**
+     * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
+     * @param output
+     * @param input
+     */
+    DoubleRule(bool learning=false)
+    {
+        if(learning)
+        {
+            // LHS__RHS1_RHS2
+                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
+                featureFile.open(filename.data(),ios::app); // append to file
+        }
+    }
+    
+    bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        assert(3 == 2); // needs specialization
+    }
+
+    void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
+    {
+        features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
+        features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
+        features.push_back(rhs1->centroidDistance(rhs2));
+        features.push_back(rhs1->centroidHorizontalDistance(rhs2));
+        features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
+        //Symbol * rhs1;
+        rhs1->pushColorDiffFeatures(features,rhs2);
+        Plane * plane1=dynamic_cast<Plane *>(rhs1);
+        Plane * plane2=dynamic_cast<Plane *>(rhs2);
+        if(plane1!=NULL && plane2 !=NULL)
+        {
+            features.push_back(plane1->dotProduct(plane2));
+        }
+        
+        //min distance
+        //get horizontal area ratio
+        //area ratio on plane defined by normal
+    }
+    
+    void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+    {
+        features.clear();
+        
+        vector<Symbol*> RHS1Expanded;
+        vector<Symbol*> RHS2Expanded;
+        rhs1->expandIntermediates(RHS1Expanded);
+        rhs2->expandIntermediates(RHS2Expanded);
+        vector<Symbol*>::iterator it1;
+        vector<Symbol*>::iterator it2;
+        
+        for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
+        {
+            for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
+            {
+                appendPairFeatures(*it1,*it2);
+            }
+        }
+        
+        output->computeFeatures();
+        output->appendFeatures(features);
+    }
+    
+    LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        appendAllFeatures(LHS,RHS1,RHS2,terminals);
+        writeFeaturesToFile();
+        return LHS;
+    }
+    
+    LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        
+        // below to be replaced by generic learned rules
+        // computeFeatures();
+        
+        if(setCost(LHS,RHS1,RHS2, terminals)) {
+            return LHS;
+        }
+        else
+        {
+            delete LHS;
+            return NULL;
+        }
+    }
+    
+    LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS1);
+        LHS->addChild(RHS2);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
+    }
+}; 
+
+template<typename LHS_Type, typename RHS_Type>
+class SingleRule : public Rule
+{
+    void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
+        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
+        
+        if(newNT!=NULL)
+        {
+                addToPqueueIfNotDuplicate(newNT, pqueue);
+        }
+    }
+
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (RHS_Type))
+        {
+            combineAndPushForParam(extractedSym, pqueue, terminals, iterationNo);
+        }
+    }
+
+public:
+    SingleRule(bool learning=false)
+    {
+        if(learning)
+        {
+                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
+                featureFile.open(filename.data(),ios::app); // append to file
+        }
+    }
+    
+    void computeFeatures(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+    {
+        features.clear();
+        input->appendFeatures(features);
+    }
+    
+     /**
+    
+     * @param output
+     * @param input
+     */
+    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+    {
+        assert(3 == 2);
+    }
+        
+    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        computeFeatures();
+        writeFeaturesToFile();
+        return LHS;
+        
+    }
+    
+    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        // to be replace by generic features
+        //computeFeatures()
+        
+        if(setCost(LHS, RHS,terminals))
+             return LHS;
+        else
+        {
+            delete LHS;
+            return NULL;
+        }
+    }
+
+    LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+    
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
+    }
+}; 
+
+typedef boost::shared_ptr<Rule> RulePtr;

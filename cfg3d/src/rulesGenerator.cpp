@@ -17,6 +17,7 @@
 
 #define MAX_SEG_INDEX 30
 
+ofstream rulesFile;
 using namespace std;
 
 void printFileError() {
@@ -37,7 +38,7 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
         while (labelFile.good())
         {
             getline(labelFile, line); //each line is a label
-            cout<<line<<endl;
+//            cout<<line<<endl;
             if (line.size() == 0) 
             {
                 break;
@@ -60,7 +61,7 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
                     continue;
 
                 nodeToNeighbors[segIndex].insert(nbrs.at(i));
-                cout << "Adding " << nbrs.at(i) << "<->" << segIndex << endl;
+//                cout << "Adding " << nbrs.at(i) << "<->" << segIndex << endl;
             }
         }
     }
@@ -69,7 +70,7 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
         printFileError();
         exit(-1);
     }
-    cout<<endl;
+//    cout<<endl;
     return max;
 }
 
@@ -96,7 +97,7 @@ int parseLabels(char* file, map<int, int> &nodeToLabel)
             int nodeIndex = boost::lexical_cast<int>(nbrs.at(0));
             int labelIndex = boost::lexical_cast<int>(nbrs.at(1));
             nodeToLabel[nodeIndex] = labelIndex;
-            cout << "Adding " << nodeIndex << "<->" << labelIndex << endl;
+//            cout << "Adding " << nodeIndex << "<->" << labelIndex << endl;
         }
     }
     else
@@ -104,7 +105,7 @@ int parseLabels(char* file, map<int, int> &nodeToLabel)
         printFileError();
         exit(-1);
     }
-    cout<<endl;
+//    cout<<endl;
     return max;
 }
 
@@ -131,7 +132,7 @@ int parseLabelIndexToText(char* file, map<int, string> &labelsToText)
             int label = boost::lexical_cast<int>(nbrs.at(0));
             string labelText = nbrs.at(1);
             labelsToText[label] = labelText;
-            cout << "Adding " << label << "<->" << labelText << endl;
+//            cout << "Adding " << label << "<->" << labelText << endl;
         }
     }
     else
@@ -156,7 +157,8 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
     conquered.insert(conquering);
     toConquer.erase(conquering);
     string conqueringName = labelToText[nodeToLabel[conquering]];
-    cout<<"Conquered "<<conquering<<"("<<conqueringName<<")"<<"."<<endl;
+//    cout<<"Conquered "<<conquering<<"("<<conqueringName<<")"<<"."<<endl;
+    rulesFile<<conqueringName<<","<<"Terminal"<<endl;
     set<int> neighbors = nodeToNeighbors[conquering];
      
     for (it = neighbors.begin(); it != neighbors.end(); it++) {
@@ -165,12 +167,12 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
         }
     }
     
-    cout<<"To conquer: "<<endl;
-    printSet(toConquer);
+//    cout<<"To conquer: "<<endl;
+//    printSet(toConquer);
 }
 
 void printRule(string leftNonTerminal, string rNT1, string rNT2) {
-    cout<<leftNonTerminal<<" -> "<<rNT1<<" "<<rNT2<<endl;
+    rulesFile<<leftNonTerminal<<","<<rNT1<<","<<rNT2<<endl;
 }
 
 void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLabel, map<int, string> &labelsToText, string goal) {
@@ -182,15 +184,15 @@ void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLa
         int conquering = *toConquer.begin();
         string conqueringName = labelsToText[nodeToLabel[conquering]];
         conquer(conquering, conquered, toConquer, nodeToNeighbors, nodeToLabel, labelsToText);
-        cout<<"Generating rule: "<<endl;
+//        cout<<"Generating rule: "<<endl;
         if (toConquer.empty()) {
             printRule(goal, internalNonTerminal, conqueringName);
         } else {
             string previousInternalNonTerminal = internalNonTerminal;
-            internalNonTerminal.append("|").append(conqueringName);
+            internalNonTerminal.append("_").append(conqueringName);
             printRule(internalNonTerminal, previousInternalNonTerminal, conqueringName);
         }
-        cout<<endl;
+//        cout<<endl;
     }
 }
 
@@ -198,6 +200,7 @@ void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLa
 
 int main(int argc, char** argv)
 {
+    rulesFile.open("featuresInput.txt");
     
     //    parseGraph("bin/graph.txt", nodeToNeighbors);
     map<int, set<int> > nodeToNeighbors;
