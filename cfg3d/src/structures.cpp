@@ -185,12 +185,35 @@ public:
     
     virtual void appendFeatures(vector<float> & features)
     {
+        assert(featuresComputed);
+        features.push_back(centroid.z);
+        features.push_back(zSquaredSum-  numPoints*sqr(centroid.z)); // variance along z
+        features.push_back(minxyz.z);
+        features.push_back(maxxyz.z);
+        ColorRGB avgColorO(avgColor);
+        features.push_back(avgColorO.H);
+        features.push_back(avgColorO.S);
+        features.push_back(avgColorO.V);
+        // horizontal convex hull area
+        // move eigen vector code to here
+        // linearness, planarness, scatter
+        
         
     }
     
     float centroidDistance(Symbol * other)
     {
         return pcl::euclideanDistance<pcl::PointXYZ,pcl::PointXYZ>(centroid,other->centroid);
+    }
+    
+    void pushColorDiffFeatures(vector<float> & features, Symbol * other)
+    {
+        ColorRGB avgColorThis(avgColor);
+        ColorRGB avgColorOther(other->avgColor);
+        features.push_back(avgColorThis.H - avgColorOther.H);
+        features.push_back(avgColorThis.S - avgColorOther.S);
+        features.push_back(avgColorThis.V - avgColorOther.V);
+        
     }
     
     float centroidHorizontalDistance(Symbol * other)
@@ -393,12 +416,12 @@ public:
         if(featuresComputed) {
             return;
         }
-        featuresComputed=true;
         computeZSquaredSum();
         computeMinMaxXYZ();
         computeCentroidAndColorAndNumPoints();
         compute2DConvexHull();
         computeCovarianceMatrixWoMean();
+        featuresComputed=true;
     }
     
     virtual int getId() = 0;

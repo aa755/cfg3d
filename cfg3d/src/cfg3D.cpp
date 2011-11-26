@@ -352,6 +352,8 @@ public:
         features.push_back(rhs1->centroidDistance(rhs2));
         features.push_back(rhs1->centroidHorizontalDistance(rhs2));
         features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
+        //Symbol * rhs1;
+        rhs1->pushColorDiffFeatures(features,rhs2);
         Plane * plane1=dynamic_cast<Plane *>(rhs1);
         Plane * plane2=dynamic_cast<Plane *>(rhs2);
         if(plane1!=NULL && plane2 !=NULL)
