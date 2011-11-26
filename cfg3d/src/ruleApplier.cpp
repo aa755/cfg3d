@@ -9,6 +9,7 @@ using namespace boost;
 
 ofstream outputCode;
 
+// What generated code would look like.
 void runLearn() {
     queue<Symbol*> nodesCreatedSoFar;
     vector<Terminal*> temp;
@@ -24,12 +25,22 @@ void runLearn() {
     nodesCreatedSoFar.pop();
     RTop* last = dynamic_cast<RTop*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-//    ruleLTop_RTop.applyRuleLearning(secondToLast, last, temp);
+    nodesCreatedSoFar.push(ruleLTop_RTop.applyRuleLearning(secondToLast, last, temp));
 }
 
 void applySingleRule(string ruleName, string terminalLabel) {
     string front = "nodesCreatedSoFar.push(";
     outputCode<<front.append(ruleName).append(".applyRuleLearning(labelToTerminal.at(\"").append(terminalLabel).append("\"), temp));")<<endl;
+}
+
+void applyDoubleRule(string ruleName, string LHS, string RHS1, string RHS2) {
+    outputCode<<RHS1.append("* secondToLast = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputCode<<"nodesCreatedSoFar.pop();"<<endl;
+    outputCode<<RHS2.append("* last = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputCode<<"nodesCreatedSoFar.pop();"<<endl;
+    string front = "nodesCreatedSoFar.push(";
+    outputCode<<front.append(ruleName).append(".applyRuleLearning(secondToLast, last, temp));")<<endl;
+
 }
 
 // Rules
@@ -50,8 +61,8 @@ void applyRuleToFile(vector<string> rulesVector) {
         applySingleRule(ruleName, RHS);
     }
     else if (count == 3) {
-        string RHS1 =  rulesVector.at(1);
-        string RHS2 =  rulesVector.at(2);
+        string RHS1 = rulesVector.at(1);
+        string RHS2 = rulesVector.at(2);
         ruleType = "    DoubleRule";
         string temp = "";
         string ruleName = temp.append("rule").append(LHS);
