@@ -9,7 +9,7 @@ using namespace boost;
 
 ofstream outputCode;
 
-// What generated code would look like.
+// What generated code would look like
 void runLearn() {
     queue<Symbol*> nodesCreatedSoFar;
     vector<Terminal*> temp;
@@ -25,7 +25,7 @@ void runLearn() {
     nodesCreatedSoFar.pop();
     RTop* last = dynamic_cast<RTop*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-    nodesCreatedSoFar.push(ruleLTop_RTop.applyRuleLearning(secondToLast, last, temp));
+//    nodesCreatedSoFar.push(ruleLTop_RTop.applyRuleLearning(secondToLast, last, temp));
 }
 
 void applySingleRule(string ruleName, string terminalLabel) {
@@ -86,6 +86,7 @@ void applyRuleFromString(string line) {
 void createRules(char* file) {
     ifstream rulesFile;
     outputCode<<"void runLearn() {"<<endl;
+    outputCode<<"    initializeTerminals();"<<endl;
     outputCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
     outputCode<<"    vector<Terminal*> temp;"<<endl;
     rulesFile.open(file);
