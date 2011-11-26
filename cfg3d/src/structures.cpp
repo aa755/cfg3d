@@ -2371,7 +2371,7 @@ public:
         }
     }
     
-    bool setCost(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
     {
         assert(3 == 2); // needs specialization
     }
@@ -2493,7 +2493,8 @@ public:
         }
     }
     
-    void computeFeatures(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+    //?
+    void computeFeatures(RHS_Type* input)
     {
         features.clear();
         input->appendFeatures(features);
@@ -2508,13 +2509,13 @@ public:
     {
         assert(3 == 2);
     }
-        
+    
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
-        computeFeatures();
+        computeFeatures(RHS);
         writeFeaturesToFile();
         return LHS;
         

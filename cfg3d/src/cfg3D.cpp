@@ -63,12 +63,11 @@ public:
     {
          combineAndPushGeneric<SceneRHS_Type1,SceneRHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
     }
-
 };
 
 class RPlane_PlaneSeg : public Rule {
 public:
-
+    
     int get_Nof_RHS_symbols() {
         return 2;
     }
