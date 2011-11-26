@@ -93,10 +93,10 @@ int parseLabels(char* file, map<int, int> &nodeToLabel)
             }
 
             getTokens(line, nbrs);
-            int node = boost::lexical_cast<int>(nbrs.at(0));
-            int label = boost::lexical_cast<int>(nbrs.at(1));
-            nodeToLabel[node] = label;
-            cout << "Adding " << node << "<->" << label << endl;
+            int nodeIndex = boost::lexical_cast<int>(nbrs.at(0));
+            int labelIndex = boost::lexical_cast<int>(nbrs.at(1));
+            nodeToLabel[nodeIndex] = labelIndex;
+            cout << "Adding " << nodeIndex << "<->" << labelIndex << endl;
         }
     }
     else
@@ -108,7 +108,7 @@ int parseLabels(char* file, map<int, int> &nodeToLabel)
     return max;
 }
 
-int parseLabelsText(char* file, map<int, string> &labelsToText)
+int parseLabelIndexToText(char* file, map<int, string> &labelsToText)
 {
     ifstream labelFile;
     string line;
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
 
     //    parseLabelsText("bin/labelsText.txt", labelsToText);
     map<int, string> labelsToText;
-    parseLabelsText(argv[3], labelsToText);
+    parseLabelIndexToText(argv[3], labelsToText);
 
     //    generateRules(nodeToNeighbors, nodeToLabel, labelsToText, "Table");
     generateRules(nodeToNeighbors, nodeToLabel, labelsToText, argv[4]);
