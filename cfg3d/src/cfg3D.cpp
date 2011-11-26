@@ -238,7 +238,7 @@ public:
         return features;
     }
     
-    virtual void computeFeatures(){};
+//    virtual void computeFeatures(){};
     
     void writeFeaturesToFile()
     {
@@ -344,11 +344,38 @@ public:
     {
         assert(3 == 2); // needs specialization
     }
+
+    void appendPairFeatures(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    {
+        Symbol *rhs1;
+        Symbol *rhs2;
+        features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
+        features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
+        features.push_back(rhs1->centroidDistance(rhs2));
+        features.push_back(rhs1->centroidHorizontalDistance(rhs2));
+        features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
+        Plane * plane1=dynamic_cast<Plane *>(RHS1);
+        Plane * plane2=dynamic_cast<Plane *>(RHS2);
+        if(plane1!=NULL && plane2 !=NULL)
+        {
+            features.push_back(plane1->dotProduct(plane2));
+        }
         
+        //min distance
+        //get horizontal area ratio
+        //area ratio on plane defined by normal
+    }
+    
+    void appendAllFeatures(LHS_Type* output, RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    {
+        
+        output->appendFeatures();
+    }
+    
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
-        computeFeatures();
+        appendAllFeatures(LHS,RHS1,RHS2,terminals);
         writeFeaturesToFile();
         return LHS;
     }
@@ -417,6 +444,10 @@ public:
         }
     }
     
+    void computeFeatures(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+    {
+        input->appendFeatures(features);
+    }
     
      /**
      * This must be overriden by the inheriting class as each Rule will have its own specific cost function.

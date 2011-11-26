@@ -167,6 +167,35 @@ protected:
 
     }
 public:
+    
+    const pcl::PointXYZ & getCentroid() const
+    {
+        return centroid;
+    }
+    
+    pcl::PointXY getHorizontalCentroid()
+    {
+        pcl::PointXY temp;
+        temp.x=centroid.x;
+        temp.y=centroid.y;
+        return temp;
+    }
+    
+    void appendFeatures(vector<float> & features)
+    {
+        
+    }
+    
+    float centroidDistance(Symbol * other)
+    {
+        return pcl::euclideanDistance<pcl::PointXYZ,pcl::PointXYZ>(centroid,other->centroid);
+    }
+    
+    float centroidHorizontalDistance(Symbol * other)
+    {
+        return sqrt(sqr(centroid.x-other->centroid.x)+sqr(centroid.y-other->centroid.y));
+    }
+    
     bool featuresComputed;
     virtual void labelSubtree()=0;
     virtual void labelSubtree(int label)=0;
@@ -1116,6 +1145,14 @@ public:
 
 int NonTerminal::id_counter = 0;
 
+class NonTerminalIntermediate : public NonTerminal
+{
+
+    virtual void appendFeatures(vector<float> & features)
+    {
+        // intermediate types dont contribute to features
+    }
+};
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
     //start with MSBs
