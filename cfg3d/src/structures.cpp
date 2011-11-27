@@ -137,10 +137,11 @@ protected:
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
-     vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
+     vector<cv::Point2f> horzConvexHull;  // The convex hull points in openCV.
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
     Eigen::Matrix3d covarianceMatrixWoMean;
+    float horzArea;
 
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
@@ -166,7 +167,16 @@ protected:
                 ans(i, j) = centr.data[i] * centr.data[j] * numPoints;
 
     }
+    
 public:
+
+    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
+    {
+        vector<cv::Point2f> contour;
+        cv::approxPolyDP(cv::Mat(cv2D), contour, 0.01, true);
+        return fabs(cv::contourArea(cv::Mat(contour)));
+    }
+    
     float getMinDistance(Symbol * other)
     {
         resetSpannedTerminalIterator();
@@ -285,14 +295,14 @@ public:
     
     const vector<cv::Point2f> & getConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
 
     vector<cv::Point2f>  cloneConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
     
     virtual string getName()=0;
@@ -469,6 +479,11 @@ public:
     
     virtual void resetSpannedTerminalIterator()=0;
     virtual bool nextSpannedTerminal(int & index)=0;
+
+    float getHorzArea() const
+    {
+        return horzArea;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -637,7 +652,7 @@ public:
     
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         vector<int> & indices = getPointIndices();
@@ -648,7 +663,8 @@ public:
              cvPoints.at(i).x=scene.points[indices[i]].x;
              cvPoints.at(i).y=scene.points[indices[i]].y;
          }
-        cv::convexHull(cv::Mat(cvPoints), rectConvexHull);
+        cv::convexHull(cv::Mat(cvPoints), horzConvexHull);
+        
     }
     
     static int numHallucinatedTerminals;
@@ -851,7 +867,7 @@ protected:
      */
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         
@@ -868,7 +884,8 @@ protected:
             unionHullUnion.insert(unionHullUnion.end(), childHull.begin(), childHull.end() );
         }
 
-        cv::convexHull(cv::Mat(unionHullUnion), rectConvexHull);
+        cv::convexHull(cv::Mat(unionHullUnion), horzConvexHull);
+        horzArea=_getPolygonArea(horzConvexHull);
       
     }
     
@@ -2090,12 +2107,6 @@ private:
 //    }
 
     /* Get Area */
-    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
-    {
-        vector<cv::Point2f> contour;
-        cv::approxPolyDP(cv::Mat(cv2D), contour, 0.001, true);
-        return fabs(cv::contourArea(cv::Mat(contour)));
-    }
 };
 
 class TableTopObjects : public NonTerminal{};
@@ -2459,12 +2470,14 @@ public:
 
     void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
+//        Symbol * rhs1;
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->centroidDistance(rhs2));
         features.push_back(rhs1->centroidHorizontalDistance(rhs2));
         features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
-        //Symbol * rhs1;
+        features.push_back(rhs1->getMinDistance(rhs2));
+        
         rhs1->pushColorDiffFeatures(features,rhs2);
         Plane * plane1=dynamic_cast<Plane *>(rhs1);
         Plane * plane2=dynamic_cast<Plane *>(rhs2);
@@ -2473,7 +2486,7 @@ public:
             features.push_back(plane1->dotProduct(plane2));
         }
         
-        //min distance
+        
         //get horizontal area ratio
         //area ratio on plane defined by normal
     }
@@ -2498,6 +2511,15 @@ public:
         }
         
         output->computeFeatures();
+     //   Symbol * rhs1;
+      //  Symbol * rhs2;
+        float rhs1Area=rhs1->getHorzArea();
+        float rhs2Area=rhs2->getHorzArea();
+        float lhsArea=output->getHorzArea();
+        
+        features.push_back(rhs1Area+rhs2Area-lhsArea);
+        features.push_back(lhsArea/max(rhs1Area,rhs2Area));
+        
         output->appendFeatures(features);
     }
     
