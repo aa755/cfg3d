@@ -120,7 +120,7 @@ protected:
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
-     vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
+     vector<cv::Point2f> horzConvexHull;  // The convex hull points in openCV.
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
     Eigen::Matrix3d covarianceMatrixWoMean;
@@ -189,14 +189,14 @@ public:
     
     const vector<cv::Point2f> & getConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
 
     vector<cv::Point2f>  cloneConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
     
     virtual string getName()=0;
@@ -421,7 +421,7 @@ public:
     
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         vector<int> & indices = getPointIndices();
@@ -432,7 +432,7 @@ public:
              cvPoints.at(i).x=scene.points[indices[i]].x;
              cvPoints.at(i).y=scene.points[indices[i]].y;
          }
-        cv::convexHull(cv::Mat(cvPoints), rectConvexHull);
+        cv::convexHull(cv::Mat(cvPoints), horzConvexHull);
     }
     
     static int numHallucinatedTerminals;
@@ -648,7 +648,7 @@ protected:
      */
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         
@@ -665,7 +665,7 @@ protected:
             unionHullUnion.insert(unionHullUnion.end(), childHull.begin(), childHull.end() );
         }
 
-        cv::convexHull(cv::Mat(unionHullUnion), rectConvexHull);
+        cv::convexHull(cv::Mat(unionHullUnion), horzConvexHull);
       
     }
 

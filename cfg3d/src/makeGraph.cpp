@@ -331,7 +331,7 @@ public:
 
     }
 
-    void getNeighborSegs(size_t index, set<int> & segIndices )
+    void getNeighborSegs(size_t index, set<int> & segIndices , bool consideOcclusion=true)
     {
         PointOutT &origin =cloudSeg->points.at(index);
         uint32_t originSegment=origin.segment;
@@ -766,6 +766,7 @@ int main(int argc, char** argv)
             set<int> ptNbrs;
             tIndex=clusters[i].indices[j];
             occupancy.getNeighborSegs(tIndex, ptNbrs );
+//            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
         }
         

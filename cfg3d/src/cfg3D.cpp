@@ -739,9 +739,25 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     
     for(unsigned int i=0;i<terminals.size();i++)
     {
-        terminals[i]->computeFeatures();
+      //  terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
+        terminals.at(i)->computeFeatures();
+    }
+
+    segMinDistances.setZero(terminals.size(),terminals.size());
+    
+    for(unsigned int i1=0;i1<terminals.size();i1++)
+    {
+            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
+            {
+                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
+                segMinDistances(i1,i2)=minDistance;
+                segMinDistances(i2,i1)=minDistance;
+            }
     }
     
+    cout<<"minDistances computed\n"<<endl;
+    cerr<<"minDistances computed\n"<<endl;
+
     for(unsigned int i=0;i<terminals.size();i++)
     {
        // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;

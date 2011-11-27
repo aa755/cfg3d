@@ -27,7 +27,6 @@
 #include <math.h>
 
 //sac_model_plane.h
-
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
@@ -86,6 +85,7 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
 double infinity() {
     return numeric_limits<double>::infinity();
 }
+Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
 //double sqr(double value) {
 //    return value * value;
@@ -137,10 +137,11 @@ protected:
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
-     vector<cv::Point2f> rectConvexHull;  // The convex hull points in openCV.
+     vector<cv::Point2f> horzConvexHull;  // The convex hull points in openCV.
 
 //    pcl::PointCloud<pcl::PointXY> rectConvexHull;  // the convex hull in ROS.
     Eigen::Matrix3d covarianceMatrixWoMean;
+    float horzArea;
 
     //    vector<NonTerminal*> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
@@ -166,7 +167,38 @@ protected:
                 ans(i, j) = centr.data[i] * centr.data[j] * numPoints;
 
     }
+    
 public:
+
+    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
+    {
+        vector<cv::Point2f> contour;
+        cv::approxPolyDP(cv::Mat(cv2D), contour, 0.01, true);
+        return fabs(cv::contourArea(cv::Mat(contour)));
+    }
+    
+    float getMinDistance(Symbol * other)
+    {
+        resetSpannedTerminalIterator();
+        other->resetSpannedTerminalIterator();
+        
+        int index1,index2;
+        float minDistance=numeric_limits<float>::infinity();
+        while(nextSpannedTerminal(index1))
+        {
+            while(other->nextSpannedTerminal(index2))
+            {
+                float distance=segMinDistances(index1,index2);
+                if(distance<minDistance)
+                {
+                    minDistance=distance;
+                }
+                    
+            }
+            
+        }
+        return minDistance;
+    }
     
     const pcl::PointXYZ & getCentroid() const
     {
@@ -263,14 +295,14 @@ public:
     
     const vector<cv::Point2f> & getConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
 
     vector<cv::Point2f>  cloneConvexHull() const
     {
-        assert(rectConvexHull.size()>0);
-        return rectConvexHull;
+        assert(horzConvexHull.size()>0);
+        return horzConvexHull;
     }
     
     virtual string getName()=0;
@@ -444,6 +476,14 @@ public:
     {
         return covarianceMatrixWoMean;
     }
+    
+    virtual void resetSpannedTerminalIterator()=0;
+    virtual bool nextSpannedTerminal(int & index)=0;
+
+    float getHorzArea() const
+    {
+        return horzArea;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -465,7 +505,7 @@ class SymbolPriorityQueue;
         return scene.points[pointIndex].data[coordinateIndex];
     }
     
-float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> > & indices1, boost::shared_ptr <std::vector<int> > & indices2)
+float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> >  indices1, boost::shared_ptr <std::vector<int> >  indices2)
 {
   float min_distance = FLT_MAX;
   boost::shared_ptr <std::vector<int> > small_cloud;
@@ -507,6 +547,7 @@ float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <st
 class Terminal : public Symbol 
 {
 protected:
+    map<int,float> minDistances;
     vector<int> pointIndices;
     /** segment index
      */
@@ -521,8 +562,58 @@ protected:
                     covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
 
     }
-    
+    bool start;
 public:
+    virtual void resetSpannedTerminalIterator()
+    {
+        start=true;
+    }
+    virtual bool nextSpannedTerminal(int & tindex)
+    {
+        if(start)
+        {
+            tindex=index;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+            
+    }
+    
+    void computeMinDistanceBwNbrTerminals(vector<Terminal*> & terminals)
+    {
+        neighbors.iteratorReset();
+        int nindex;
+        float distance;
+        while(neighbors.nextOnBit(nindex))
+        {
+            if(terminals.at(nindex)->getMinDistanceFromTerminal(index,distance)) // minDistance is symmetric, check if it was already computed
+            {
+                // neighbor relation is not symmetric
+                neighbors[nindex]=distance;
+            }
+            else
+            {
+                neighbors[index]=getSmallestDistance(scene, getPointIndicesBoostPtr(),terminals.at(nindex)->getPointIndicesBoostPtr());
+            }
+        }
+    }
+    
+    bool getMinDistanceFromTerminal(int index0Based, float & distance_ret)
+    {
+        map<int,float>::iterator it;
+        it=minDistances.find(index0Based);
+        if(it==minDistances.end())
+            return false;
+        else
+        {
+            distance_ret=it->second;
+            return true;
+        }
+                    
+    }
     
     void computeCentroidAndColorAndNumPoints() {
         centroid.x = 0;
@@ -561,7 +652,7 @@ public:
     
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         vector<int> & indices = getPointIndices();
@@ -572,7 +663,8 @@ public:
              cvPoints.at(i).x=scene.points[indices[i]].x;
              cvPoints.at(i).y=scene.points[indices[i]].y;
          }
-        cv::convexHull(cv::Mat(cvPoints), rectConvexHull);
+        cv::convexHull(cv::Mat(cvPoints), horzConvexHull);
+        
     }
     
     static int numHallucinatedTerminals;
@@ -775,7 +867,7 @@ protected:
      */
     void compute2DConvexHull()
     {
-        if(rectConvexHull.size()>0)
+        if(horzConvexHull.size()>0)
             return; // convex hull wont change ... so compute only once
         
         
@@ -792,7 +884,8 @@ protected:
             unionHullUnion.insert(unionHullUnion.end(), childHull.begin(), childHull.end() );
         }
 
-        cv::convexHull(cv::Mat(unionHullUnion), rectConvexHull);
+        cv::convexHull(cv::Mat(unionHullUnion), horzConvexHull);
+        horzArea=_getPolygonArea(horzConvexHull);
       
     }
     
@@ -839,7 +932,17 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    virtual void resetSpannedTerminalIterator()
+    {
+        spanned_terminals.iteratorReset();
+    }
     
+    virtual bool nextSpannedTerminal(int & tindex)
+    {
+        return spanned_terminals.nextOnBit(tindex);
+    }
+    
+        
     virtual float getMinLength()
     {
         return 0.01; 
@@ -969,13 +1072,8 @@ public:
 //    }
 
     virtual void printData() {
-        cout << id << "\t:" << spanned_terminals << endl;
-        for (uint i = 0; i < spanned_terminals.size(); i++) {
-            if(spanned_terminals.test(i)) {
-                cout<<i+1<<", ";
-            }
-        }
-        cout<<endl;
+        //cout << id << "\t:" << spanned_terminals << endl;
+        spanned_terminals.print1BasedIndices();
     }
 
     size_t getNumTerminals() {
@@ -2009,12 +2107,6 @@ private:
 //    }
 
     /* Get Area */
-    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
-    {
-        vector<cv::Point2f> contour;
-        cv::approxPolyDP(cv::Mat(cv2D), contour, 0.001, true);
-        return fabs(cv::contourArea(cv::Mat(contour)));
-    }
 };
 
 class TableTopObjects : public NonTerminal{};
@@ -2378,12 +2470,14 @@ public:
 
     void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
+//        Symbol * rhs1;
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->centroidDistance(rhs2));
         features.push_back(rhs1->centroidHorizontalDistance(rhs2));
         features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
-        //Symbol * rhs1;
+        features.push_back(rhs1->getMinDistance(rhs2));
+        
         rhs1->pushColorDiffFeatures(features,rhs2);
         Plane * plane1=dynamic_cast<Plane *>(rhs1);
         Plane * plane2=dynamic_cast<Plane *>(rhs2);
@@ -2392,7 +2486,7 @@ public:
             features.push_back(plane1->dotProduct(plane2));
         }
         
-        //min distance
+        
         //get horizontal area ratio
         //area ratio on plane defined by normal
     }
@@ -2417,6 +2511,15 @@ public:
         }
         
         output->computeFeatures();
+     //   Symbol * rhs1;
+      //  Symbol * rhs2;
+        float rhs1Area=rhs1->getHorzArea();
+        float rhs2Area=rhs2->getHorzArea();
+        float lhsArea=output->getHorzArea();
+        
+        features.push_back(rhs1Area+rhs2Area-lhsArea);
+        features.push_back(lhsArea/max(rhs1Area,rhs2Area));
+        
         output->appendFeatures(features);
     }
     
