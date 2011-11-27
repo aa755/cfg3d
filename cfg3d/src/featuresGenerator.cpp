@@ -79,59 +79,11 @@ void createDataStructures(char* file) {
     writeDataStructuresToFile(dataStructuresSet);
 }
 
-// Terminals
-void appendTerminalToFile(vector<string> rulesVector) {
-    int count =  rulesVector.size();
-    string front;
-    string nonTerminal;
-    string back;
-    if (count == 2) {
-        front = "    labelToPlanes[\"";
-        nonTerminal =  rulesVector.at(0);
-        back = "\"] = new Terminal();";
-        outputDataStructuresCode<<front.append(nonTerminal).append(back)<<endl;
-    }
-}
-
-void createTerminalFromString(string line) {
-    vector<string> ruleVector;
-    char_separator<char> sep(", ");
-    tokenizer<char_separator<char> > tokens(line, sep);
-    BOOST_FOREACH(string t, tokens)
-    {
-        ruleVector.push_back(t);
-    }
-    
-    appendTerminalToFile(ruleVector);
-}
-
-void createTerminals(char* file) {
-    ifstream rulesFile;
-    outputDataStructuresCode<<"map<string, Plane*> labelToPlanes;"<<endl;
-    rulesFile.open(file);
-
-    outputDataStructuresCode<<"void initializeTerminals() {"<<endl;
-    string line;
-    if (rulesFile.is_open())
-    {
-        while (rulesFile.good()) {
-            getline(rulesFile, line);
-            if (line.size() == 0) 
-            {
-                break;
-            }
-            
-            createTerminalFromString(line);
-        }
-    }
-    outputDataStructuresCode<<"}"<<endl;
-}
-
 // Learner
         // Front
 void createRunLearnFront() {
     outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn) {"<<endl;
-    outputLearnerCode<<"    initialize(sceneToLearn);"<<endl;
+    outputLearnerCode<<"    initialize(sceneToLearn, \"segmentToLabel.txt\");"<<endl;
     outputLearnerCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
     outputLearnerCode<<"    vector<Terminal*> temp;"<<endl;
 }
