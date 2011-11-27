@@ -564,6 +564,16 @@ protected:
     }
     bool start;
 public:
+    string label;
+    
+    void setLabel(string newLabel) {
+        label = newLabel;
+    }
+    
+    string getLabel() {
+        return label;
+    }
+    
     virtual void resetSpannedTerminalIterator()
     {
         start=true;

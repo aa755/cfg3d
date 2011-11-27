@@ -1,4 +1,6 @@
+//#include "../bin/generatedLearner.cpp"
 #include "../bin/parseStructure.cpp"
+//#include "helper.cpp"
 #include <iostream>
 #include <string>
 #include <boost/foreach.hpp>
@@ -7,7 +9,7 @@
 using namespace std;
 using namespace boost;
 
-ofstream outputCode;
+ofstream outputDataStructuresCode;
 
 // What generated code would look like
 void runLearn() {
@@ -24,27 +26,27 @@ void runLearn() {
     LTop* secondToLast = dynamic_cast<LTop*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
     RTop* last = dynamic_cast<RTop*>(nodesCreatedSoFar.front());
-    nodesCreatedSoFar.pop();
+    nodesCreatedSoFar.pop(); 
 //    nodesCreatedSoFar.push(ruleLTop_RTop.applyRuleLearning(secondToLast, last, temp));
 }
 
 void applySingleRule(string ruleName, string terminalLabel) {
     string front = "nodesCreatedSoFar.push(";
-    outputCode<<front.append(ruleName).append(".applyRuleLearning(labelToTerminal.at(\"").append(terminalLabel).append("\"), temp));")<<endl;
+    outputDataStructuresCode<<front.append(ruleName).append(".applyRuleLearning(labelToTerminal.at(\"").append(terminalLabel).append("\"), temp));")<<endl;
 }
 
 void applyDoubleRule(string ruleName, string LHS, string RHS1, string RHS2) {
-    outputCode<<RHS1.append("* secondToLast = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
-    outputCode<<"nodesCreatedSoFar.pop();"<<endl;
-    outputCode<<RHS2.append("* last = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
-    outputCode<<"nodesCreatedSoFar.pop();"<<endl;
+    outputDataStructuresCode<<RHS1.append("* secondToLast = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputDataStructuresCode<<"nodesCreatedSoFar.pop();"<<endl;
+    outputDataStructuresCode<<RHS2.append("* last = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputDataStructuresCode<<"nodesCreatedSoFar.pop();"<<endl;
     string front = "nodesCreatedSoFar.push(";
-    outputCode<<front.append(ruleName).append(".applyRuleLearning(secondToLast, last, temp));")<<endl;
+    outputDataStructuresCode<<front.append(ruleName).append(".applyRuleLearning(secondToLast, last, temp));")<<endl;
 
 }
 
 // Rules
-void applyRuleToFile(vector<string> rulesVector) {
+void createApplyRule(vector<string> rulesVector) {
     
     int count =  rulesVector.size();
     string LHS = rulesVector.at(0);
@@ -53,7 +55,7 @@ void applyRuleToFile(vector<string> rulesVector) {
     string ruleType;
     if (count == 2) {
         RHS = rulesVector.at(1);
-        string ruleType = "    SingleRule";
+        string ruleType = "    SingleRule(true)";
         string temp = "";
         string ruleName = temp.append("rule").append(LHS);
         rule = ruleType.append("<").append(LHS).append(", ").append(RHS).append("> ").append(ruleName).append(";");
@@ -63,15 +65,14 @@ void applyRuleToFile(vector<string> rulesVector) {
     else if (count == 3) {
         string RHS1 = rulesVector.at(1);
         string RHS2 = rulesVector.at(2);
-        ruleType = "    DoubleRule";
+        ruleType = "    DoubleRule(true)";
         string temp = "";
         string ruleName = temp.append("rule").append(LHS);
         rule = ruleType.append("<").append(LHS).append(", ").append(RHS1).append(", ").append(RHS2).append("> ").append(ruleName).append(";");
-    }
-    
+    }    
 }
 
-void applyRuleFromString(string line) {
+void parseApplyRule(string line) {
     vector<string> rulesVector;
     char_separator<char> sep(", ");
     tokenizer<char_separator<char> > tokens(line, sep);
@@ -80,15 +81,15 @@ void applyRuleFromString(string line) {
         rulesVector.push_back(t);
     }
     
-    applyRuleToFile(rulesVector);
+    createApplyRule(rulesVector);
 }
 
 void createRules(char* file) {
     ifstream rulesFile;
-    outputCode<<"void runLearn() {"<<endl;
-    outputCode<<"    initializeTerminals();"<<endl;
-    outputCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
-    outputCode<<"    vector<Terminal*> temp;"<<endl;
+    outputDataStructuresCode<<"void runLearn() {"<<endl;
+    outputDataStructuresCode<<"    initializeTerminals();"<<endl;
+    outputDataStructuresCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
+    outputDataStructuresCode<<"    vector<Terminal*> temp;"<<endl;
     rulesFile.open(file);
 
     string line;
@@ -101,10 +102,10 @@ void createRules(char* file) {
                 break;
             }
             
-            applyRuleFromString(line);
+            parseApplyRule(line);
         }
     }
-    outputCode<<"}"<<endl;
+    outputDataStructuresCode<<"}"<<endl;
 }
 
 //void loopOnRules(vector<RulePtr>& rules) {
@@ -117,6 +118,6 @@ void createRules(char* file) {
 int main(int argc, char** argv) {
     vector<RulePtr> rules; 
 //    appendRuleInstances(rules);
-    createRules("learner.cpp");
+    createRules("featuresInput.txt");
     return 0;
 }

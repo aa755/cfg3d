@@ -158,7 +158,7 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
     toConquer.erase(conquering);
     string conqueringName = labelToText[nodeToLabel[conquering]];
 //    cout<<"Conquered "<<conquering<<"("<<conqueringName<<")"<<"."<<endl;
-    rulesFile<<conqueringName<<","<<"Terminal"<<endl;
+    rulesFile<<conqueringName<<","<<"Plane"<<endl;
     set<int> neighbors = nodeToNeighbors[conquering];
      
     for (it = neighbors.begin(); it != neighbors.end(); it++) {
@@ -200,7 +200,7 @@ void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, int> &nodeToLa
 
 int main(int argc, char** argv)
 {
-    rulesFile.open("featuresInput.txt");
+    rulesFile.open("rules.txt");
     
     //    parseGraph("bin/graph.txt", nodeToNeighbors);
     map<int, set<int> > nodeToNeighbors;
