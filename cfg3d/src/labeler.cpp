@@ -600,7 +600,7 @@ main(int argc, char** argv) {
                if(it->second==0)
                    continue;
                
-               fileO<<it->first<<","<<it->second<<endl;
+               fileO<<it->first<<","<<labels.at(it->second)<<endl;
            }
            fileO.close();
            cout<<"done saving"<<endl;
