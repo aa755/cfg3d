@@ -13,7 +13,7 @@ ofstream outputLearnerCode;
 void createDataStructuresImports() {
     string importString = "#include ";
 
-    string import = "\"../src/helper.cpp\"";
+    string import = "\"helper.cpp\"";
     outputDataStructuresCode<<importString.append(import)<<endl;
 }
 
