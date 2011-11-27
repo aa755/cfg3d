@@ -1,4 +1,5 @@
 #include "structures.cpp"
+#include "rulesGenerator.cpp"
 #include <iostream>
 #include <string>
 #include <boost/foreach.hpp>
@@ -8,12 +9,6 @@ using namespace boost;
 
 ofstream outputDataStructuresCode;
 ofstream outputLearnerCode;
-
-// Imports
-//void createImport(string import, ofstream outputStream) {
-//    string importString = "#include ";
-//    outputStream<<importString.append(import)<<endl;
-//}
 
 void createDataStructuresImports() {
     string importString = "#include ";
@@ -58,7 +53,7 @@ void createDataStructureFromString(string line, set<string>& dataStructuresSet) 
     }
 }
 
-void createDataStructures(char* file) {
+void createDataStructures(const char* file) {
     ifstream rulesFile;
     rulesFile.open(file);
 
@@ -150,7 +145,7 @@ void parseApplyRule(string line) {
     createApplyRule(rulesVector);
 }
 
-void createRunLearnMid(char* rulesFile) {
+void createRunLearnMid(const char* rulesFile) {
     ifstream rulesFileStream;
     rulesFileStream.open(rulesFile);
 
@@ -180,19 +175,37 @@ void createRunLearnBack() {
 
 }
 
-void createLearner(char* rulesFile) {
+void createLearner(const char* rulesFile) {
         createRunLearnFront();
         createRunLearnMid(rulesFile);
         createRunLearnBack();
 }
 
 int main(int argc, char** argv) {
-    outputDataStructuresCode.open("generatedDataStructures.cpp");
-    char* rulesFile = "rules.txt";
+    
+    ///////////////////// Generating Rules ////////////////////
+    map<int, set<int> > nodeToNeighbors;
+    parseGraph(argv[1], nodeToNeighbors);
+    
+    map<int, string> nodeToLabelText;
+    parseNodeToLabelText(argv[2], nodeToLabelText);
+    
+    string fileFront = argv[3];
+    fileFront.append("Rules.txt");
+    rulesFile.open(fileFront.c_str());
+    generateRules(nodeToNeighbors, nodeToLabelText, argv[3]);
+    
+    string dataStructuresFileFront = "";
+    dataStructuresFileFront.append(argv[3]).append("_generatedDataStructures.cpp");
+    outputDataStructuresCode.open(dataStructuresFileFront.c_str());
+    const char* rulesFile = fileFront.c_str();
     createDataStructuresImports();
     createDataStructures(rulesFile);
     
-    outputLearnerCode.open("generatedLearner.cpp");
+    ///////////////////// Generating Learner ////////////////////
+    string learnerFileFront = "";
+    learnerFileFront.append(argv[3]).append("_generatedLearner.cpp");
+    outputLearnerCode.open(learnerFileFront.c_str());
     createLearnerImports();
     createLearner(rulesFile);
     
