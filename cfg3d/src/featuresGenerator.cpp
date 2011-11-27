@@ -74,8 +74,8 @@ void createDataStructures(const char* file) {
     writeDataStructuresToFile(dataStructuresSet);
 }
 
-// Learner
-        // Front
+
+// Learner      // Front
 void createRunLearnFront() {
     outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {"<<endl;
     outputLearnerCode<<"    initialize(sceneToLearn, segmentToLabelFile);"<<endl;
@@ -83,7 +83,7 @@ void createRunLearnFront() {
     outputLearnerCode<<"    vector<Terminal*> temp;"<<endl;
 }
 
-        // Mid
+                // Mid
 void applySingleRule(string ruleName, string terminalLabel) {
     string front = "    nodesCreatedSoFar.push(";
     outputLearnerCode<<front.append(ruleName).append(".applyRuleLearning(labelToPlanes.at(\"").append(terminalLabel).append("\"), temp));")<<endl;
@@ -163,7 +163,7 @@ void createRunLearnMid(const char* rulesFile) {
     }
 }
 
-        // Back
+                // Back
 void createRunLearnBack() {
     outputLearnerCode<<"}"<<endl<<endl;
     
