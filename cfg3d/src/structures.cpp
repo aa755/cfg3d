@@ -2478,7 +2478,8 @@ public:
         assert(3 == 2); // needs specialization
     }
 
-    void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
+    void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
+//    void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
 //        Symbol * rhs1;
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
@@ -2516,8 +2517,9 @@ public:
         {
             for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
             {
-                appendPairFeatures(*it1,*it2);
-            }
+                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+                appendPairFeatures(*it1, *it2);
+            } 
         }
         
         output->computeFeatures();

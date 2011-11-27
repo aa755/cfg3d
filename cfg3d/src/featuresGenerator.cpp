@@ -82,8 +82,8 @@ void createDataStructures(char* file) {
 // Learner
         // Front
 void createRunLearnFront() {
-    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn) {"<<endl;
-    outputLearnerCode<<"    initialize(sceneToLearn, \"segmentToLabel.txt\");"<<endl;
+    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {"<<endl;
+    outputLearnerCode<<"    initialize(sceneToLearn, segmentToLabelFile);"<<endl;
     outputLearnerCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
     outputLearnerCode<<"    vector<Terminal*> temp;"<<endl;
 }
@@ -175,7 +175,7 @@ void createRunLearnBack() {
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"    pcl::PointCloud<PointT> scene;"<<endl;
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
-    outputLearnerCode<<"    runLearn(scene);"<<endl;
+    outputLearnerCode<<"    runLearn(scene, argv[2]);"<<endl;
     outputLearnerCode<<"}"<<endl;
 
 }
