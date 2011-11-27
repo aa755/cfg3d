@@ -18,7 +18,7 @@ ofstream outputLearnerCode;
 void createDataStructuresImports() {
     string importString = "#include ";
 
-    string import = "\"../src/structures.cpp\"";
+    string import = "\"../src/helper.cpp\"";
     outputDataStructuresCode<<importString.append(import)<<endl;
 }
 
@@ -33,12 +33,11 @@ void createLearnerImports() {
     outputLearnerCode<<importString.append(import)<<endl;
 }
 
-
 // Data Structures
 void createClassAndWrite(string dataStructure) {
     string front = "class ";
     string className = dataStructure;
-    if (className != "Terminal") {
+    if (className != "Plane") {
         string back = " : public NonTerminalIntermediate{};";
         outputDataStructuresCode<<front.append(className).append(back)<<endl;
     }
@@ -108,7 +107,7 @@ void createTerminalFromString(string line) {
 
 void createTerminals(char* file) {
     ifstream rulesFile;
-    outputDataStructuresCode<<"map<string, Terminal*> labelToPlanes;"<<endl;
+    outputDataStructuresCode<<"map<string, Plane*> labelToPlanes;"<<endl;
     rulesFile.open(file);
 
     outputDataStructuresCode<<"void initializeTerminals() {"<<endl;
@@ -145,13 +144,17 @@ void applySingleRule(string ruleName, string terminalLabel) {
 
 void applyDoubleRule(string ruleName, string LHS, string RHS1, string RHS2) {
     string tab1 = "    ";
-    outputLearnerCode<<tab1.append(RHS1).append("* secondToLast = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
+    string temp1 = "";
+    string secondToLast = temp1.append("secondToLast").append(RHS1);
+    outputLearnerCode<<tab1.append(RHS1).append("* ").append(secondToLast).append(" = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
     outputLearnerCode<<"    nodesCreatedSoFar.pop();"<<endl;
     string tab2 = "    ";
-    outputLearnerCode<<tab1.append(RHS2).append("* last = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
+    string temp2 = "";
+    string last = temp2.append("last").append(RHS2);
+    outputLearnerCode<<tab2.append(RHS2).append("* ").append(last).append(" = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
     outputLearnerCode<<"    nodesCreatedSoFar.pop();"<<endl;
     string front = "    nodesCreatedSoFar.push(";
-    outputLearnerCode<<front.append(ruleName).append(".applyRuleLearning(secondToLast, last, temp));")<<endl;
+    outputLearnerCode<<front.append(ruleName).append(".applyRuleLearning(").append(secondToLast).append(", ").append(last).append(", temp));")<<endl;
 }
 
 void createApplyRule(vector<string> rulesVector) {
@@ -215,7 +218,14 @@ void createRunLearnMid(char* rulesFile) {
 
         // Back
 void createRunLearnBack() {
+    outputLearnerCode<<"}"<<endl<<endl;
+    
+    outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
+    outputLearnerCode<<"    pcl::PointCloud<PointT> scene;"<<endl;
+    outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
+    outputLearnerCode<<"    runLearn(scene);"<<endl;
     outputLearnerCode<<"}"<<endl;
+
 }
 
 void createLearner(char* rulesFile) {
@@ -236,5 +246,3 @@ int main(int argc, char** argv) {
     
     return 0;
 }
-
-//Intermediate NonTerminal

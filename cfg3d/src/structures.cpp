@@ -1285,7 +1285,7 @@ int NonTerminal::id_counter = 0;
 
 class NonTerminalIntermediate : public NonTerminal
 {
-
+public:
     virtual void appendFeatures(vector<float> & features)
     {
         // intermediate types dont contribute to features
