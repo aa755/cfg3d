@@ -218,10 +218,11 @@ public:
     virtual void appendFeatures(vector<float> & features)
     {
         assert(featuresComputed);
-        features.push_back(centroid.z);
-        features.push_back(zSquaredSum-  numPoints*sqr(centroid.z)); // variance along z
-        features.push_back(minxyz.z);
-        features.push_back(maxxyz.z);
+      //  features.push_back(centroid.z);
+        features.push_back(zSquaredSum/numPoints-sqr(centroid.z)); // variance along z
+     //   features.push_back(minxyz.z);
+        features.push_back(maxxyz.z-minxyz.z);
+        
         ColorRGB avgColorO(avgColor);
         features.push_back(avgColorO.H);
         features.push_back(avgColorO.S);
@@ -230,7 +231,11 @@ public:
         // move eigen vector code to here
         // linearness, planarness, scatter
         
-        
+        appendAdditionalFeatures(features);
+    }
+    
+    virtual void appendAdditionalFeatures(vector<float> & features)
+    {
     }
     
     float centroidDistance(Symbol * other)
@@ -1402,7 +1407,7 @@ public:
     Vector3d projectionOntoNormal(Vector3d otherVector) {
         return otherVector.dot(getPlaneNormal()) * getPlaneNormal();
     }
-    
+        
     double getCentroidProximity(Symbol& other) {
         pcl::PointXYZ otherCentroid;
         other.getCentroid(otherCentroid);
@@ -1434,6 +1439,12 @@ public:
         normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
         assert(fabs(getNorm()-1)<0.05);
         planeParamsComputed = true;
+    }
+    
+    virtual void appendAdditionalFeatures(vector<float> & features)
+    {
+        features.push_back(getLength());
+        features.push_back(getWidth());
     }
     
     bool checkSize(NonTerminal * candidate)
@@ -2377,8 +2388,9 @@ public:
         vector<float>::iterator it;
         for(it=features.begin();it!=features.end();it++)
         {
-            featureFile<<*it;
+            featureFile<<*it<<",";
         }
+        featureFile<<endl;
     }
     
     /**
@@ -2468,7 +2480,7 @@ public:
         if(learning)
         {
             // LHS__RHS1_RHS2
-                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
+                string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
                 featureFile.open(filename.data(),ios::app); // append to file
         }
     }
@@ -2603,7 +2615,7 @@ public:
     {
         if(learning)
         {
-                string filename=string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
+                string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
                 featureFile.open(filename.data(),ios::app); // append to file
         }
     }
@@ -2632,6 +2644,9 @@ public:
         
         computeFeatures(RHS);
         writeFeaturesToFile();
+        LHS->setAbsoluteCost(0);
+        LHS->declareOptimal();
+        
         return LHS;
         
     }

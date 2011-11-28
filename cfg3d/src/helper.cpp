@@ -48,9 +48,9 @@ void initializePlanes(int maxSegNum) {
 
         Plane* plane = new Plane();
         plane->addChild(terminal);
-        plane->addPointIndices(terminal->getPointIndices());
         plane->computeFeatures();
-        plane->computePlaneParams();
+        plane->returnPlaneParams();
+        cout<<"Label: "<<label<<endl;
         labelToPlanes[label] = plane;
     }
 }
@@ -59,14 +59,17 @@ vector<string> addToSegNumToLabelFromString(string line) {
     char_separator<char> sep(", ");
     tokenizer<char_separator<char> > tokens(line, sep);
     vector<string> segmentLabelPair;
+    cout<<"segmentLabelPair: "<<endl;
     BOOST_FOREACH(string t, tokens)
     {
+        cout<<t<<",";
         segmentLabelPair.push_back(t);
     }
+    cout<<endl;
     return segmentLabelPair;
 }
 
-
+//run fridge.pcd_segmented.pcd fridge.pcd_segmented.pcd_nbr.txt
 void initializeSegNumToLabel(char* segNumToLabelFileName) {
     ifstream segNumToLabelStream;
     segNumToLabelStream.open(segNumToLabelFileName);
@@ -75,6 +78,7 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     if (segNumToLabelStream.is_open())
     {
         while (segNumToLabelStream.good()) {
+            cout<<"testhere"<<endl;
             getline(segNumToLabelStream, line);
             if (line.size() == 0) 
             {
@@ -82,7 +86,11 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
             }
             vector<string> segmentLabelPair = addToSegNumToLabelFromString(line);
             string segNumString = segmentLabelPair.at(0);
+<<<<<<< HEAD
             segNumToLabel[atoi(segNumString.c_str()) - 1] = segmentLabelPair.at(1);
+=======
+            segNumToLabel[atoi(segNumString.c_str())-1] = segmentLabelPair.at(1);
+>>>>>>> d2b7f17bb2d4381bb2ce837269a6f2c9c91e4872
 //            string segNumString = segmentLabelPair.at(1);
 //            segNumToLabel[atoi(segNumString.c_str())] = segmentLabelPair.at(0);
             // If file is given in reverse order of label->segmentNumber
@@ -98,13 +106,24 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
     // Terminal initialization.
     int maxSegNum = getMaxSegNumber(scene);
     initializeTerminals(maxSegNum);
+    set<int> segNums;
     for(unsigned int i = 0; i < scene.size(); i++)
     {
-        int currentSegNum = scene.points[i].segment;
-        string label = segNumToLabel[currentSegNum];
-        if(currentSegNum > 0 && currentSegNum <= maxSegNum)
+        int currentSegNum = scene.points[i].segment-1;
+
+        
+        if(currentSegNum >= 0 && currentSegNum <= maxSegNum)
         {
+            segNums.insert(currentSegNum);
+            string label = segNumToLabel[currentSegNum];
+            BOOST_FOREACH(int segNum, segNums) {
+                cout<<segNum;
+            }
+            cout<<endl;
             Terminal* terminalToAddTo = labelToTerminals[label];
+//            cout<<labelToTerminals.size()<<endl;
+//            cout<<"with label: "<<label<<endl;
+            assert(terminalToAddTo!=NULL);
             terminalToAddTo->addPointIndex(i);            
         }
     
