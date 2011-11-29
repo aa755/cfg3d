@@ -27,11 +27,15 @@
 #include <math.h>
 
 //sac_model_plane.h
+
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 30
 #include "OccupancyMap.h"
+#include <boost/math/distributions/normal.hpp>
+#include <boost/random/normal_distribution.hpp>
+using boost::math::normal;
 string fileName;
 class NonTerminal;
 class Terminal;
@@ -79,8 +83,35 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
             ++it2;
         }
     }
-
 }
+
+class ProbabilityDistribution {
+};
+
+class Gaussian : ProbabilityDistribution {
+public: 
+    double mean;
+    double variance;
+    double min;
+    double max;
+    
+    normal nd;
+    Gaussian() {
+        mean = 1;
+        variance = 0;
+        normal ndTemp(mean, variance);
+        nd = ndTemp;
+    }
+    
+    Gaussian(double mean, double variance, double min, double max) {
+        this->mean = mean;
+        this->variance = variance;
+        this->min = min;
+        this->max = max;
+        normal ndTemp(mean, variance);
+        nd = ndTemp;
+    }
+};
 
 double infinity() {
     return numeric_limits<double>::infinity();
@@ -2376,6 +2407,34 @@ protected:
     ofstream featureFile;
 public:
     
+    vector<Gaussian> g;
+    
+    void readDistribution(string filename) {
+        ifstream inputStream;
+        filename.append(".out");
+        inputStream.open(filename.data());
+        if (inputStream.is_open()) {
+            string line;
+            while (inputStream.good()) {
+                getline(inputStream, line);
+                vector<double> nbrs;
+                getTokens(line, nbrs);
+                Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
+                g.push_back(tempGaussian);
+            }
+        }
+    }
+    
+    double getProbability(vector<double> x) {
+        double product = 1;
+        int counter = 0;
+        BOOST_FOREACH(Gaussian gaussian, g) {
+            product = product * pdf(gaussian.nd, x.at(counter));
+            counter = counter + 1;
+        }
+        return -log(product);
+    }
+    
     const vector<float> & getFeatures() const
     {
         return features;
@@ -2477,12 +2536,17 @@ public:
      */
     DoubleRule(bool learning=false)
     {
+        string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
         if(learning)
         {
             // LHS__RHS1_RHS2
-                string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
                 featureFile.open(filename.data(),ios::app); // append to file
+        } else {
+            readDistribution(filename);
         }
+        
+        
+        
     }
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)

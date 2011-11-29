@@ -98,5 +98,17 @@ void getTokens(string str, vector<string>& out) {
         }
 }
 
+void getTokens(string str, vector<double>& out) {
+        boost::char_separator<char> sep(",");
+        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
+        
+        out.clear();
+
+        BOOST_FOREACH(string t, tokens) 
+        {
+		out.push_back(boost::lexical_cast<double>(t));
+        }
+}
+
 #endif	/* UTILS_H */
 
