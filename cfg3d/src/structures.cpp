@@ -2555,9 +2555,7 @@ public:
     }
 
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
-//    void appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
-//        Symbol * rhs1;
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->centroidDistance(rhs2));
