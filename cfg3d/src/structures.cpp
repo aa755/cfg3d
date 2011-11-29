@@ -2624,43 +2624,8 @@ public:
         output->appendFeatures(features);
     }
     
-    //TODO: Unduplicate code.
-    vector<float> getAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
-    {
-        features.clear();
-        
-        vector<Symbol*> RHS1Expanded;
-        vector<Symbol*> RHS2Expanded;
-        rhs1->expandIntermediates(RHS1Expanded);
-        rhs2->expandIntermediates(RHS2Expanded);
-        vector<Symbol*>::iterator it1;
-        vector<Symbol*>::iterator it2;
-        
-        for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
-        {
-            for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
-            {
-                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
-                appendPairFeatures(*it1, *it2);
-            } 
-        }
-        
-        output->computeFeatures();
-     //   Symbol * rhs1;
-      //  Symbol * rhs2;
-        float rhs1Area=rhs1->getHorzArea();
-        float rhs2Area=rhs2->getHorzArea();
-        float lhsArea=output->getHorzArea();
-        
-        features.push_back(rhs1Area+rhs2Area-lhsArea);
-        features.push_back(lhsArea/max(rhs1Area,rhs2Area));
-         
-        return features;
-    }
-        
 //    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
 //        // Initialize features.
-//        appendAllFeatures(output, RHS1, RHS2, terminals);
 //        return -log(getProbability(features));
 //    }
     
@@ -2678,7 +2643,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
         // below to be replaced by generic learned rules
-        // computeFeatures();
+//        appendAllFeatures(LHS, RHS1, RHS2, terminals);
         
         if(setCost(LHS,RHS1,RHS2, terminals)) {
             return LHS;
@@ -2737,7 +2702,6 @@ public:
         }
     }
     
-    //?
     void computeFeatures(RHS_Type* input)
     {
         features.clear();
@@ -2755,7 +2719,6 @@ public:
     }
     
 //    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-//        computeFeatures(input);
 //        return -log(getProbability(features));
 //    }
     
@@ -2778,8 +2741,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
-        //computeFeatures()
-        
+//        computeFeatures(RHS);
         if(setCost(LHS, RHS,terminals))
              return LHS;
         else
