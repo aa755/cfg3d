@@ -14,7 +14,7 @@ for i=1:length(OBJ.material)
         mname = OBJ.material(i).data;
     elseif strcmp(OBJ.material(i).type, 'Kd')
         % urgb = r<<16 | g<<8 | b
-        rgb_data = OBJ.material(i).data*256;
+        rgb_data = OBJ.material(i).data*255;
         ur = uint32(rgb_data(1));
         ug = uint32(rgb_data(2));
         ub = uint32(rgb_data(3));

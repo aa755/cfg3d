@@ -1,0 +1,91 @@
+\documentclass{beamer}
+%\usetheme{Boadilla}
+\usepackage[latin1]{inputenc}
+\usepackage{ upgreek }
+\usepackage{verbatim} 
+\usepackage{amsmath}
+\usepackage{wrapfig}
+
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{multirow} 
+\usepackage{relsize}
+\usepackage{cancel}
+
+
+\usepackage{cite}
+\usepackage{url}
+\usepackage{color}
+
+%\usepackage{ulem}
+%\usepackage{soul}
+
+
+
+\newlength\savedwidth
+\newcommand\whline[1]{\noalign{\global\savedwidth\arrayrulewidth
+                               \global\arrayrulewidth #1} %
+                      \hline
+                      \noalign{\global\arrayrulewidth\savedwidth}}
+\renewcommand\multirowsetup{\centering}                  
+
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}  
+
+\usetheme{Warsaw}
+\title{Understanding 3D Scenes Using Visual Grammars}
+\author{Abhishek Anand, Sherwin Li, Paul Heran Yang }
+\institute{Cornell University}
+
+
+
+
+
+
+\newcommand{\n}{{n}}             % number of training examples
+\newcommand{\x}{{\mathbf x}}     % segmented scene
+\newcommand{\xs}[1]{{x_{#1}}}    % segment of scene
+\newcommand{\y}{{\mathbf y}}     % labeling of scene
+\newcommand{\ys}[1]{{y_{#1}}}    % labeling of segment
+\newcommand{\ysc}[2]{{y_{#1}^{#2}}}    % indicator of class label of segment
+\newcommand{\zsc}[2]{{z_{#1}^{#2}}}    % indicator of class label pair
+\newcommand{\fn}[1]{{\phi_n(#1)}}      % feature function for segment node
+\newcommand{\fe}[3]{{\phi_{#1}(#2,#3)}}% feature function for edge
+\newcommand{\w}{{\mathbf w}}           % full weight vector
+\newcommand{\wn}[1]{{w_n^{#1}}}        % weight vector of segment node
+\newcommand{\we}[3]{{w_{#1}^{#2#3}}}   % weight vector of edge
+\newcommand{\df}[3]{{f_{#3}(#1,#2)}}   % discriminant function
+\newcommand{\loss}[2]{{\Delta(#1,#2)}}   % discriminant function
+
+\newcommand{\wep}[3]{{w_{#1}'^{#2#3}}}   % weight vector of edge
+\newcommand{\wnp}[1]{{w_n'^{#1}}}        % weight vector of segment node
+
+\begin{document}
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Learning}
+	\begin{columns}
+	\column{0.55\textwidth}
+		\begin{figure}
+		\includegraphics[width=0.45\linewidth,height=2.5in]{robot2.jpg}
+		\hskip0.1in
+		\includegraphics[width=0.45\linewidth,height=2.5in]{luna.png}
+		\end{figure}
+	\column{0.45\textwidth}
+		\vskip 0.9in
+		\begin{figure}
+		\hskip-0.2in
+		\includegraphics[width=1.1\linewidth]{scene2.png}
+		\end{figure}
+	\end{columns}
+\end{frame}
+
+
+
+\end{document} 

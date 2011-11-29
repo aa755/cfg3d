@@ -359,6 +359,9 @@ public:
             }            
         }
         
+        if(consideOcclusion)
+            return;
+            
         Eigen::Vector3d originv=NeighborFinder::vectorFromPoint(origin);
         Eigen::Vector3d direction;
         nf.iterator_reset();
