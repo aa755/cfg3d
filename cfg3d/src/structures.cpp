@@ -2437,7 +2437,7 @@ public:
             product = product * pdf(gaussian.nd, x.at(counter));
             counter = counter + 1;
         }
-        return -log(product);
+        return product;
     }
     
     const vector<float> & getFeatures() const
@@ -2477,7 +2477,7 @@ public:
      * @param x
      */
 //    virtual void setCost(vector<double> x) {
-//        return getProbability(x);
+//        return -log(getProbability(x));
 //    }
 };
 
