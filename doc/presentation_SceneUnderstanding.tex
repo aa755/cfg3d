@@ -25,16 +25,8 @@
 
 
 
-\newlength\savedwidth
-\newcommand\whline[1]{\noalign{\global\savedwidth\arrayrulewidth
-                               \global\arrayrulewidth #1} %
-                      \hline
-                      \noalign{\global\arrayrulewidth\savedwidth}}
-\renewcommand\multirowsetup{\centering}                  
 
 
-\DeclareMathOperator*{\argmax}{argmax}
-\DeclareMathOperator*{\argmin}{argmin}  
 
 \usetheme{Warsaw}
 \title{Understanding 3D Scenes Using Visual Grammars}
@@ -46,46 +38,69 @@
 
 
 
-\newcommand{\n}{{n}}             % number of training examples
-\newcommand{\x}{{\mathbf x}}     % segmented scene
-\newcommand{\xs}[1]{{x_{#1}}}    % segment of scene
-\newcommand{\y}{{\mathbf y}}     % labeling of scene
-\newcommand{\ys}[1]{{y_{#1}}}    % labeling of segment
-\newcommand{\ysc}[2]{{y_{#1}^{#2}}}    % indicator of class label of segment
-\newcommand{\zsc}[2]{{z_{#1}^{#2}}}    % indicator of class label pair
-\newcommand{\fn}[1]{{\phi_n(#1)}}      % feature function for segment node
-\newcommand{\fe}[3]{{\phi_{#1}(#2,#3)}}% feature function for edge
-\newcommand{\w}{{\mathbf w}}           % full weight vector
-\newcommand{\wn}[1]{{w_n^{#1}}}        % weight vector of segment node
-\newcommand{\we}[3]{{w_{#1}^{#2#3}}}   % weight vector of edge
-\newcommand{\df}[3]{{f_{#3}(#1,#2)}}   % discriminant function
-\newcommand{\loss}[2]{{\Delta(#1,#2)}}   % discriminant function
 
-\newcommand{\wep}[3]{{w_{#1}'^{#2#3}}}   % weight vector of edge
-\newcommand{\wnp}[1]{{w_n'^{#1}}}        % weight vector of segment node
 
 \begin{document}
 \begin{frame}
 \titlepage
 \end{frame}
 
-\begin{frame}{Learning}
-	\begin{columns}
-	\column{0.55\textwidth}
-		\begin{figure}
-		\includegraphics[width=0.45\linewidth,height=2.5in]{robot2.jpg}
-		\hskip0.1in
-		\includegraphics[width=0.45\linewidth,height=2.5in]{luna.png}
-		\end{figure}
-	\column{0.45\textwidth}
-		\vskip 0.9in
-		\begin{figure}
-		\hskip-0.2in
-		\includegraphics[width=1.1\linewidth]{scene2.png}
-		\end{figure}
-	\end{columns}
+\begin{frame}{Learning : Generative Model}
+\begin{eqnarray}
+P(x,t)&=&P(x|t)P(t) \\
+&=& \prod_{n \in t}{P(x_{children(n)} |rule(n) )P(rule(n))}
+\end{eqnarray}
+               		\includegraphics[width=4in,height=2.0in]{LearningEx.pdf}
+\vskip-1in
+		\begin{itemize}
+			\item $P(x_{plane_1}| top -> plane_1)$
+			\item $P(x_{plane_2}| leg -> plane_2)$
+			\item $P(x_{top,leg}| table -> top leg)$
+		\end{itemize}
+
+
 \end{frame}
 
+\begin{frame}{Training Data : sketchup}
+\begin{itemize}
+\item kinect simulation for 3D models
+\item pros:
 
+\begin{itemize}
+\item : full models available
+\item : less effort in data collection
+\end{itemize}
+\item cons:
+\begin{itemize}
+\item models are not very accurate: scale ambiguity
+\item features like avg. height and distance from wall not available
+
+\end{itemize}
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Evaluation}
+\begin{itemize}
+\item labeling accuracy
+\item parse tree accuracy
+
+\begin{itemize}
+	\item precision: fraction of nodes in predicted tree that match with gr. truth
+	\item recall: fraction of nodes in gr. truth that match with the predicted tree
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Future work}
+\begin{itemize}
+\item preprocessing sketchup data
+\item evaluating on full objects on sketchup
+\item handling occlusion
+\item testing on real scenes
+
+\end{itemize}
+\end{frame}
 
 \end{document} 
