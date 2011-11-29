@@ -2425,6 +2425,11 @@ public:
         }
     }
     
+    /**
+     * Calculate probability of feature vector x in the observed mixture of Gaussians.
+     * @param x
+     * @return 
+     */
     double getProbability(vector<double> x) {
         double product = 1;
         int counter = 0;
@@ -2466,6 +2471,14 @@ public:
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
+    
+    /**
+     * New cost function given distributions observed in training data.
+     * @param x
+     */
+//    virtual void setCost(vector<double> x) {
+//        return getProbability(x);
+//    }
 };
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
