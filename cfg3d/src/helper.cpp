@@ -30,6 +30,7 @@ void initializeTerminals(int maxSegNum) {
     Terminal* temp;
     for (int i = 1; i <= maxSegNum; i++) {
         temp = new Terminal(i - 1); // index is segment Number -1 
+        cout<<"segNumToLabel.size() = "<<segNumToLabel.size()<<endl;
         string terminalLabel = segNumToLabel.at(i - 1);
         temp->setLabel(terminalLabel);
         labelToTerminals[terminalLabel] = temp;
