@@ -746,7 +746,7 @@ public:
     void computeZSquaredSum() 
     {
         double costSum = 0;
-        cout<<"pointIndices.size(): "<<pointIndices.size()<<endl;
+//        cout<<"pointIndices.size(): "<<pointIndices.size()<<endl;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             
             costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);

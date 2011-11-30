@@ -63,7 +63,7 @@ vector<string> addToSegNumToLabelFromString(string line) {
     cout<<"segmentLabelPair: "<<endl;
     BOOST_FOREACH(string t, tokens)
     {
-        cout<<t<<",";
+//        cout<<t<<",";
         segmentLabelPair.push_back(t);
     }
     cout<<endl;
@@ -79,7 +79,7 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     if (segNumToLabelStream.is_open())
     {
         while (segNumToLabelStream.good()) {
-            cout<<"testhere"<<endl;
+//            cout<<"testhere"<<endl;
             getline(segNumToLabelStream, line);
             if (line.size() == 0) 
             {
