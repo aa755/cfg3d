@@ -349,7 +349,12 @@ public:
         for(it=indices.begin();it!=indices.end();it++)
         {
             PointOutT &nbr =cloudSeg->points.at(*it);
+            
+        if(consideOcclusion)
+        {
             nf.processNeighbor(nbr);
+        }
+            
             if(nbr.segment!=originSegment && nbr.segment!=0)
             {
               //  double dist=(pcl::euclideanDistance<PointOutT,PointOutT>(origin,nbr) );
@@ -359,7 +364,7 @@ public:
             }            
         }
         
-        if(consideOcclusion)
+        if(!consideOcclusion)
             return;
             
         Eigen::Vector3d originv=NeighborFinder::vectorFromPoint(origin);
@@ -533,7 +538,7 @@ Eigen::Vector3f getPoint(PointET p)
 
   }
 
-#define MIN_SEG_SIZE 300
+#define MIN_SEG_SIZE 10
 
 bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndices & seg2) 
 {
