@@ -2567,11 +2567,11 @@ public:
         
         
     }
-    
-    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
-    {
-        assert(3 == 2); // needs specialization
-    }
+
+//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
+//    {
+//        assert(3 == 2); // needs specialization
+//    }
 
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
@@ -2626,10 +2626,11 @@ public:
         output->appendFeatures(features);
     }
     
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
-//        // Initialize features.
-//        return -log(getProbability(features));
-//    }
+    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+        // Initialize features.
+        output->setAdditionalCost(-log(getProbability(features)));
+        return true;
+    }
     
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
