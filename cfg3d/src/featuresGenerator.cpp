@@ -216,7 +216,6 @@ void createRunLearnBack() {
     outputLearnerCode<<"}"<<endl<<endl;
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
-    outputLearnerCode<<"    pcl::PointCloud<PointT> scene;"<<endl;
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
     outputLearnerCode<<"    runLearn(scene, argv[2]);"<<endl;
     outputLearnerCode<<"}"<<endl;

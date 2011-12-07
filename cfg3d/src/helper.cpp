@@ -30,6 +30,7 @@ void initializeTerminals(int maxSegNum) {
     Terminal* temp;
     for (int i = 1; i <= maxSegNum; i++) {
         temp = new Terminal(i - 1); // index is segment Number -1 
+        cout<<"segNumToLabel.size() = "<<segNumToLabel.size()<<endl;
         string terminalLabel = segNumToLabel.at(i - 1);
         temp->setLabel(terminalLabel);
         labelToTerminals[terminalLabel] = temp;
@@ -62,7 +63,7 @@ vector<string> addToSegNumToLabelFromString(string line) {
     cout<<"segmentLabelPair: "<<endl;
     BOOST_FOREACH(string t, tokens)
     {
-        cout<<t<<",";
+//        cout<<t<<",";
         segmentLabelPair.push_back(t);
     }
     cout<<endl;
@@ -78,7 +79,7 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     if (segNumToLabelStream.is_open())
     {
         while (segNumToLabelStream.good()) {
-            cout<<"testhere"<<endl;
+//            cout<<"testhere"<<endl;
             getline(segNumToLabelStream, line);
             if (line.size() == 0) 
             {

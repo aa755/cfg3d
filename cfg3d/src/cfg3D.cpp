@@ -888,24 +888,46 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
         cloudxy.points[i].y = cloud.points[i].y;
     }
 }
-    
-int main(int argc, char** argv) {
-    if(argc!=3)
-    {
-        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+
+Gaussian readDistribution(string filename) {
+    ifstream inputStream;
+    filename.append(".out");
+    inputStream.open(filename.data());
+    if (inputStream.is_open()) {
+        string line;
+        while (inputStream.good()) {
+            getline(inputStream, line);
+            vector<double> nbrs;
+            getTokens(line, nbrs);
+            Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
+            return tempGaussian;
+        }
     }
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    fileName=string(argv[1]);
-    fileName=fileName.substr(0, fileName.length()-4);
+}
 
-    occlusionChecker = new OccupancyMap<PointT>(scene);
-
-    //convertToXY(scene,scene2D);
-  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-    map<int, set<int> > neighbors;
-    int maxSegIndex= parseNbrMap(argv[2],neighbors);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-    runParse(neighbors,maxSegIndex);
+int main(int argc, char** argv) {
+    Gaussian g = readDistribution("test");
+    cout<<g.mean<<endl;
+    cout<<g.variance<<endl;
+    cout<<g.min<<endl;
+    cout<<g.max<<endl;
+    
+//    if(argc!=3)
+//    {
+//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+//    }
+//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+//    fileName=string(argv[1]);
+//    fileName=fileName.substr(0, fileName.length()-4);
+//
+//    occlusionChecker = new OccupancyMap<PointT>(scene);
+//
+//    //convertToXY(scene,scene2D);
+//  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+//    map<int, set<int> > neighbors;
+//    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+//    cout<<"scene has "<<scene.size()<<" points"<<endl;
+//    runParse(neighbors,maxSegIndex);
     
     return 0;
     

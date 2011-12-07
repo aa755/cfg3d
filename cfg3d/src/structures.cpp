@@ -27,11 +27,15 @@
 #include <math.h>
 
 //sac_model_plane.h
+
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 30
 #include "OccupancyMap.h"
+#include <boost/math/distributions/normal.hpp>
+#include <boost/random/normal_distribution.hpp>
+using boost::math::normal;
 string fileName;
 class NonTerminal;
 class Terminal;
@@ -79,8 +83,35 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
             ++it2;
         }
     }
-
 }
+
+class ProbabilityDistribution {
+};
+
+class Gaussian : ProbabilityDistribution {
+public: 
+    double mean;
+    double variance;
+    double min;
+    double max;
+    
+    normal nd;
+    Gaussian() {
+        mean = 1;
+        variance = 0;
+        normal ndTemp(mean, variance);
+        nd = ndTemp;
+    }
+    
+    Gaussian(double mean, double variance, double min, double max) {
+        this->mean = mean;
+        this->variance = variance;
+        this->min = min;
+        this->max = max;
+        normal ndTemp(mean, variance);
+        nd = ndTemp;
+    }
+};
 
 double infinity() {
     return numeric_limits<double>::infinity();
@@ -715,7 +746,9 @@ public:
     void computeZSquaredSum() 
     {
         double costSum = 0;
+//        cout<<"pointIndices.size(): "<<pointIndices.size()<<endl;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
+            
             costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
         }
         zSquaredSum = costSum;
@@ -2376,6 +2409,39 @@ protected:
     ofstream featureFile;
 public:
     
+    vector<Gaussian> g;
+    
+    void readDistribution(string filename) {
+        ifstream inputStream;
+        filename.append(".out");
+        inputStream.open(filename.data());
+        if (inputStream.is_open()) {
+            string line;
+            while (inputStream.good()) {
+                getline(inputStream, line);
+                vector<float> nbrs;
+                getTokens(line, nbrs);
+                Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
+                g.push_back(tempGaussian);
+            }
+        }
+    }
+    
+    /**
+     * Calculate probability of feature vector x in the observed mixture of Gaussians.
+     * @param x
+     * @return 
+     */
+    float getProbability(vector<float> x) {
+        double product = 1;
+        int counter = 0;
+        BOOST_FOREACH(Gaussian gaussian, g) {
+            product = product * pdf(gaussian.nd, x.at(counter));
+            counter = counter + 1;
+        }
+        return product;
+    }
+    
     const vector<float> & getFeatures() const
     {
         return features;
@@ -2407,6 +2473,18 @@ public:
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
+    
+    /**
+     * New cost function given distributions observed in training data.
+     * @param x
+     */
+    // SingleRule
+//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+    // DoubleRule
+//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
+//    virtual void setCost(vector<double> x) {
+//        return -log(getProbability(x));
+//    }
 };
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
@@ -2477,12 +2555,17 @@ public:
      */
     DoubleRule(bool learning=false)
     {
+        string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
         if(learning)
         {
             // LHS__RHS1_RHS2
-                string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
                 featureFile.open(filename.data(),ios::app); // append to file
+        } else {
+            readDistribution(filename);
         }
+        
+        
+        
     }
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
@@ -2506,8 +2589,6 @@ public:
         {
             features.push_back(plane1->dotProduct(plane2));
         }
-        
-        
         //get horizontal area ratio
         //area ratio on plane defined by normal
     }
@@ -2545,6 +2626,11 @@ public:
         output->appendFeatures(features);
     }
     
+//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+//        // Initialize features.
+//        return -log(getProbability(features));
+//    }
+    
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
@@ -2559,7 +2645,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
         // below to be replaced by generic learned rules
-        // computeFeatures();
+//        appendAllFeatures(LHS, RHS1, RHS2, terminals);
         
         if(setCost(LHS,RHS1,RHS2, terminals)) {
             return LHS;
@@ -2618,7 +2704,6 @@ public:
         }
     }
     
-    //?
     void computeFeatures(RHS_Type* input)
     {
         features.clear();
@@ -2634,6 +2719,10 @@ public:
     {
         assert(3 == 2);
     }
+    
+//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+//        return -log(getProbability(features));
+//    }
     
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
@@ -2654,8 +2743,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
-        //computeFeatures()
-        
+//        computeFeatures(RHS);
         if(setCost(LHS, RHS,terminals))
              return LHS;
         else
