@@ -2715,14 +2715,15 @@ public:
      * @param output
      * @param input
      */
-    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
-    {
-        assert(3 == 2);
-    }
-    
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-//        return -log(getProbability(features));
+//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+//    {
+//        assert(3 == 2);
 //    }
+    
+    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(-log(getProbability(features)));
+        return true;
+    }
     
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
@@ -2743,7 +2744,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
-//        computeFeatures(RHS);
+        computeFeatures(RHS);
         if(setCost(LHS, RHS,terminals))
              return LHS;
         else
