@@ -250,14 +250,16 @@ public:
     {
         assert(featuresComputed);
       //  features.push_back(centroid.z);
-        features.push_back(zSquaredSum/numPoints-sqr(centroid.z)); // variance along z
      //   features.push_back(minxyz.z);
+        features.push_back(zSquaredSum/numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
         
+        /*
         ColorRGB avgColorO(avgColor);
         features.push_back(avgColorO.H);
         features.push_back(avgColorO.S);
         features.push_back(avgColorO.V);
+        */
         // horizontal convex hull area
         // move eigen vector code to here
         // linearness, planarness, scatter
@@ -2768,3 +2770,52 @@ public:
 }; 
 
 typedef boost::shared_ptr<Rule> RulePtr;
+
+/**
+ * 
+ * @param file
+ * @param neighbors
+ * @return : max segment index
+ */
+int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
+        std::ifstream labelFile;
+    std::string line;
+    labelFile.open(file);
+
+    vector<int> nbrs;
+    
+    int max=0;
+    if (labelFile.is_open()) {
+        while (labelFile.good()) {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0)
+                break;
+            
+            getTokens(line, nbrs);
+            int segIndex=nbrs.at(0);
+            
+            if(segIndex>MAX_SEG_INDEX)
+                continue;
+            
+            set<int> temp;
+            neighbors[segIndex]=temp;
+            if(max<segIndex)
+                max=segIndex;
+            for(size_t i=1;i<nbrs.size();i++)
+            {
+
+                if(nbrs.at(i)>MAX_SEG_INDEX)
+                        continue;
+                
+                neighbors[segIndex].insert(nbrs.at(i));
+                cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
+            }
+        }
+    } else {
+        cout << "could not open label file...exiting\n";
+        exit(-1);
+    }
+
+    return max;
+
+}

@@ -51,7 +51,7 @@
 //#include <pcl_visualization/cloud_viewer.h>
 #include "pcl_visualization/pcl_visualizer.h"
 //#include "../../combine_clouds/src/CombineUtils.h"
-
+#include "structures.cpp"
 
 #include "pcl/ModelCoefficients.h"
 #include "pcl/kdtree/kdtree.h"
@@ -91,6 +91,7 @@ int viewportOrig = 0;
 int viewportPred = 0;
 std::vector<std::string> labels;
 
+map<int, set<int> > neighbors;
 
 sensor_msgs::PointCloud2 cloud_blob_orig;
 sensor_msgs::PointCloud2 cloud_blob_filtered_orig;
@@ -136,6 +137,23 @@ bool apply_label_filter(pcl::PointCloud<PointT> &incloud, int label, float color
         }
     }
     return changed;
+}
+void writeNbrMap(string filename)
+{
+    ofstream ofile;
+    ofile.open(filename.data(),ios::out);
+        map<int, set<int> >::iterator it;
+
+        for ( it=neighbors.begin() ; it != neighbors.end(); it++ )
+        {
+                ofile<<it->first;
+            set<int> & segNbrs =it->second;
+            set<int>::iterator sit;
+            for(sit=segNbrs.begin();sit!=segNbrs.end();sit++)
+                ofile<<","<<*sit;
+            ofile<<endl;
+        }
+
 }
 
 bool apply_label_filter(pcl::PointCloud<PointT> &incloud, vector<int> labels, float color) {
@@ -372,19 +390,51 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
         doUpdate=true;
             int seg1 = boost::lexical_cast<int>(conf.merge1);
             int seg2 = boost::lexical_cast<int>(conf.merge2);
+            int segSmall,segBig;
+            segSmall=min(seg1,seg2);
+            segBig=max(seg1,seg2);
+            if(segSmall==segBig)
+                
+            {
+                conf.message="both segments are same";                
+                return;
+            }
+                
+            
+            //erase the bigger index
             for(vector<int>::iterator it=segmentIndices.begin();it!=segmentIndices.end();it++)
             {
-                if(*it==seg2)
-                    *it=seg1;
+                if(*it==segBig)
+                {
+                    segmentIndices.erase(it);
+                    break;
+                }
             }
+            // remap segments of bigger index to smaller index
             
             for(vector<PointT, Eigen::aligned_allocator<PointT> >::iterator it=cloud_orig.points.begin() ; it!=cloud_orig.points.end(); it++)
             {
-                if((int)(*it).segment==seg2)
-                    (*it).segment=seg1;
+                if((int)(*it).segment==segBig)
+                    (*it).segment=segSmall;
             }
-        randomizeColors(segmentIndices, colorToSeg);        
-    }
+            
+            //fix map
+            
+            neighbors.erase(segBig);
+            
+        map<int, set<int> >::iterator it;
+
+        for ( it=neighbors.begin() ; it != neighbors.end(); it++ )
+        {
+            set<int> & nbrs =it->second;
+            if(nbrs.find(segBig)!=nbrs.end())
+                nbrs.insert(segSmall);
+            
+            nbrs.erase(segBig);
+        }
+            
+                randomizeColors(segmentIndices, colorToSeg);        
+        }
     
     if (conf.randomize)
     {
@@ -460,9 +510,9 @@ int
 main(int argc, char** argv) {
 
     ros::init(argc, argv, "labeler");
-    if(argc!=3 && argc!=4)
+    if(argc!=4 && argc!=5)
     {
-        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <labelsFile> [segLabelMap]"<<endl;
+        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <neighborMap> <labelsFile> [segLabelMap]"<<endl;
         exit(-1);
     }
         labelColors[0]= new ColorRGB(1,0,0);
@@ -479,7 +529,7 @@ main(int argc, char** argv) {
 
     std::ifstream fileI;
     std::string line;
-    char *labelFileC=argv[2];
+    char *labelFileC=argv[3];
     fileI.open(labelFileC);
 
             labels.clear();
@@ -501,9 +551,9 @@ main(int argc, char** argv) {
 
     fileI.close();
 
-    if (argc == 4)
+    if (argc == 5)
     {
-        fileI.open(argv[3]);
+        fileI.open(argv[4]);
         if (fileI.is_open())
         {
             while (fileI.good())
@@ -567,6 +617,7 @@ main(int argc, char** argv) {
     conf.merge_preview=false;
     conf.randomize=false;
     conf.show_labels=false;
+    int maxSegIndex= parseNbrMap(argv[2],neighbors);
     
     bool isDone = false;
     //ROS_INFO ("Press q to quit.");
@@ -604,6 +655,9 @@ main(int argc, char** argv) {
            }
            fileO.close();
            cout<<"done saving"<<endl;
+           string nbrmap(argv[2]);
+           writeNbrMap(nbrmap+"_merged.txt");           
+           
             break;
         }
         if (doUpdate) {
