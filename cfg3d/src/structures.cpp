@@ -2475,18 +2475,6 @@ public:
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
-    
-    /**
-     * New cost function given distributions observed in training data.
-     * @param x
-     */
-    // SingleRule
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
-    // DoubleRule
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
-//    virtual void setCost(vector<double> x) {
-//        return -log(getProbability(x));
-//    }
 };
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
@@ -2569,11 +2557,11 @@ public:
         
         
     }
-    
-    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
-    {
-        assert(3 == 2); // needs specialization
-    }
+
+//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
+//    {
+//        assert(3 == 2); // needs specialization
+//    }
 
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
@@ -2628,10 +2616,11 @@ public:
         output->appendFeatures(features);
     }
     
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
-//        // Initialize features.
-//        return -log(getProbability(features));
-//    }
+    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+        // Initialize features.
+        output->setAdditionalCost(-log(getProbability(features)));
+        return true;
+    }
     
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
@@ -2717,14 +2706,15 @@ public:
      * @param output
      * @param input
      */
-    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
-    {
-        assert(3 == 2);
-    }
-    
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-//        return -log(getProbability(features));
+//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+//    {
+//        assert(3 == 2);
 //    }
+    
+    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(-log(getProbability(features)));
+        return true;
+    }
     
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
@@ -2745,7 +2735,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
-//        computeFeatures(RHS);
+        computeFeatures(RHS);
         if(setCost(LHS, RHS,terminals))
              return LHS;
         else
