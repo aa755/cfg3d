@@ -2473,18 +2473,6 @@ public:
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
             delete newNT;
     }
-    
-    /**
-     * New cost function given distributions observed in training data.
-     * @param x
-     */
-    // SingleRule
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
-    // DoubleRule
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
-//    virtual void setCost(vector<double> x) {
-//        return -log(getProbability(x));
-//    }
 };
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
