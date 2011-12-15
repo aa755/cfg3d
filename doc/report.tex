@@ -45,7 +45,7 @@
 \maketitle
 
 \begin{abstract}
-In this project, we pose 3D scene understanding as a problem of parsing in a visual grammar. A parse tree gives us much more indepth understanding of a scene that just a labeling of points. It tells us how 3D primitives like planes, cylinders etc. combine to form parts, parts combine to form instances of objects and objects group consistently to form a scene.
+In this project, we pose 3D scene understanding as a problem of parsing in a visual grammar. A parse tree gives us much more indepth understanding of a scene that just a labeling of points. It tells us how 3D primitives like planes, cylinders etc. combine to form parts, parts combine to form instances of objects and objects group consistently to form a scene. We can detect individual object instances(no need of non-maximal suppression) and also poses of objects.
 \end{abstract}
 
 \section{Introduction}
@@ -54,11 +54,12 @@ Moreover, it has been shown that in humans, there is a lot of feedback going on 
 Finally, we show how our grammar can be made to reason about occlusions. It does so by introducing hallucinated segments in the most likely position of a missing part and the points in the hallucinated segment are indeed not visible from any camera position.
 
 \section{Related Work}
-2 papers in Nips 2011 for 2D images. i will explain
-
+\cite{girshick2011object} use grammars for detecting people in 2D images. It doesn't quite handle the problem of jointly interpreting a whole scene - where relationships between objects become important(like we find monitor on table). Also, the grammar model is used to only combine parts(which are detected by base classifiers) into objects. We capture all of these in a single coherent generative model.
+\cite{zhu2011} uses a visual grammar model to combine small lines in images to big lines and boxes in 3D space. They jointly infer 3D geometry and detect some objects like walls and boxes. We want to detect a large range of semantic objects. Also, their model handles occlusion by having multiple rules - one for each configuration of missing parts. A rule with missing part might be invoked when the position for that part is not occluded.
+%Our cost function has monotonocity properties which allows us to find us the optimal parsing in much less time complexity()
 \section{Model}
+We use a variant stochastic context free grammar where the terminal and non-terminal symbols have attributes attached to them and probability of a rule depends also on the attributes and of children. We can define our grammar as a 6 rule (V,T,R,S,g). T is the set of terminals(atomic units) . For now, T={segment}. V is the set of non-terminals(classes which can be ) . V={plane, clylinder, tableTop, table, scene...}. S is the set of production rules which combile a mixture of terminals and non-terminals 
 
-what is a visual grammar
 \section{Learning}
  generative model
 \section{Inference}
@@ -66,5 +67,10 @@ least cost derivation
 
 \section{Data}
 \section{Future Work}
+
+{  
+\bibliographystyle{apalike}
+\bibliography{references}
+}
 
 \end{document}
