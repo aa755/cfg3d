@@ -1,0 +1,70 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+% \usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+%\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+%\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+
+%%% The "real" document content comes below...
+
+\title{Understanding 3D Scenes Using Visual Grammars}
+\author{Abhishek Anand, Sherwin Li, Paul Heran Yang }
+
+
+%\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+In this project, we pose 3D scene understanding as a problem of parsing in a visual grammar. A parse tree gives us much more indepth understanding of a scene that just a labeling of points. It tells us how 3D primitives like planes, cylinders etc. combine to form parts, parts combine to form instances of objects and objects group consistently to form a scene.
+\end{abstract}
+
+\section{Introduction}
+Most of the scene understanding problems are formulated as a pixel/superpixel labeling problem. A single pixel and it's neighbors don't have enough information to perform labeling. In some approaches, a precomputed set of patches or segments are required to be labeled. Very rarely, do these segments correspond one-to-one with instances of objects in a scene. Sometimes, an object might be split into multiple segments. Sometimes, different instances of possibly different objects are combined into a segment. Most of the approaches do oversegmentation(splitting an object into multiple segments is fine but merging is not). Even then, these algorithms cannot combine segments before attempting to label them and hence can't reliably reason about properties like size and overall shape of the object. 
+Moreover, it has been shown that in humans, there is a lot of feedback going on from recognition areas to segmentation areas. This makes a lot of sense, because at many places, lower level features are not sufficient to do segmentation and seeing the bigger picture becomes indispensable for correct segmentation. Our visual grammar has rules for both merging segments and labeling them to parts. In this way, our algorithm will find jointly optimal segmentation and labeling(i.e it can model feedback from labeling to segmentation).
+Finally, we show how our grammar can be made to reason about occlusions. It does so by introducing hallucinated segments in the most likely position of a missing part and the points in the hallucinated segment are indeed not visible from any camera position.
+
+\section{Related Work}
+2 papers in Nips 2011 for 2D images. i will explain
+
+\section{Model}
+
+what is a visual grammar
+\section{Learning}
+ generative model
+\section{Inference}
+least cost derivation
+
+\section{Data}
+\section{Future Work}
+
+\end{document}
