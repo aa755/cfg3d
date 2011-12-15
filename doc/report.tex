@@ -58,13 +58,36 @@ Finally, we show how our grammar can be made to reason about occlusions. It does
 \cite{zhu2011} uses a visual grammar model to combine small lines in images to big lines and boxes in 3D space. They jointly infer 3D geometry and detect some objects like walls and boxes. We want to detect a large range of semantic objects. Also, their model handles occlusion by having multiple rules - one for each configuration of missing parts. A rule with missing part might be invoked when the position for that part is not occluded.
 %Our cost function has monotonocity properties which allows us to find us the optimal parsing in much less time complexity()
 \section{Model}
-We use a variant stochastic context free grammar where the terminal and non-terminal symbols have attributes attached to them and probability of a rule depends also on the attributes and of children. We can define our grammar as a 6 rule (V,T,R,S,g). T is the set of terminals(atomic units) . For now, T={segment}. V is the set of non-terminals(classes which can be ) . V={plane, clylinder, tableTop, table, scene...}. S is the set of production rules which combile a mixture of terminals and non-terminals 
+We use a variant stochastic context free grammar where the terminal and non-terminal symbols have attributes attached to them and probability of a rule depends also on the attributes and of children. We can define our grammar as a 4 tuple (V,T,R,S). T is the set of terminals(atomic units) . For now, T={segment}. V is the set of non-terminals(classes which can be ) . V={plane, clylinder, tableTop, table, scene...}. Each symbol in V and T is asociated with a vector of features $x \in R^d$.
+S is the set of production rules which combile a mixture of terminals and non-terminals to form a non-terminal. Here are few examples: \\
+Plane $->$ segment\\
+Plane $->$ Plane segment\\
+TableTop $->$  Plane\\
+Table  $->$ TableTop TableLeg\\
+Table  $->$ TableTop TableLeg Drawer\\
+\\
+Each rule is associated with a probability function which takes the features of children and give a probability. Since we use a parametric model(GMM), only the parameters need to be stored(mixing probabilities, means and variance). These parameters would be learnt. For now, we assume that the grammar is in CNF(all rules have atmost 2 symbols in RHS). We can convert a grammar which is not in CNF to one which is in CNF by introducing auxilliary non-terminals.
+In traditional CFGs, a rule can combine only a set of adjacent symbols. There , the input was a 1D string of terminals and a terminal was adjacent to the one before and the one next to it. In 3D , we have a general adjacency graph where 2 terminals(segments) are connected if the minimum distance between them is less that a {\it min\_dist} or there is an occluded region between the 2 segments.
 
 \section{Learning}
- generative model
-\section{Inference}
-least cost derivation
+We use a genetarive model for this task.
+\begin{eqnarray}
+P(x,t)&=&P(x|t)P(t) \\
+&=& \prod_{n \in NT(t)}{P(x_{children(n)} |rule(n) )P(rule(n))}\\
+P(x_{children(n)} |rule(n) ) &:& GMM(\theta _{rule(n)})\\
+P(rule(n)) &:& Multinomial \\
+\sum_{r \in rules:LHS(r)=A}{P(r))}=1
+\end{eqnarray}
+Here, t is a parse-tree. x contains the features of terminals. The feature of a non-terminal node is a fixed function of features of it's children. NT(t) gives the set of non-terminal nodes in the tree t.
+The params for the prior probability of rules(multinomial distribution for P(rule(n))) can be simply estimated by fraction of counts. For example, we have only 2 rules for generating a table(the last 2 rules in the example). Suppose, we observe in the dataset that 70\% of the tables have drawers and 30\% dont. Then the prior probability of last rule is 0.7.
+To compute the posterior probability of rules, we fit a GMM to data generated from parsings of objects in training set. To obviate the need for estimating the number of components, we use a dirichlet process gaussian mixture model with. 
 
+\section{Inference}
+Note that in the equation describing $P(x,t)$, t can be any subtree of any full parse-tree i.e root of t need not be S(the start symbol). During parsing, each non-terminal represents a tree(formed by it's children and their children). We can define cost of a non-terminal as:
+\begin{eqnarray}
+cost(t)&=&-log(P(x,t))
+\end{eqnarray}
+ Note that this cost function is superior i.e cost of a parent is no less than the cost of children. Hence, we can use dynamic programming to compute the least cost(most probable) parsing. The time complexity is linear in the set of possible NonTerminals(set of connected subsets of segments in the original adjacency graph). 
 \section{Data}
 \section{Future Work}
 
