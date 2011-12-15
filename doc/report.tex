@@ -81,7 +81,7 @@ P(rule(n)) &:& Multinomial \\
 Here, t is a parse-tree. x contains the features of terminals. The feature of a non-terminal node is a fixed function of features of it's children. NT(t) gives the set of non-terminal nodes in the tree t.
 The params for the prior probability of rules(multinomial distribution for P(rule(n))) can be simply estimated by fraction of counts. For example, we have only 2 rules for generating a table(the last 2 rules in the example). Suppose, we observe in the dataset that 70\% of the tables have drawers and 30\% dont. Then the prior probability of last rule is 0.7.
 To compute the posterior probability of rules, we fit a GMM to data generated from parsings of objects in training set. To obviate the need for estimating the number of components, we use a dirichlet process gaussian mixture model with. 
-
+(Note that the rules for primitive types like Plane, Cylinder) have been handtuned.
 \section{Inference}
 Note that in the equation describing $P(x,t)$, t can be any subtree of any full parse-tree i.e root of t need not be S(the start symbol). During parsing, each non-terminal represents a tree(formed by it's children and their children). We can define cost of a non-terminal as:
 \begin{eqnarray}
@@ -91,9 +91,11 @@ cost(t)&=&-log(P(x,t))
 
 
 \section{Data}
-Getting reasonable data for learning parameters of rules turned out to be the most difficult part. We tried to collect data from google sketchup which has 3D models for common house-hold objects
+Getting reasonable data for learning parameters of rules turned out to be the most difficult part. We tried to collect data from google sketchup which has 3D models for common house-hold objects. We ran into several problems. Paul wrote a module to convert the sketchup data to pointclouds. On many objects, the module did not terminate even after hours. We started using experimental virtual scanner module in pcl which was released earlier this month. While it run's fast, there is no documentation available. Sherwin spent this week trying to figure out how it works with no luck. This pcl module is under rapid development and they have promised to add many new features like support for color, very accurate kinect model, etc. So we hope to get around these difficulties very soon. We managed to find 10 CPUs and 20 laptops in google-sketchup. \\
 
 \section{Future Work}
+Data collection is the biggest hurdle at the moment. There are few unsolved challenges at present.  Our current labeler decomposes the object into planes. However, this often results into too many planes which the users have to label. For example, in case of laptop, the front and back side of the laptop screen might endup as 2 separate planes. So, using a box(cuboid) as a primitive, rather than planes might be a usefule step. While we have tested our principle for handling occlusion by created hallucinated segments on a toy dataset(CPU with a side occluded), we haven't yet coded a general module which can handle occlusion for arbitrary rules.
+
 
 {  
 \bibliographystyle{apalike}
