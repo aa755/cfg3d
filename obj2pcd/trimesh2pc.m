@@ -5,7 +5,7 @@ a = p2 - p3;
 b = p1 - p2;
 h = norm(cross(a,b)) / norm(a);
 
-UNIT = 0.01;
+UNIT = 0.003;
 numpts = int32(h/UNIT);
 side1 = [linspace(p1(1), p2(1), numpts);
         linspace(p1(2), p2(2), numpts);
