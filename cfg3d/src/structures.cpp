@@ -1478,6 +1478,7 @@ public:
     
     virtual void appendAdditionalFeatures(vector<float> & features)
     {
+        //assert(featuresComputed);
         features.push_back(getLength());
         features.push_back(getWidth());
     }
@@ -1495,6 +1496,11 @@ public:
         
         return true;
     }
+    
+    
+     virtual void additionalFinalize() {
+         computePlaneParamsAndSetCost();
+     }
     
     void computePlaneParamsAndSetCost()
     {
@@ -1533,7 +1539,7 @@ public:
     {
         computeFeatures();
         Eigen::Vector4f xyz_centroid_;
-
+    
         for (int i = 0; i < 3; i++)
             xyz_centroid_(i) = centroid.data[i];
         xyz_centroid_(3) = 1;
@@ -1568,13 +1574,13 @@ public:
     
     float getLength()
     {
-        assert(featuresComputed);
-        return 2*sqrt(eigenValsAscending(2)/getNumPoints()); // rms
+        assert(planeParamsComputed);
+        return 2*sqrt(eigenValsAscending(2)/(float)getNumPoints()); // rms
     }
     float getWidth()
     {
-        assert(featuresComputed);
-        return 2*sqrt(eigenValsAscending(1)/getNumPoints()); // rms
+        assert(planeParamsComputed);
+        return 2*sqrt(eigenValsAscending(1)/(float)getNumPoints()); // rms
     }
     
     // If this quantity is greater, then the two planes are more parallel
@@ -2626,6 +2632,8 @@ public:
     {
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS->setAdditionalCost(0);
+        LHS->declareOptimal();
         appendAllFeatures(LHS,RHS1,RHS2,terminals);
         writeFeaturesToFile();
         return LHS;
@@ -2723,7 +2731,7 @@ public:
         
         computeFeatures(RHS);
         writeFeaturesToFile();
-        LHS->setAbsoluteCost(0);
+        LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         
         return LHS;

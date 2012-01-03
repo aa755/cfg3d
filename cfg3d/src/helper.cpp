@@ -54,13 +54,20 @@ void initializePlanes(int maxSegNum) {
         string label = segNumToLabel.at(i-1);
         Terminal* terminal = labelToTerminals.at(label);
         terminal->computeFeatures();
+        terminal->declareOptimal();
 
-        Plane* plane = new Plane();
-        plane->addChild(terminal);
-        plane->computeFeatures();
-        plane->returnPlaneParams();
+        cout<<"cost terminal1"<<terminal->getCost()<<endl;
+        Plane* pl = new Plane();
+        pl->addChild(terminal);
+        cout<<"cost terminal2"<<terminal->getCost()<<endl;
+        pl->computeFeatures();
+        cout<<"cost terminal3"<<terminal->getCost()<<endl;
+        pl->setAbsoluteCost(0);
+        pl->declareOptimal();
+//        plane->returnPlaneParams();
+      
         cout<<"Label: "<<label<<endl;
-        labelToPlanes[label] = plane;
+        labelToPlanes[label] = pl;
     }
 }
 
@@ -121,9 +128,6 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
         {
             segNums.insert(currentSegNum);
             string label = segNumToLabel[currentSegNum];
-            BOOST_FOREACH(int segNum, segNums) {
-                cout<<segNum;
-            }
             cout<<endl;
             Terminal* terminalToAddTo = labelToTerminals[label];
 //            cout<<labelToTerminals.size()<<endl;

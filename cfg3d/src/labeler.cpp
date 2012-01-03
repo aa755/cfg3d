@@ -631,7 +631,7 @@ main(int argc, char** argv) {
             //savePCDAndLabels ();
             ofstream fileO;
             fileO.open(labelFileC);
-            for(int i=1;i<labels.size();i++) // ignore the 1st one "n"
+            for(int i=1;i<(int)labels.size();i++) // ignore the 1st one "n"
             {
                 fileO<<labels.at(i)<<endl;
             }

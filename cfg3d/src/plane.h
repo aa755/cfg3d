@@ -2,7 +2,7 @@
 #include <pcl/point_types.h>
 #include "pcl/ModelCoefficients.h"
 
-struct plane{
+ struct plane{
   std::vector<pcl::PointXYZRGB> pts;
   pcl::ModelCoefficients normal;
   int points;
