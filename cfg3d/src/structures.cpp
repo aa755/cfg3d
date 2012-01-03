@@ -1,3 +1,6 @@
+#ifndef STRUCTURES_CPP
+#define	STRUCTURES_CPP
+
 #include "utils.h"
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
@@ -201,7 +204,7 @@ protected:
     
 public:
 
-    float _getPolygonArea(const vector<cv::Point2f>& cv2D)
+    static float _getPolygonArea(const vector<cv::Point2f>& cv2D)
     {
         vector<cv::Point2f> contour;
         cv::approxPolyDP(cv::Mat(cv2D), contour, 0.01, true);
@@ -254,13 +257,15 @@ public:
         features.push_back(zSquaredSum/numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
         
-        /*
+        
         ColorRGB avgColorO(avgColor);
         features.push_back(avgColorO.H);
         features.push_back(avgColorO.S);
         features.push_back(avgColorO.V);
-        */
+        
         // horizontal convex hull area
+        features.push_back(horzArea);
+        
         // move eigen vector code to here
         // linearness, planarness, scatter
         
@@ -2696,10 +2701,12 @@ class SingleRule : public Rule
 public:
     SingleRule(bool learning=false)
     {
+        string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
         if(learning)
         {
-                string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
                 featureFile.open(filename.data(),ios::app); // append to file
+        }else {
+            readDistribution(filename);
         }
     }
     
@@ -2817,3 +2824,6 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
+
+
+#endif

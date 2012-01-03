@@ -1,4 +1,4 @@
-function [  ] = generateDistribution( featureFile )
+function [  ] = generateDistributionParameters( featureFile )
 %     M = magic(3);
 %     dlmwrite('myfile.txt', [M*5 M/5], ' ')
 % 

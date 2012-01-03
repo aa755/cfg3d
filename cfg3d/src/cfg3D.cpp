@@ -6,7 +6,7 @@
  */
 
 #include "structures.cpp"
-
+#include "CPU_generatedDataStructures.cpp"
 template<typename SceneRHS_Type1, typename SceneRHS_Type2>
 class RScene : public Rule {
     template<typename TypeExtracted, typename TypeCombinee>
@@ -708,7 +708,8 @@ void outputOnBothStreams(string str)
 
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
-    appendRuleInstances(rules);
+   // appendRuleInstances(rules);
+    CPUAppendLearningRules(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
