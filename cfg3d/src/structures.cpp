@@ -2428,16 +2428,20 @@ public:
         ifstream inputStream;
         filename.append(".out");
         inputStream.open(filename.data());
-        if (inputStream.is_open()) {
+        assert(inputStream.is_open());
             string line;
+
             while (inputStream.good()) {
                 getline(inputStream, line);
+                
+                if(line.size()==0)
+                    break;
+                
                 vector<float> nbrs;
                 getTokens(line, nbrs);
                 Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
                 g.push_back(tempGaussian);
             }
-        }
     }
     
     /**

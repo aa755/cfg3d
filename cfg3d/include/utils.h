@@ -98,17 +98,7 @@ void getTokens(string str, vector<string>& out) {
         }
 }
 
-void getTokens(string str, vector<double>& out) {
-        boost::char_separator<char> sep(",");
-        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
-        
-        out.clear();
 
-        BOOST_FOREACH(string t, tokens) 
-        {
-		out.push_back(boost::lexical_cast<double>(t));
-        }
-}
 
 void getTokens(string str, vector<float>& out) {
         boost::char_separator<char> sep(",");
@@ -118,6 +108,11 @@ void getTokens(string str, vector<float>& out) {
 
         BOOST_FOREACH(string t, tokens) 
         {
+            if(t.compare("Inf")==0)
+                out.push_back(numeric_limits<double>::infinity());
+            else if(t.compare("NaN")==0)
+                out.push_back(std::numeric_limits<double>::quiet_NaN());
+            else
 		out.push_back(boost::lexical_cast<float>(t));
         }
 }

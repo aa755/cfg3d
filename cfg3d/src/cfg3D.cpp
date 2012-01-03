@@ -850,7 +850,7 @@ Gaussian readDistribution(string filename) {
         string line;
         while (inputStream.good()) {
             getline(inputStream, line);
-            vector<double> nbrs;
+            vector<float> nbrs;
             getTokens(line, nbrs);
             Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
             return tempGaussian;
@@ -859,28 +859,23 @@ Gaussian readDistribution(string filename) {
 }
 
 int main(int argc, char** argv) {
-    Gaussian g = readDistribution("test");
-    cout<<g.mean<<endl;
-    cout<<g.variance<<endl;
-    cout<<g.min<<endl;
-    cout<<g.max<<endl;
     
-//    if(argc!=3)
-//    {
-//        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
-//    }
-//    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-//    fileName=string(argv[1]);
-//    fileName=fileName.substr(0, fileName.length()-4);
-//
-//    occlusionChecker = new OccupancyMap<PointT>(scene);
-//
-//    //convertToXY(scene,scene2D);
-//  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-//    map<int, set<int> > neighbors;
-//    int maxSegIndex= parseNbrMap(argv[2],neighbors);
-//    cout<<"scene has "<<scene.size()<<" points"<<endl;
-//    runParse(neighbors,maxSegIndex);
+    if(argc!=3)
+    {
+        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+    }
+    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    fileName=string(argv[1]);
+    fileName=fileName.substr(0, fileName.length()-4);
+
+    occlusionChecker = new OccupancyMap<PointT>(scene);
+
+    //convertToXY(scene,scene2D);
+  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+    map<int, set<int> > neighbors;
+    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+    cout<<"scene has "<<scene.size()<<" points"<<endl;
+    runParse(neighbors,maxSegIndex);
     
     return 0;
     
