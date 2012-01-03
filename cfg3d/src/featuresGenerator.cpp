@@ -216,6 +216,8 @@ void createRunLearnBack() {
     outputLearnerCode<<"}"<<endl<<endl;
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
+    outputLearnerCode<<"if(argc!=3)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile> <seg2labelFile> \"<<endl;\n exit(-1);\n}\n";        
+
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
     outputLearnerCode<<"    runLearn(scene, argv[2]);"<<endl;
     outputLearnerCode<<"}"<<endl;
@@ -231,6 +233,13 @@ void createLearner(const char* rulesFile) {
 int main(int argc, char** argv) {
     
     ///////////////////// Generating Rules ////////////////////
+    
+    if(argc!=4)
+    {
+        cerr<<"usage:"<<argv[0]<<" <neighborMapFile> <seg2labelFile> <ObjectName> "<<endl;
+        exit(-1);        
+    }
+    
     map<int, set<int> > nodeToNeighbors;
     parseGraph(argv[1], nodeToNeighbors);
     

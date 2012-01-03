@@ -26,9 +26,17 @@ int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
  * Initialize Terminals without any points.
  * @param maxSegNum
  */
-void initializeTerminals(int maxSegNum) {
+void initializeTerminals(int & maxSegNum) {
     Terminal* temp;
     for (int i = 1; i <= maxSegNum; i++) {
+        
+        if(segNumToLabel.find(i-1)==segNumToLabel.end())
+        {
+            cerr<<"WARN: some segments ignored coz only contiguous labeled segments are allowed\n";
+            maxSegNum=i-1;
+            break;
+        }
+        
         temp = new Terminal(i - 1); // index is segment Number -1 
         cout<<"segNumToLabel.size() = "<<segNumToLabel.size()<<endl;
         string terminalLabel = segNumToLabel.at(i - 1);
@@ -109,7 +117,7 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
         int currentSegNum = scene.points[i].segment-1;
 
         
-        if(currentSegNum >= 0 && currentSegNum <= maxSegNum)
+        if(currentSegNum >= 0 && currentSegNum < maxSegNum)
         {
             segNums.insert(currentSegNum);
             string label = segNumToLabel[currentSegNum];
