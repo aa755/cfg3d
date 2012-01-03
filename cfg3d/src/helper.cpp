@@ -56,12 +56,9 @@ void initializePlanes(int maxSegNum) {
         terminal->computeFeatures();
         terminal->declareOptimal();
 
-        cout<<"cost terminal1"<<terminal->getCost()<<endl;
         Plane* pl = new Plane();
         pl->addChild(terminal);
-        cout<<"cost terminal2"<<terminal->getCost()<<endl;
         pl->computeFeatures();
-        cout<<"cost terminal3"<<terminal->getCost()<<endl;
         pl->setAbsoluteCost(0);
         pl->declareOptimal();
 //        plane->returnPlaneParams();
