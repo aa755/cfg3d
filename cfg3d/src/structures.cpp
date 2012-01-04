@@ -114,6 +114,13 @@ public:
         normal ndTemp(mean, variance);
         nd = ndTemp;
     }
+    
+    double minusLogProb(double x)
+    {
+        double lp= sqr(x-mean)/(2*sqr(variance)) + log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
+        assert(lp>=0);
+        return lp;
+    }
 };
 
 double infinity() {
@@ -747,6 +754,11 @@ public:
         }
     }
     
+    void setNeighbors(int numTerminals)
+    {
+        neighbors.resize(numTerminals,false);
+    }
+    
     bool isSpanExclusive(NonTerminal * nt);
 
     
@@ -898,7 +910,6 @@ public:
         return (term!=NULL);
     }
 
-Terminal * terminals;
 int Terminal::totalNumTerminals = 0;
 int Terminal::numHallucinatedTerminals = 0;
 
@@ -2445,6 +2456,7 @@ public:
     }
     
     /**
+     * NUMERICAL ISSUES: DO NOT USE IT
      * Calculate probability of feature vector x in the observed mixture of Gaussians.
      * @param x
      * @return 
@@ -2453,10 +2465,28 @@ public:
         double product = 1;
         int counter = 0;
         BOOST_FOREACH(Gaussian gaussian, g) {
-            product = product * pdf(gaussian.nd, x.at(counter));
+            double term=pdf(gaussian.nd, (double) x.at(counter));
+            product = product * term;
+            assert(term>=0);
+            assert(term<=1);
             counter = counter + 1;
         }
         return product;
+    }
+    
+    /**
+     * Calculate -log prob probability of feature vector x in the observed mixture of Gaussians.
+     * @param x
+     * @return 
+     */
+    double getMinusLogProbability(vector<float> x) {
+        double sum = 0;
+        int counter = 0;
+        BOOST_FOREACH(Gaussian gaussian, g) {
+            sum = sum * gaussian.minusLogProb(x.at(counter));
+            counter = counter + 1;
+        }
+        return sum;
     }
     
     const vector<float> & getFeatures() const
@@ -2633,7 +2663,7 @@ public:
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
-        output->setAdditionalCost(-log(getProbability(features)));
+        output->setAdditionalCost(getMinusLogProbability(features));
         return true;
     }
     
@@ -2731,7 +2761,7 @@ public:
 //    }
     
     bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(-log(getProbability(features)));
+        output->setAdditionalCost(getMinusLogProbability(features));
         return true;
     }
     

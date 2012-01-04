@@ -26,6 +26,7 @@ int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
  * Initialize Terminals without any points.
  * @param maxSegNum
  */
+        vector<Terminal *> terminals;
 void initializeTerminals(int & maxSegNum) {
     Terminal* temp;
     for (int i = 1; i <= maxSegNum; i++) {
@@ -42,7 +43,12 @@ void initializeTerminals(int & maxSegNum) {
         string terminalLabel = segNumToLabel.at(i - 1);
         temp->setLabel(terminalLabel);
         labelToTerminals[terminalLabel] = temp;
+        terminals.push_back(temp);
     }
+    
+    Terminal::totalNumTerminals=maxSegNum;
+    assert(terminals.size()==Terminal::totalNumTerminals);
+    
 }
 
 /**
@@ -54,10 +60,12 @@ void initializePlanes(int maxSegNum) {
         string label = segNumToLabel.at(i-1);
         Terminal* terminal = labelToTerminals.at(label);
         terminal->computeFeatures();
+        terminal->setNeighbors(maxSegNum);
         terminal->declareOptimal();
 
         Plane* pl = new Plane();
         pl->addChild(terminal);
+        pl->computeSpannedTerminals();
         pl->computeFeatures();
         pl->setAbsoluteCost(0);
         pl->declareOptimal();
@@ -134,6 +142,18 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
         }
     
     }
+    segMinDistances.setZero(terminals.size(),terminals.size());
+    
+    for(unsigned int i1=0;i1<terminals.size();i1++)
+    {
+            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
+            {
+                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
+                segMinDistances(i1,i2)=minDistance;
+                segMinDistances(i2,i1)=minDistance;
+            }
+    }
+    
     // Plane initialization.
     initializePlanes(maxSegNum);
 }

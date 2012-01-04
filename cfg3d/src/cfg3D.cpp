@@ -65,6 +65,18 @@ public:
     }
 };
 
+class RPlaneSeg : public Rule {
+public:
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        Plane * LHS = new Plane();
+        LHS->addChild(extractedSym);
+        LHS->computeSpannedTerminals();
+        LHS->computePlaneParamsAndSetCost();
+        addToPqueueIfNotDuplicate(LHS,pqueue); //TODO: duplicate check is not required
+    }
+};
+
 class RPlane_PlaneSeg : public Rule {
 public:
     
@@ -373,6 +385,7 @@ template<>
     bool SingleRule<Plane, Terminal> :: setCost(Plane* output, Terminal* input, vector<Terminal*> & terminals)
     {
         output->computePlaneParamsAndSetCost();
+        cout<<"plane rule called"<<endl;
         return true;
     }
 
@@ -655,6 +668,15 @@ template<>
         }
     }
 
+void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
+    
+    // planes
+    rules.push_back(RulePtr(new RPlaneSeg()));
+    rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+    //rules.push_back(RulePtr(new RPlaneTriplet_PlanePairPlane()));
+    
+}
+
 void appendRuleInstances(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new DoubleRule<PlanePair, Plane, Plane>()));
     //rules.push_back(RulePtr(new DoubleRule<Corner, PlanePair, Plane>()));
@@ -709,6 +731,7 @@ void outputOnBothStreams(string str)
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
    // appendRuleInstances(rules);
+    appendRuleInstancesForPrimitives(rules);
     CPUAppendLearningRules(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
