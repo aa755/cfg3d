@@ -69,6 +69,9 @@ class RPlaneSeg : public Rule {
 public:
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
+        if (typeid (*extractedSym) != typeid (Terminal))
+            return;
+        
         Plane * LHS = new Plane();
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();

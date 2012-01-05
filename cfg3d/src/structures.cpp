@@ -115,9 +115,15 @@ public:
         nd = ndTemp;
     }
     
+    /**
+     * it is actually log(pdf(x)/pdf(mean))
+     *  because pdf(x) need not be between 0 and 1
+     * @param x
+     * @return log(pdf(x)/pdf(mean))
+     */
     double minusLogProb(double x)
     {
-        double lp= sqr(x-mean)/(2*sqr(variance)) + log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
+        double lp= sqr(x-mean)/(2*sqr(variance)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
         assert(lp>=0);
         return lp;
     }
@@ -2483,7 +2489,7 @@ public:
         double sum = 0;
         int counter = 0;
         BOOST_FOREACH(Gaussian gaussian, g) {
-            sum = sum * gaussian.minusLogProb(x.at(counter));
+            sum = sum + gaussian.minusLogProb(x.at(counter));
             counter = counter + 1;
         }
         return sum;
@@ -2683,7 +2689,8 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
         // below to be replaced by generic learned rules
-//        appendAllFeatures(LHS, RHS1, RHS2, terminals);
+        
+        appendAllFeatures(LHS, RHS1, RHS2, terminals);
         
         if(setCost(LHS,RHS1,RHS2, terminals)) {
             return LHS;

@@ -47,7 +47,7 @@ void initializeTerminals(int & maxSegNum) {
     }
     
     Terminal::totalNumTerminals=maxSegNum;
-    assert(terminals.size()==Terminal::totalNumTerminals);
+    assert((int)terminals.size()==Terminal::totalNumTerminals);
     
 }
 
