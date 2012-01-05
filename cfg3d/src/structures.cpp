@@ -2353,9 +2353,9 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-        if (sym->getCost() >= HIGH_COST) {
-            return false;
-        }
+//        if (sym->getCost() >= HIGH_COST) {
+//            return false;
+//        }
         
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;

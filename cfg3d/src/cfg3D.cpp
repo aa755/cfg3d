@@ -821,7 +821,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
-        if (typeid (*min) == typeid (SceneGeneric)) {
+        if (typeid (*min) == typeid (CPU)) {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
