@@ -1772,7 +1772,7 @@ class Scene : public NonTerminal {
         
         scene.width=1;
         scene.height=scene.size();
-        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+      //  pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
         
         graphvizFile<<"digraph g{\n";
         while(!parseTreeNodes.empty())
