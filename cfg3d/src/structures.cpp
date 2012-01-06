@@ -89,6 +89,7 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
 }
 
 class ProbabilityDistribution {
+    virtual double minusLogProb(double x)=0;
 };
 
 class Gaussian : ProbabilityDistribution {
@@ -1421,7 +1422,7 @@ class Plane : public NonTerminal {
 protected:
     float curvature;
     Eigen::Vector3d eigenValsAscending;
-    
+    Eigen::Matrix3d eigenVecs;    
     /**
      * planeParams[0]x+planeParams[1]x+planeParams[2]x+planeParams[3]=0
      */    
@@ -1553,8 +1554,29 @@ public:
         planeParamsComputed = true;
 
         eigenValsAscending=eigen_values;
+        eigenVecs=eigen_vectors;
         double sumSquaredDistances = eigen_values(0);
         setAbsoluteCost(sumSquaredDistances);
+    }
+    
+    /**
+     * return the eigenvector with i'th smallest eigenvalue
+     * @param i
+     * @return 
+     */
+    Eigen::Vector3d getEigenVector(int i)
+    {
+        return eigenVecs.col(i);
+    }
+    
+    Eigen::Vector3d getLengthDirection(int i)
+    {
+        return getEigenVector(2);
+    }
+    
+    Eigen::Vector3d getWidthDirection(int i)
+    {
+        return getEigenVector(1);
     }
     
     double returnPlaneParams()
