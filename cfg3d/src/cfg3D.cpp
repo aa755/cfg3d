@@ -868,21 +868,6 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
     }
 }
 
-Gaussian readDistribution(string filename) {
-    ifstream inputStream;
-    filename.append(".out");
-    inputStream.open(filename.data());
-    if (inputStream.is_open()) {
-        string line;
-        while (inputStream.good()) {
-            getline(inputStream, line);
-            vector<float> nbrs;
-            getTokens(line, nbrs);
-            Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
-            return tempGaussian;
-        }
-    }
-}
 
 int main(int argc, char** argv) {
     
