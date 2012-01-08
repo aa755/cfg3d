@@ -2548,7 +2548,8 @@ class PairModel
     ProbabilityDistribution *centZDiff;
     ProbabilityDistribution *distAlongEV[3]; 
     
-    PairModel(vector<ProbabilityDistribution*> models, int start)
+public:
+    void readModels(const vector<ProbabilityDistribution*> & models, int start)
     {
         centDist=models.at(start);
         centDistHorz=models.at(start+1);
@@ -2565,6 +2566,16 @@ class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
+    vector<PairModel> modelsForLHS; // LHS might me an intermediate for multiple NTs
+    
+    void readPairModels(int numSymsInRHS1)
+    {
+        modelsForLHS.resize(numSymsInRHS1);
+        for(int i=0;i<numSymsInRHS1;i++)
+        {
+            modelsForLHS.at(i).readModels(g,i*NUM_FEATS_PER_PAIR);
+        }
+    }
     
     void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
