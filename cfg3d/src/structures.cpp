@@ -93,6 +93,8 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
 
 class ProbabilityDistribution {
     virtual double minusLogProb(double x)=0;
+    virtual double getMean()=0;
+    virtual double getVar()=0;
 };
 
 class Gaussian : ProbabilityDistribution {
@@ -108,6 +110,15 @@ public:
         variance = 0;
         normal ndTemp(mean, variance);
         nd = ndTemp;
+    }
+    
+    virtual double getMean()
+    {
+        return mean;
+    }
+    virtual double getVar()
+    {
+        return variance;
     }
     
     Gaussian(double mean, double variance, double min, double max) {
@@ -2529,6 +2540,25 @@ public:
     }
 };
 
+class PairModel
+{
+    ProbabilityDistribution *centDist;
+    ProbabilityDistribution *centDistHorz;
+    ProbabilityDistribution *centZDiff;
+    ProbabilityDistribution *distAlongEV[3]; 
+    
+    PairModel(vector<ProbabilityDistribution*> models, int start)
+    {
+        centDist=models.at(start);
+        centDistHorz=models.at(start+1);
+        centZDiff=models.at(start+2);
+        for(int i=0;i<3;i++)
+        {
+            distAlongEV[i]=models.at(start+3+i);
+        }
+    }
+};
+        
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
 {
@@ -2607,12 +2637,15 @@ typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,Ha
         }
     }
 
+    
 public:
     /**
      * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
      * @param output
      * @param input
      */
+    
+    const static int NUM_FEATS_PER_PAIR=26;
     DoubleRule(bool learning=false)
     {
         string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
@@ -2660,7 +2693,7 @@ public:
             
             for(int i=0;i<3;i++)
                 features.push_back(fabs(c12.dot(plane1->getEigenVector(i))));
-            assert(features.size()==beginSize+6);
+            assert((int)features.size()==beginSize+6);
             
             for(int i=0;i<3;i++)
                 features.push_back(fabs(c12.dot(plane2->getEigenVector(i))));
@@ -2686,6 +2719,8 @@ public:
         features.push_back(rhs1->getMinDistance(rhs2));
         
         rhs1->pushColorDiffFeatures(features,rhs2);
+        
+        assert((int)features.size()==beginSize+NUM_FEATS_PER_PAIR);
         //get horizontal area ratio
         //area ratio on plane defined by normal
     }

@@ -617,7 +617,7 @@ main(int argc, char** argv) {
     conf.merge_preview=false;
     conf.randomize=false;
     conf.show_labels=false;
-    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+//    int maxSegIndex= parseNbrMap(argv[2],neighbors);
     
     bool isDone = false;
     //ROS_INFO ("Press q to quit.");
