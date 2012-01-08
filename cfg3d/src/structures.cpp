@@ -92,18 +92,19 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
 }
 
 class ProbabilityDistribution {
+public:
     virtual double minusLogProb(double x)=0;
     virtual double getMean()=0;
     virtual double getVar()=0;
 };
 
-class Gaussian : ProbabilityDistribution {
-public: 
+class Gaussian : public ProbabilityDistribution {
     double mean;
     double variance;
     double min;
     double max;
     
+public: 
     normal nd;
     Gaussian() {
         mean = 1;
@@ -2451,7 +2452,7 @@ protected:
     ofstream featureFile;
 public:
     
-    vector<Gaussian> g;
+    vector<ProbabilityDistribution*> g;
     
     void readDistribution(string filename) {
         ifstream inputStream;
@@ -2468,7 +2469,7 @@ public:
                 
                 vector<float> nbrs;
                 getTokens(line, nbrs);
-                Gaussian tempGaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
+                Gaussian *tempGaussian=new Gaussian(nbrs.at(0), nbrs.at(1), nbrs.at(2), nbrs.at(3));
                 g.push_back(tempGaussian);
             }
     }
@@ -2500,8 +2501,8 @@ public:
     double getMinusLogProbability(vector<float> x) {
         double sum = 0;
         int counter = 0;
-        BOOST_FOREACH(Gaussian gaussian, g) {
-            sum = sum + gaussian.minusLogProb(x.at(counter));
+        BOOST_FOREACH(ProbabilityDistribution *p, g) {
+            sum = sum + p->minusLogProb(x.at(counter));
             counter = counter + 1;
         }
         return sum;
