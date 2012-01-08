@@ -2593,28 +2593,12 @@ class DoubleRule : public Rule
                 addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
-        }        
+        }
+        
+          tryToHallucinate<RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
+
     }
 
-   template <typename HalType>
-typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,HalType>::type
-    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
-    {
-        vector<Symbol*> extractedSymExpanded;
-    //    rhs1->expandIntermediates(extractedSymExpanded);
-        
-      //  for()
-      //  {
-                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
-      //  }
-    }
-   
-   template <typename HalType>
-typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,HalType>::type
-    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
-    {
-       //do nothing : cannot hallucinate a complicated entitiy: NonTerminalIntermediate
-    }
 
     void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
@@ -2633,9 +2617,10 @@ typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,Ha
             }
             nt = finder.nextEligibleNT();
         }
+        
+        tryToHallucinate<RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);
     }
 
-    //    template<typename RHS_Type1, typename RHS_Type2>
 
     void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
@@ -2649,6 +2634,27 @@ typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,Ha
         }
     }
 
+   template <typename HalType>
+typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
+    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+       // vector<Symbol*> extractedSymExpanded;
+        cerr<<"hal"<<typeid(HalType).name()<<endl;
+    //    rhs1->expandIntermediates(extractedSymExpanded);
+        
+      //  for()
+      //  {
+                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+      //  }
+    }
+   
+   template <typename HalType>
+typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
+    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+       //do nothing : cannot hallucinate a complicated entitiy: NonTerminalIntermediate
+        cerr<<"nohal"<<typeid(HalType).name()<<endl;
+    }
     
 public:
     /**
