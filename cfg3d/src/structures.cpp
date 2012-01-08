@@ -255,7 +255,12 @@ public:
     {
         return centroid;
     }
-    
+
+    Eigen::Vector3d getCentroidVector() const
+    {
+        return Eigen::Vector3d(centroid.x,centroid.y,centroid.z);
+    }
+
     pcl::PointXY getHorizontalCentroid()
     {
         pcl::PointXY temp;
@@ -2549,20 +2554,25 @@ class DoubleRule : public Rule
         }        
     }
 
-   template <typename T>
-typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, T>,T>::type
+   template <typename HalType>
+typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,HalType>::type
     tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-//        vector<Symbol*> extractedSymExpanded;
-//        rhs1->expandIntermediates(extractedSymExpanded);
-//        vector<Symbol*>::iterator it1;
-//        
-//        for(it1=extractedSymExpanded.begin();it1!=extractedSymExpanded.end();it1++)
-//        {
-//                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+        vector<Symbol*> extractedSymExpanded;
+    //    rhs1->expandIntermediates(extractedSymExpanded);
+        
+      //  for()
+      //  {
+                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+      //  }
     }
    
-    //    template<typename RHS_Type1, typename RHS_Type2>
+   template <typename HalType>
+typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,HalType>::type
+    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+       //do nothing : cannot hallucinate a complicated entitiy: NonTerminalIntermediate
+    }
 
     void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
@@ -2623,17 +2633,52 @@ public:
 //        assert(3 == 2); // needs specialization
 //    }
 
+    /**
+     * 
+     * @param rhs1 : a nonterminal(possibly obtained after expansion) from the 1st RHS of the rule
+     * @param rhs2 : the second NT of the rule
+     */
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
+        //centroid related features
+        int beginSize=features.size();
+        features.push_back(rhs1->centroidDistance(rhs2));
+        features.push_back(rhs1->centroidHorizontalDistance(rhs2));
+        features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
+
+        Eigen::Vector3d c1 = rhs1->getCentroidVector();
+        Eigen::Vector3d c2 = rhs2->getCentroidVector();
+        Eigen::Vector3d c12=c1-c2;
+        
+        
+        Plane * plane1=dynamic_cast<Plane *>(rhs1);
+        Plane * plane2=dynamic_cast<Plane *>(rhs2);
+        if(plane1!=NULL && plane2 !=NULL)
+        {
+            //fabs because the eigen vector directions can be flipped 
+            // and the choice is arbitrary
+            
+            for(int i=0;i<3;i++)
+                features.push_back(fabs(c12.dot(plane1->getEigenVector(i))));
+            assert(features.size()==beginSize+6);
+            
+            for(int i=0;i<3;i++)
+                features.push_back(fabs(c12.dot(plane2->getEigenVector(i))));
+            
+            
+            for(int i=0;i<3;i++)
+               for(int j=0;j<3;j++)
+                   features.push_back(fabs(plane1->getEigenVector(i).dot(plane2->getEigenVector(j))));
+        }
+        else
+            assert(false);
+        
+        
         features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         
-        //centroid related features
-        features.push_back(rhs1->centroidDistance(rhs2));
-        features.push_back(rhs1->centroidHorizontalDistance(rhs2));
-        features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
         
         
         
@@ -2641,16 +2686,6 @@ public:
         features.push_back(rhs1->getMinDistance(rhs2));
         
         rhs1->pushColorDiffFeatures(features,rhs2);
-        Plane * plane1=dynamic_cast<Plane *>(rhs1);
-        Plane * plane2=dynamic_cast<Plane *>(rhs2);
-        if(plane1!=NULL && plane2 !=NULL)
-        {
-            for(int i=0;i<3;i++)
-               for(int j=0;j<3;j++)
-                   features.push_back(plane1->getEigenVector(i).dot(plane2->getEigenVector(j)));
-        }
-        else
-            assert(false);
         //get horizontal area ratio
         //area ratio on plane defined by normal
     }
@@ -2663,6 +2698,8 @@ public:
         vector<Symbol*> RHS2Expanded;
         rhs1->expandIntermediates(RHS1Expanded);
         rhs2->expandIntermediates(RHS2Expanded);
+        assert(RHS2Expanded.size()==1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
+        
         vector<Symbol*>::iterator it1;
         vector<Symbol*>::iterator it2;
         
