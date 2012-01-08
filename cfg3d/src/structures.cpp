@@ -34,7 +34,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 30
+#define MAX_SEG_INDEX 5
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -2454,24 +2454,24 @@ public:
             }
     }
     
-    /**
-     * NUMERICAL ISSUES: DO NOT USE IT
-     * Calculate probability of feature vector x in the observed mixture of Gaussians.
-     * @param x
-     * @return 
-     */
-    float getProbability(vector<float> x) {
-        double product = 1;
-        int counter = 0;
-        BOOST_FOREACH(Gaussian gaussian, g) {
-            double term=pdf(gaussian.nd, (double) x.at(counter));
-            product = product * term;
-            assert(term>=0);
-            assert(term<=1);
-            counter = counter + 1;
-        }
-        return product;
-    }
+//    /**
+//     * NUMERICAL ISSUES: DO NOT USE IT
+//     * Calculate probability of feature vector x in the observed mixture of Gaussians.
+//     * @param x
+//     * @return 
+//     */
+//    float getProbability(vector<float> x) {
+//        double product = 1;
+//        int counter = 0;
+//        BOOST_FOREACH(Gaussian gaussian, g) {
+//            double term=pdf(gaussian.nd, (double) x.at(counter));
+//            product = product * term;
+//            assert(term>=0);
+//            assert(term<=1);
+//            counter = counter + 1;
+//        }
+//        return product;
+//    }
     
     /**
      * Calculate -log prob probability of feature vector x in the observed mixture of Gaussians.
@@ -2613,9 +2613,15 @@ public:
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
         features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
+        
+        //centroid related features
         features.push_back(rhs1->centroidDistance(rhs2));
         features.push_back(rhs1->centroidHorizontalDistance(rhs2));
         features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
+        
+        
+        
+        
         features.push_back(rhs1->getMinDistance(rhs2));
         
         rhs1->pushColorDiffFeatures(features,rhs2);

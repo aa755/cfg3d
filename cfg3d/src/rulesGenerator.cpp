@@ -15,7 +15,7 @@
 #include <fstream>
 #include "utils.h"
 
-#define MAX_SEG_INDEX 30
+//#define MAX_SEG_INDEX 30
 
 ofstream rulesFile;
 using namespace std;
