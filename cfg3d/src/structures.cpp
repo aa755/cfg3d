@@ -1,6 +1,9 @@
 #ifndef STRUCTURES_CPP
 #define	STRUCTURES_CPP
 
+#include <boost/type_traits.hpp>
+#include <boost/utility.hpp>
+
 #include "utils.h"
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
@@ -2543,9 +2546,22 @@ class DoubleRule : public Rule
                 addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
             }
             nt = finder.nextEligibleNT();
-        }
+        }        
     }
 
+   template <typename T>
+typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, T>,T>::type
+    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+//        vector<Symbol*> extractedSymExpanded;
+//        rhs1->expandIntermediates(extractedSymExpanded);
+//        vector<Symbol*>::iterator it1;
+//        
+//        for(it1=extractedSymExpanded.begin();it1!=extractedSymExpanded.end();it1++)
+//        {
+//                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+    }
+   
     //    template<typename RHS_Type1, typename RHS_Type2>
 
     void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
