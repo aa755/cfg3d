@@ -2551,7 +2551,6 @@ public:
             delete newNT;
     }
 };
-
 /**
  * using templates, same class can be used to hold features(T=double) and
  *  models for corresponding features(T=ProbabilityDistribution *)
@@ -2560,44 +2559,48 @@ public:
 template<typename T>
 class PairInfo
 {
-    const static int NUM_FEATS=6;
+    const static int NUM_FEATS = 6;
 public:
-    union{
+
+    union
+    {
         // add new features here. make use to set them later
-    T all[NUM_FEATS];
-        struct{
-    T centDist;
-    T centDistHorz;
-    T centZDiff;
-    T distOfC2AlongEV1[3]; 
-    T distOfC1AlongEV2[3]; 
-    T EVdots12[9];
-    T z1Min_2Max;
-    T z1Max_2Min;
-    T z1Min_2Min;
-    T z1Max_2Max;
-    T minDist;
-    T colorDiffHSV[3];
+        T all[NUM_FEATS];
+
+        struct
+        {
+            T centDist;
+            T centDistHorz;
+            T centZDiff;
+            T distOfC2AlongEV1[3];
+            T distOfC1AlongEV2[3];
+            T EVdots12[9];
+            T z1Min_2Max;
+            T z1Max_2Min;
+            T z1Min_2Min;
+            T z1Max_2Max;
+            T minDist;
+            T colorDiffHSV[3];
         };
     };
-    
+
     void readInfo(const vector<T> & infos, int start)
     {
-        for(int i=0;i<NUM_FEATS;i++)
-            all[i]=infos.at(start+i);
-            
-       // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
-        
- //       centDist=models.at(start);
- //       centDistHorz=models.at(start+1);
- //       centZDiff=models.at(start+2);
- //       for(int i=0;i<3;i++)
- //       {
- //           distAlongEV[i]=models.at(start+3+i);
- //       }
+        for (int i = 0; i < NUM_FEATS; i++)
+            all[i] = infos.at(start + i);
+
+        // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
+
+        //       centDist=models.at(start);
+        //       centDistHorz=models.at(start+1);
+        //       centZDiff=models.at(start+2);
+        //       for(int i=0;i<3;i++)
+        //       {
+        //           distAlongEV[i]=models.at(start+3+i);
+        //       }
     }
-    
-   // double computeMinusLogProb(double centDistv, double centHorzDistv, double centZDiffv, )
+
+    // double computeMinusLogProb(double centDistv, double centHorzDistv, double centZDiffv, )
 };
         
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
