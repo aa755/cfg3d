@@ -96,11 +96,12 @@ public:
     virtual double minusLogProb(double x)=0;
     virtual double getMean()=0;
     virtual double getVar()=0;
+    virtual double getMaxCutoff()=0;
 };
 
 class Gaussian : public ProbabilityDistribution {
     double mean;
-    double variance;
+    double sigma;
     double min;
     double max;
     
@@ -108,8 +109,8 @@ public:
     normal nd;
     Gaussian() {
         mean = 1;
-        variance = 0;
-        normal ndTemp(mean, variance);
+        sigma = 0;
+        normal ndTemp(mean, sigma);
         nd = ndTemp;
     }
     
@@ -119,12 +120,12 @@ public:
     }
     virtual double getVar()
     {
-        return variance;
+        return sigma;
     }
     
     Gaussian(double mean, double variance, double min, double max) {
         this->mean = mean;
-        this->variance = variance;
+        this->sigma = variance;
         this->min = min;
         this->max = max;
         normal ndTemp(mean, variance);
@@ -139,10 +140,16 @@ public:
      */
     double minusLogProb(double x)
     {
-        double lp= sqr(x-mean)/(2*sqr(variance)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
+        double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
         assert(lp>=0);
         return lp;
     }
+    
+    virtual double getMaxCutoff()
+    {
+        return std::max(max,mean+3*sigma);
+    }
+    
 };
 
 double infinity() {
@@ -281,6 +288,10 @@ public:
         return temp;
     }
 
+    Eigen::Vector2d getHorizontalCentroidVector()
+    {
+        return Eigen::Vector2d(centroid.x,centroid.y);
+    }
     
     
     virtual void appendFeatures(vector<float> & features)
@@ -2541,24 +2552,34 @@ public:
     }
 };
 
-class PairModel
+class PairInfo
 {
+    
+public:
+    union{
+    ProbabilityDistribution* all[6];
+        struct{
     ProbabilityDistribution *centDist;
     ProbabilityDistribution *centDistHorz;
     ProbabilityDistribution *centZDiff;
     ProbabilityDistribution *distAlongEV[3]; 
+        };
+    };
     
-public:
     void readModels(const vector<ProbabilityDistribution*> & models, int start)
     {
-        centDist=models.at(start);
-        centDistHorz=models.at(start+1);
-        centZDiff=models.at(start+2);
-        for(int i=0;i<3;i++)
-        {
-            distAlongEV[i]=models.at(start+3+i);
-        }
+       // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
+        
+ //       centDist=models.at(start);
+ //       centDistHorz=models.at(start+1);
+ //       centZDiff=models.at(start+2);
+ //       for(int i=0;i<3;i++)
+ //       {
+ //           distAlongEV[i]=models.at(start+3+i);
+ //       }
     }
+    
+   // double computeMinusLogProb(double centDistv, double centHorzDistv, double centZDiffv, )
 };
         
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
@@ -2566,7 +2587,7 @@ class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
-    vector<PairModel> modelsForLHS; // LHS might me an intermediate for multiple NTs
+    vector<PairInfo> modelsForLHS; // LHS might me an intermediate for multiple NTs
     
     void readPairModels(int numSymsInRHS1)
     {
@@ -2638,22 +2659,54 @@ class DoubleRule : public Rule
 typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
     tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-       // vector<Symbol*> extractedSymExpanded;
-        cerr<<"hal"<<typeid(HalType).name()<<endl;
-    //    rhs1->expandIntermediates(extractedSymExpanded);
+        vector<Symbol*> extractedSymExpanded;
+        extractedSym->expandIntermediates(extractedSymExpanded);
+        int numNodes=extractedSymExpanded.size();
+        if(modelsForLHS.size()==0)//only called the 1st time this rule is used
+        {
+            readPairModels(numNodes);
+        }
+        //find the XY centroids
         
-      //  for()
-      //  {
-                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
-      //  }
+        vector<Symbol*>::iterator it;
+        
+        Eigen::Vector2d sum(0,0);
+        
+        Eigen::Vector2d centxy[numNodes];
+        int count=0;
+        for(it=extractedSymExpanded.begin();it!=extractedSymExpanded.end();it++)
+        {
+            centxy[count]=(*it)->getHorizontalCentroidVector();
+            sum+=centxy[count];
+            count++;
+        }
+        Eigen::Vector2d centroid=sum/numNodes;
+
+        double maxRange=0;
+        Eigen::Vector2d disp;
+        for(int i=0;i<numNodes;i++)
+        {
+            disp=centroid-centxy[i];
+            double ccDist=disp.norm();
+            double range=modelsForLHS.at(i).centDistHorz->getMaxCutoff();
+            assert(range>=0);
+            assert(range<3);
+            if(maxRange<range+ccDist)
+                maxRange=range+ccDist;
+                
+        }
+        
+        
+        
+        // vary z according to the centz diff range 
+        
     }
    
    template <typename HalType>
 typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
     tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-       //do nothing : cannot hallucinate a complicated entitiy: NonTerminalIntermediate
-        cerr<<"nohal"<<typeid(HalType).name()<<endl;
+        //cerr<<"nohal"<<typeid(HalType).name()<<endl;
     }
     
 public:

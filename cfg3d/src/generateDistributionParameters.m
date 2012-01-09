@@ -11,11 +11,11 @@ function [  ] = generateDistributionParameters( featureFile )
     [n,m] = size(matrix);
     matrix = matrix(:,1:m-1);
     for i=1:m-1,
-        [mean,variance,muci,sci] = normfit(matrix(:,i));
+        [mean,sigma] = normfit(matrix(:,i));
         colMin = min(matrix(:,i));
         colMax = max(matrix(:,i));
         
-        dlmwrite(outputFileName, [mean variance colMin colMax], '-append');
+        dlmwrite(outputFileName, [mean sigma colMin colMax], '-append');
     end
    
 end
