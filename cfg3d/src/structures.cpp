@@ -326,13 +326,13 @@ public:
         return pcl::euclideanDistance<pcl::PointXYZ,pcl::PointXYZ>(centroid,other->centroid);
     }
     
-    void pushColorDiffFeatures(vector<float> & features, Symbol * other)
+    void computeColorDiffFeatures(double * colorDiff, Symbol * other)
     {
         ColorRGB avgColorThis(avgColor);
         ColorRGB avgColorOther(other->avgColor);
-        features.push_back(avgColorThis.H - avgColorOther.H);
-        features.push_back(avgColorThis.S - avgColorOther.S);
-        features.push_back(avgColorThis.V - avgColorOther.V);
+        colorDiff[0]=(avgColorThis.H - avgColorOther.H);
+        colorDiff[1]=(avgColorThis.S - avgColorOther.S);
+        colorDiff[2]=(avgColorThis.V - avgColorOther.V);
         
     }
     
@@ -2559,12 +2559,13 @@ public:
 template<typename T>
 class PairInfo
 {
-    const static int NUM_FEATS = 6;
+    const static int OCCLUSION_FEATS = 6;
+    const static int NUM_FEATS = 26;
 public:
 
     union
     {
-        // add new features here. make use to set them later
+        // add new features here and update the static constants. make use to set them later
         T all[NUM_FEATS];
 
         struct
@@ -2584,6 +2585,11 @@ public:
         };
     };
 
+    PairInfo()
+    {
+        assert(sizeof(PairInfo<T>)==NUM_FEATS*sizeof(T));
+    }
+    
     void readInfo(const vector<T> & infos, int start)
     {
         for (int i = 0; i < NUM_FEATS; i++)
@@ -2599,10 +2605,69 @@ public:
         //           distAlongEV[i]=models.at(start+3+i);
         //       }
     }
+    
+    void computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion=false);
 
     // double computeMinusLogProb(double centDistv, double centHorzDistv, double centZDiffv, )
 };
+
+template<>
+void PairInfo<double>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
+{
+    //centroid related features
+    centDist=(rhs1->centroidDistance(rhs2));
+    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
+    centZDiff=(rhs1->getCentroid().z - rhs2->getCentroid().z);
+
+    Eigen::Vector3d c1 = rhs1->getCentroidVector();
+    Eigen::Vector3d c2 = rhs2->getCentroidVector();
+    Eigen::Vector3d c12 = c1 - c2;
+
+
+    Plane * plane1 = dynamic_cast<Plane *> (rhs1);
+    Plane * plane2 = dynamic_cast<Plane *> (rhs2);
+    if (plane1 != NULL && plane2 != NULL)
+    {
+        //fabs because the eigen vector directions can be flipped 
+        // and the choice is arbitrary
+
+        for (int i = 0; i < 3; i++)
+            distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
         
+        if(occlusion)
+            return;
+
+        for (int i = 0; i < 3; i++)
+            distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
+
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                EVdots12[i*3+j]=(fabs(plane1->getEigenVector(i).dot(plane2->getEigenVector(j))));
+    }
+    else
+        assert(false); // to be filled when we have cylinders
+
+
+    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
+    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ());
+
+
+
+
+
+    minDist=(rhs1->getMinDistance(rhs2));
+
+    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
+
+    //assert((int) features.size() == beginSize + NUM_FEATS_PER_PAIR);
+    //get horizontal area ratio
+    //area ratio on plane defined by normal
+}
+
+
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
 {
@@ -2814,7 +2879,7 @@ public:
         
         features.push_back(rhs1->getMinDistance(rhs2));
         
-        rhs1->pushColorDiffFeatures(features,rhs2);
+        //rhs1->computeColorDiffFeatures(features,rhs2);
         
         assert((int)features.size()==beginSize+NUM_FEATS_PER_PAIR);
         //get horizontal area ratio
