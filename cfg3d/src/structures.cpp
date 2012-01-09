@@ -2596,11 +2596,15 @@ public:
             infos.push_back(all[i]);
     }
     
-    void readInfo(const vector<T> & infos, int start)
+    void readInfo(typename vector<T>::const_iterator & it)
     {
         
-        assert(1==2);
 
+        for(int i=0;i<NUM_FEATS;i++)
+        {
+            all[i]=*it;
+            it++;
+        }
         // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
 
         //       centDist=models.at(start);
@@ -2684,9 +2688,11 @@ class DoubleRule : public Rule
     void readPairModels(int numSymsInRHS1)
     {
         modelsForLHS.resize(numSymsInRHS1);
+        
+        vector<ProbabilityDistribution*>::const_iterator itr=g.begin();
         for(int i=0;i<numSymsInRHS1;i++)
         {
-            modelsForLHS.at(i).readInfo(g,i*NUM_FEATS_PER_PAIR);
+            modelsForLHS.at(i).readInfo(itr);
         }
     }
     
