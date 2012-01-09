@@ -2598,8 +2598,8 @@ public:
     
     void readInfo(const vector<T> & infos, int start)
     {
-        for (int i = 0; i < NUM_FEATS; i++)
-            all[i] = infos.at(start + i);
+        
+        assert(1==2);
 
         // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
 
