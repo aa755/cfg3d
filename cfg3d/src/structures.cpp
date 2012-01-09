@@ -2552,22 +2552,30 @@ public:
     }
 };
 
+/**
+ * using templates, same class can be used to hold features(T=double) and
+ *  models for corresponding features(T=ProbabilityDistribution)
+ */
+template<typename T>
 class PairInfo
 {
-    
+    const static int NUM_FEATS=6;
 public:
     union{
-    ProbabilityDistribution* all[6];
+    T all[NUM_FEATS];
         struct{
-    ProbabilityDistribution *centDist;
-    ProbabilityDistribution *centDistHorz;
-    ProbabilityDistribution *centZDiff;
-    ProbabilityDistribution *distAlongEV[3]; 
+    T centDist;
+    T centDistHorz;
+    T centZDiff;
+    T distAlongEV[3]; 
         };
     };
     
-    void readModels(const vector<ProbabilityDistribution*> & models, int start)
+    void readInfo(const vector<T> & infos, int start)
     {
+        for(int i=0;i<NUM_FEATS;i++)
+            all[i]=infos.at(start+i);
+            
        // all.insert(all.begin(),models.begin()+start,models.begin()+start+6);
         
  //       centDist=models.at(start);
@@ -2587,14 +2595,14 @@ class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
-    vector<PairInfo> modelsForLHS; // LHS might me an intermediate for multiple NTs
+    vector<PairInfo<ProbabilityDistribution *> > modelsForLHS; // LHS might me an intermediate for multiple NTs
     
     void readPairModels(int numSymsInRHS1)
     {
         modelsForLHS.resize(numSymsInRHS1);
         for(int i=0;i<numSymsInRHS1;i++)
         {
-            modelsForLHS.at(i).readModels(g,i*NUM_FEATS_PER_PAIR);
+            modelsForLHS.at(i).readInfo(g,i*NUM_FEATS_PER_PAIR);
         }
     }
     
