@@ -2563,12 +2563,21 @@ class PairInfo
     const static int NUM_FEATS=6;
 public:
     union{
+        // add new features here. make use to set them later
     T all[NUM_FEATS];
         struct{
     T centDist;
     T centDistHorz;
     T centZDiff;
-    T distAlongEV[3]; 
+    T distOfC2AlongEV1[3]; 
+    T distOfC1AlongEV2[3]; 
+    T EVdots12[9];
+    T z1Min_2Max;
+    T z1Max_2Min;
+    T z1Min_2Min;
+    T z1Max_2Max;
+    T minDist;
+    T colorDiffHSV[3];
         };
     };
     
