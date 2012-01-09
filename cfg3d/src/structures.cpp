@@ -926,6 +926,39 @@ public:
         computeFeatures();
     }
     
+    void setPoint(PointT & p, float x, float y, float z)
+    {
+        p.x=x;
+        p.y=y;
+        p.z=z;
+    }
+    
+    HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+    {
+            ColorRGB green(0.0,0.0,1.0);
+        neighbors.resize(totalNumTerminals,false);
+        int start=scene.size();
+        int numPoints=7;
+        pointIndices.resize(numPoints);
+        scene.points.resize(start+numPoints);
+//        this->centroid=centroid;
+        for(unsigned int i=0;i<numPoints;i++)
+        {
+            pointIndices.at(i)=start+i;
+        }
+        
+        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+        setPoint(scene.points.at(start+1),centroid(0)+0.1,centroid(1),centroid(2));
+        setPoint(scene.points.at(start+2),centroid(0)-0.1,centroid(1),centroid(2));
+        setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.1,centroid(2));
+        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.1,centroid(2));
+        setPoint(scene.points.at(start+4),centroid(0),centroid(1),centroid(2)+0.1);
+        setPoint(scene.points.at(start+4),centroid(0),centroid(1),centroid(2)-0.1);
+    
+        featuresComputed=false;
+        computeFeatures();
+    }
+    
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
         
         //do nothing
@@ -2794,6 +2827,7 @@ typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,v
                 
         }
         
+      //  HallucinatedTerminal halTerm;
         for(double rad=0;rad<=maxRange;rad+=0.02/*2 cm*/)
         {
             int numAngles=ceil(2*boost::math::constants::pi<double>()*rad/0.02);
