@@ -2554,7 +2554,8 @@ public:
 
 /**
  * using templates, same class can be used to hold features(T=double) and
- *  models for corresponding features(T=ProbabilityDistribution)
+ *  models for corresponding features(T=ProbabilityDistribution *)
+ * also, using union, lets us access info by name and also as array
  */
 template<typename T>
 class PairInfo
@@ -2704,7 +2705,11 @@ typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,v
                 
         }
         
-        
+        for(double rad=0;rad<=maxRange;rad+=0.02/*2 cm*/)
+        {
+            int numAngles=ceil(2*boost::math::constants::pi<double>()*rad/0.02);
+            
+        }
         
         // vary z according to the centz diff range 
         
