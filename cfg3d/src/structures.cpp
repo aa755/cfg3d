@@ -97,6 +97,7 @@ public:
     virtual double getMean()=0;
     virtual double getVar()=0;
     virtual double getMaxCutoff()=0;
+    virtual double getMinCutoff()=0;
 };
 
 class Gaussian : public ProbabilityDistribution {
@@ -148,6 +149,11 @@ public:
     virtual double getMaxCutoff()
     {
         return std::max(max,mean+3*sigma);
+    }
+
+    virtual double getMinCutoff()
+    {
+        return std::min(min,mean-3*sigma);
     }
     
 };
@@ -293,6 +299,10 @@ public:
         return Eigen::Vector2d(centroid.x,centroid.y);
     }
     
+    double getCentroidZ()
+    {
+        return centroid.z;
+    }
     
     virtual void appendFeatures(vector<float> & features)
     {
@@ -2592,7 +2602,7 @@ public:
 template<typename T>
 class PairInfo
 {
-    const static int OCCLUSION_FEATS = 6;
+    const static int NUM_OCCLUSION_FEATS = 6;
     const static int NUM_FEATS = 26;
 public:
 
@@ -2650,8 +2660,28 @@ public:
     }
     
     void computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion=false);
+    
+    
 
-    // double computeMinusLogProb(double centDistv, double centHorzDistv, double centZDiffv, )
+    static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models)
+    {
+        double sum=0;
+        for(int i=0;i<NUM_OCCLUSION_FEATS;i++)
+        {
+            sum+=models.all[i]->minusLogProb(feats.all[i]);
+        }        
+        return sum;
+    }
+
+    static double computeMinusLogProbHal(PairInfo<float> feats, vector<PairInfo<ProbabilityDistribution*> > allpairmodels)
+    {
+        double sum=0;
+        for(int i=0;i<allpairmodels.size();i++)
+        {
+            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i));
+        }        
+        return sum;
+    }
 };
 
 template<>
@@ -2660,7 +2690,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
     //centroid related features
     centDist=(rhs1->centroidDistance(rhs2));
     centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
-    centZDiff=(rhs1->getCentroid().z - rhs2->getCentroid().z);
+    centZDiff=(rhs2->getCentroid().z - rhs1->getCentroid().z);
 
     Eigen::Vector3d c1 = rhs1->getCentroidVector();
     Eigen::Vector3d c2 = rhs2->getCentroidVector();
@@ -2710,6 +2740,26 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
     //area ratio on plane defined by normal
 }
 
+class HalLocation
+{
+public:
+    double rad;
+    double z;
+    double angle;
+    
+    Eigen::Vector2d getUnitVector()
+    {
+        return Eigen::Vector2d(cos(angle),sin(angle));
+    }
+    
+    Eigen::Vector3d getCentroid(Eigen::Vector2d centxy)
+    {
+        assert(rad>0);
+        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
+        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
+    }
+    
+};
 
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
@@ -2786,56 +2836,106 @@ class DoubleRule : public Rule
         }
     }
 
-   template <typename HalType>
-typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
+    template <typename HalType>
+    typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
-        int numNodes=extractedSymExpanded.size();
-        if(modelsForLHS.size()==0)//only called the 1st time this rule is used
+        int numNodes = extractedSymExpanded.size();
+        if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
         {
             readPairModels(numNodes);
         }
         //find the XY centroids
-        
+
         vector<Symbol*>::iterator it;
-        
-        Eigen::Vector2d sum(0,0);
-        
+
+        Eigen::Vector2d sum(0, 0);
+
         Eigen::Vector2d centxy[numNodes];
-        int count=0;
-        for(it=extractedSymExpanded.begin();it!=extractedSymExpanded.end();it++)
+        int count = 0;
+        for (it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
         {
-            centxy[count]=(*it)->getHorizontalCentroidVector();
-            sum+=centxy[count];
+            centxy[count] = (*it)->getHorizontalCentroidVector();
+            sum += centxy[count];
             count++;
         }
-        Eigen::Vector2d centroid=sum/numNodes;
+        Eigen::Vector2d centroidxy = sum / numNodes;
 
-        double maxRange=0;
+        double maxRange = 0;
+        double overallMaxCZ = -infinity();
+        double overallMinCZ = infinity();
         Eigen::Vector2d disp;
-        for(int i=0;i<numNodes;i++)
+        for (int i = 0; i < numNodes; i++)
         {
-            disp=centroid-centxy[i];
-            double ccDist=disp.norm();
-            double range=modelsForLHS.at(i).centDistHorz->getMaxCutoff();
-            assert(range>=0);
-            assert(range<3);
-            if(maxRange<range+ccDist)
-                maxRange=range+ccDist;
-                
+            disp = centroidxy - centxy[i];
+            double nodeCZ = extractedSymExpanded.at(i)->getCentroidZ();
+            double ccDist = disp.norm();
+            double range = modelsForLHS.at(i).centDistHorz->getMaxCutoff();
+            double maxCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMaxCutoff();
+            double minCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMinCutoff();
+            assert(range >= 0);
+            assert(range < 3);
+            if (maxRange < range + ccDist)
+                maxRange = range + ccDist;
+            if (overallMaxCZ < maxCZ)
+                overallMaxCZ = maxCZ;
+            if (overallMinCZ > minCZ)
+                overallMinCZ = minCZ;
+
+
         }
-        
-      //  HallucinatedTerminal halTerm;
-        for(double rad=0;rad<=maxRange;rad+=0.02/*2 cm*/)
+        assert(overallMaxCZ < 2);
+        assert(overallMinCZ>-0.5);
+        assert(overallMinCZ <= overallMinCZ);
+
+        //        HallucinatedTerminal halTerm(centroid);
+        double minCost = infinity();
+        HalLocation halLoc, minHalLoc;
+        PairInfo<float> feats;
+
+        double cost = 0;
+        for (halLoc.z = overallMinCZ; halLoc.z <= overallMaxCZ; halLoc.z += 0.02)
         {
-            int numAngles=ceil(2*boost::math::constants::pi<double>()*rad/0.02);
-            
+            //                halLoc.rad=0;
+            //            Eigen::Vector3d centroidxyz(centroid(0),centroid(1),halLoc.z);
+            //            HallucinatedTerminal halTerm(centroidxyz);
+            //           feats.computeInfo(extractedSym, &halTerm);
+            //           cost=PairInfo<float>::computeMinusLogProbHal(feats,modelsForLHS);
+            //           if(minCost<cost)
+            //           {
+            //               minCost=cost;
+            //               minHalLoc=halLoc;
+            //           }
+            for (halLoc.rad = 0.0; halLoc.rad <= maxRange; halLoc.rad += 0.02/*2 cm*/)
+            {
+                int numAngles = 1;
+                if (halLoc.rad >= 0.02)
+                {
+                    numAngles=ceil(2 * boost::math::constants::pi<double>() * halLoc.rad / 0.02);
+                }
+
+                for (int i = 0; i < numAngles; i++)
+                {
+                    halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
+                    HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
+                    feats.computeInfo(extractedSym, &halTerm);
+                    cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS);
+                    if (minCost < cost)
+                    {
+                        minCost = cost;
+                        minHalLoc = halLoc;
+                    }
+
+                }
+
+
+            }
         }
-        
+
         // vary z according to the centz diff range 
-        
+
     }
    
    template <typename HalType>
