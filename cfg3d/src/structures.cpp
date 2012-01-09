@@ -326,7 +326,7 @@ public:
         return pcl::euclideanDistance<pcl::PointXYZ,pcl::PointXYZ>(centroid,other->centroid);
     }
     
-    void computeColorDiffFeatures(double * colorDiff, Symbol * other)
+    void computeColorDiffFeatures(float * colorDiff, Symbol * other)
     {
         ColorRGB avgColorThis(avgColor);
         ColorRGB avgColorOther(other->avgColor);
@@ -2590,6 +2590,12 @@ public:
         assert(sizeof(PairInfo<T>)==NUM_FEATS*sizeof(T));
     }
     
+    void pushToVector(vector<T> & infos)
+    {
+        for(int i=0;i<NUM_FEATS;i++)
+            infos.push_back(all[i]);
+    }
+    
     void readInfo(const vector<T> & infos, int start)
     {
         for (int i = 0; i < NUM_FEATS; i++)
@@ -2612,7 +2618,7 @@ public:
 };
 
 template<>
-void PairInfo<double>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
+void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
 {
     //centroid related features
     centDist=(rhs1->centroidDistance(rhs2));
@@ -2834,56 +2840,9 @@ public:
      */
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
-        //centroid related features
-        int beginSize=features.size();
-        features.push_back(rhs1->centroidDistance(rhs2));
-        features.push_back(rhs1->centroidHorizontalDistance(rhs2));
-        features.push_back(rhs1->getCentroid().z-rhs2->getCentroid().z);
-
-        Eigen::Vector3d c1 = rhs1->getCentroidVector();
-        Eigen::Vector3d c2 = rhs2->getCentroidVector();
-        Eigen::Vector3d c12=c1-c2;
-        
-        
-        Plane * plane1=dynamic_cast<Plane *>(rhs1);
-        Plane * plane2=dynamic_cast<Plane *>(rhs2);
-        if(plane1!=NULL && plane2 !=NULL)
-        {
-            //fabs because the eigen vector directions can be flipped 
-            // and the choice is arbitrary
-            
-            for(int i=0;i<3;i++)
-                features.push_back(fabs(c12.dot(plane1->getEigenVector(i))));
-            assert((int)features.size()==beginSize+6);
-            
-            for(int i=0;i<3;i++)
-                features.push_back(fabs(c12.dot(plane2->getEigenVector(i))));
-            
-            
-            for(int i=0;i<3;i++)
-               for(int j=0;j<3;j++)
-                   features.push_back(fabs(plane1->getEigenVector(i).dot(plane2->getEigenVector(j))));
-        }
-        else
-            assert(false);
-        
-        
-        features.push_back(rhs1->getMinZ()-rhs2->getMaxZ());
-        features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
-        features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
-        features.push_back(rhs1->getMaxZ()-rhs2->getMinZ());
-        
-        
-        
-        
-        
-        features.push_back(rhs1->getMinDistance(rhs2));
-        
-        //rhs1->computeColorDiffFeatures(features,rhs2);
-        
-        assert((int)features.size()==beginSize+NUM_FEATS_PER_PAIR);
-        //get horizontal area ratio
-        //area ratio on plane defined by normal
+        PairInfo<float> pairFeats;
+        pairFeats.computeInfo(rhs1,rhs2,false);
+        pairFeats.pushToVector(features);
     }
     
     void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
