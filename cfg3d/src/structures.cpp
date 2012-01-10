@@ -2602,7 +2602,8 @@ public:
 template<typename T>
 class PairInfo
 {
-    const static int NUM_OCCLUSION_FEATS = 6;
+    const static int NUM_OCCLUSION_FEATS = 9;
+    const static int NUM_OCCLUSION_FEATS_ASYMMETRIC = 3;
     const static int NUM_FEATS = 26;
 public:
 
@@ -2615,7 +2616,7 @@ public:
         {
             T centDist;
             T centDistHorz;
-            T centZDiff;
+            T centZDiff12;
             T distOfC2AlongEV1[3];
             T distOfC1AlongEV2[3];
             T EVdots12[9];
@@ -2630,7 +2631,7 @@ public:
 
     PairInfo()
     {
-        assert(sizeof(PairInfo<T>)==NUM_FEATS*sizeof(T));
+        assert(sizeof(PairInfo<T>)==NUM_FEATS*sizeof(T)); // assuming all fields in struct are useful, we dont want to loose any
     }
     
     void pushToVector(vector<T> & infos)
@@ -2666,10 +2667,30 @@ public:
     static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models, bool type2Hal)
     {
         double sum=0;
-        for(int i=0;i<NUM_OCCLUSION_FEATS;i++)
+        for(int i=0;i<NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC;i++)
         {
             sum+=models.all[i]->minusLogProb(feats.all[i]);
-        }        
+        }
+        
+        int asymStart,asymEnd;
+
+        if (type2Hal)
+        {
+            asymStart=NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC;
+            asymEnd=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
+        }
+        else
+        {
+            asymStart=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
+            asymEnd=NUM_OCCLUSION_FEATS;
+        }
+            
+        for(int i=asymStart;i<asymEnd;i++)
+        {
+            sum+=models.all[i]->minusLogProb(feats.all[i]);
+        }
+        
+        sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
     }
 
@@ -2690,7 +2711,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
     //centroid related features
     centDist=(rhs1->centroidDistance(rhs2));
     centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
-    centZDiff=(rhs2->getCentroid().z - rhs1->getCentroid().z);
+    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z);
 
     Eigen::Vector3d c1 = rhs1->getCentroidVector();
     Eigen::Vector3d c2 = rhs2->getCentroidVector();
@@ -2707,12 +2728,12 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
         for (int i = 0; i < 3; i++)
             distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
         
-        if(occlusion)
-            return;
 
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
 
+        if(occlusion)
+            return;
 
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
@@ -2964,6 +2985,7 @@ class DoubleRule : public Rule
         double maxRange = 0;
         double overallMaxCZ = -infinity();
         double overallMinCZ = infinity();
+        double maxCZ,minCZ;
         Eigen::Vector2d disp;
         for (int i = 0; i < numNodes; i++)
         {
@@ -2972,8 +2994,20 @@ class DoubleRule : public Rule
             double ccDist = disp.norm();
             double range = modelsForLHS.at(i).centDistHorz->getMaxCutoff();
             assert(1==2);// assumtion that extracted sym is of 1st type is not always  
-            double maxCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMaxCutoff();
-            double minCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMinCutoff();
+            
+            if(type2Hallucinated)
+            {
+                //diff12=c1-c2 => c2=c1-diff12
+                maxCZ = nodeCZ - modelsForLHS.at(i).centZDiff12->getMinCutoff();
+                minCZ = nodeCZ - modelsForLHS.at(i).centZDiff12->getMaxCutoff();
+            }
+            else
+            {
+                //diff12=c1-c2 => c1=c2+diff12
+                maxCZ = nodeCZ + modelsForLHS.at(i).centZDiff12->getMaxCutoff();
+                minCZ = nodeCZ + modelsForLHS.at(i).centZDiff12->getMinCutoff();                
+            }
+            
             assert(range >= 0);
             assert(range < 3);
             if (maxRange < range + ccDist)
@@ -3048,7 +3082,7 @@ class DoubleRule : public Rule
        }
       
 
-        lhs->setAdditionalCost(minCost+10); // ideally max of other feature values which were not considered
+        lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
         addToPqueueIfNotDuplicate(lhs,pqueue);
         
         
