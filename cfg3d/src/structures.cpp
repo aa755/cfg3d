@@ -2663,7 +2663,7 @@ public:
     
     
 
-    static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models)
+    static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models, bool type2Hal)
     {
         double sum=0;
         for(int i=0;i<NUM_OCCLUSION_FEATS;i++)
@@ -2673,12 +2673,12 @@ public:
         return sum;
     }
 
-    static double computeMinusLogProbHal(PairInfo<float> feats, vector<PairInfo<ProbabilityDistribution*> > allpairmodels)
+    static double computeMinusLogProbHal(PairInfo<float> feats, vector<PairInfo<ProbabilityDistribution*> > allpairmodels, bool type2Hal /* = true */)
     {
         double sum=0;
         for(int i=0;i<allpairmodels.size();i++)
         {
-            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i));
+            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal);
         }        
         return sum;
     }
@@ -2895,7 +2895,7 @@ class DoubleRule : public Rule
             nt = finder.nextEligibleNT();
         }
         
-          tryToHallucinate<RHS_Type2>(extractedSym,pqueue,terminals,iterationNo);
+          tryToHallucinate<RHS_Type1,RHS_Type2>(RHS_extracted,pqueue,terminals,iterationNo,true);
 
     }
 
@@ -2918,7 +2918,7 @@ class DoubleRule : public Rule
             nt = finder.nextEligibleNT();
         }
         
-        tryToHallucinate<RHS_Type1>(extractedSym,pqueue,terminals,iterationNo);
+        tryToHallucinate<RHS_Type2,RHS_Type1>(RHS_extracted,pqueue,terminals,iterationNo,false);
     }
 
 
@@ -2934,9 +2934,9 @@ class DoubleRule : public Rule
         }
     }
 
-    template <typename HalType>
+    template <typename ExtractedType, typename HalType>
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
-    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
@@ -3010,7 +3010,7 @@ class DoubleRule : public Rule
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
                     feats.computeInfo(extractedSym, &halTerm);
-                    cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS);
+                    cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS, type2Hallucinated);
                     if (minCost < cost)
                     {
                         minCost = cost;
@@ -3037,8 +3037,15 @@ class DoubleRule : public Rule
        SingleRule<HalType, Plane> ruleCPUFront(false);
        HalType *halPart=ruleCPUFront.applyRuleLearning(pl, dummy);
 
-       LHS_Type  *lhs ;//= applyRuleGeneric(extractedSym,halPart,dummy);
-       
+       LHS_Type  *lhs;
+       if(type2Hallucinated)
+       {
+           lhs=applyRuleGeneric(extractedSym,halPart,dummy);
+       }
+       else 
+       {
+           lhs=applyRuleGeneric(halPart,extractedSym,dummy);
+       }
       
 
         lhs->setAdditionalCost(minCost+10); // ideally max of other feature values which were not considered
@@ -3050,9 +3057,9 @@ class DoubleRule : public Rule
 
     }
    
-   template <typename HalType>
-typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
-    tryToHallucinate(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    template <typename ExtractedType, typename HalType>
+    typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
+    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
         //cerr<<"nohal"<<typeid(HalType).name()<<endl;
     }
@@ -3167,8 +3174,10 @@ public:
         }
     }
     
-    LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
     {
+        assert(typeid(*RHS1)==typeid(RHS_Type1));
+        assert(typeid(*RHS2)==typeid(RHS_Type2));
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS1);
         LHS->addChild(RHS2);
