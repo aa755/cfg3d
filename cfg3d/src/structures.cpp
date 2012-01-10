@@ -2720,27 +2720,30 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
 
     Plane * plane1 = dynamic_cast<Plane *> (rhs1);
     Plane * plane2 = dynamic_cast<Plane *> (rhs2);
-    if (plane1 != NULL && plane2 != NULL)
-    {
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
+    
 
+    if(plane1!=NULL)
+    {
         for (int i = 0; i < 3; i++)
             distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
-        
+    }   
 
+    
+    if(plane2!=NULL)
+    {
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
-
+    }
+        
         if(occlusion)
             return;
 
+        assert(plane1 != NULL && plane2 != NULL);
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
                 EVdots12[i*3+j]=(fabs(plane1->getEigenVector(i).dot(plane2->getEigenVector(j))));
-    }
-    else
-        assert(false); // to be filled when we have cylinders
 
 
     z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
@@ -2775,7 +2778,7 @@ public:
     
     Eigen::Vector3d getCentroid(Eigen::Vector2d centxy)
     {
-        assert(rad>0);
+        assert(rad>=0);
         Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
         return Eigen::Vector3d(hal2d(0),hal2d(1),z);
     }
@@ -2885,6 +2888,27 @@ class DoubleRule : public Rule
 {
     //    template<typename RHS_Type1, typename RHS_Type2>
 
+//    template<typename NT_PlaneType>
+//    NT_PlaneType * generateHalNT(HalLocation & loc, Eigen::Vector2d centroidxy)
+//    {
+//        HallucinatedTerminal finalHal(loc.getCentroid(centroidxy));
+//        finalHal.setNeighbors(Terminal::totalNumTerminals);
+//        finalHal.declareOptimal();
+//
+//        Plane* pl = new Plane();
+//        pl->addChild(&finalHal);
+//        pl->computeSpannedTerminals();
+//        pl->computeFeatures();
+//        pl->setAbsoluteCost(0);
+//        pl->declareOptimal();
+////        plane->returnPlaneParams();
+//            vector<Terminal*> dummy;
+//            
+//       SingleRule<NT_PlaneType, Plane> ruleCPUFront(false);
+//       return ruleCPUFront.applyRuleLearning(pl, dummy);
+//        
+//    }
+    
     vector<PairInfo<ProbabilityDistribution *> > modelsForLHS; // LHS might me an intermediate for multiple NTs
     
     void readPairModels(int numSymsInRHS1)
@@ -2993,7 +3017,6 @@ class DoubleRule : public Rule
             double nodeCZ = extractedSymExpanded.at(i)->getCentroidZ();
             double ccDist = disp.norm();
             double range = modelsForLHS.at(i).centDistHorz->getMaxCutoff();
-            assert(1==2);// assumtion that extracted sym is of 1st type is not always  
             
             if(type2Hallucinated)
             {
@@ -3043,7 +3066,7 @@ class DoubleRule : public Rule
                 {
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
-                    feats.computeInfo(extractedSym, &halTerm);
+                    feats.computeInfo(extractedSym, &halTerm,true);
                     cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS, type2Hallucinated);
                     if (minCost < cost)
                     {
@@ -3065,11 +3088,14 @@ class DoubleRule : public Rule
         pl->computeFeatures();
         pl->setAbsoluteCost(0);
         pl->declareOptimal();
+//        pl->setAbsoluteCost(0);
 //        plane->returnPlaneParams();
             vector<Terminal*> dummy;
             
-       SingleRule<HalType, Plane> ruleCPUFront(false);
-       HalType *halPart=ruleCPUFront.applyRuleLearning(pl, dummy);
+       SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
+       HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
+       halPart->setAdditionalCost(0);
+       halPart->declareOptimal();
 
        LHS_Type  *lhs;
        if(type2Hallucinated)
