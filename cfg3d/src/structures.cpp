@@ -2761,6 +2761,104 @@ public:
     
 };
 
+template<typename LHS_Type, typename RHS_Type>
+class SingleRule : public Rule
+{
+    void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
+        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
+        
+        if(newNT!=NULL)
+        {
+                addToPqueueIfNotDuplicate(newNT, pqueue);
+        }
+    }
+
+    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        if (typeid (*extractedSym) == typeid (RHS_Type))
+        {
+            combineAndPushForParam(extractedSym, pqueue, terminals, iterationNo);
+        }
+    }
+
+public:
+    SingleRule(bool learning=false)
+    {
+        string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
+        if(learning)
+        {
+                featureFile.open(filename.data(),ios::app); // append to file
+        }else {
+            readDistribution(filename);
+        }
+    }
+    
+    void computeFeatures(RHS_Type* input)
+    {
+        features.clear();
+        input->appendFeatures(features);
+    }
+    
+     /**
+    
+     * @param output
+     * @param input
+     */
+//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+//    {
+//        assert(3 == 2);
+//    }
+    
+    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+        output->setAdditionalCost(getMinusLogProbability(features));
+        return true;
+    }
+    
+    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        computeFeatures(RHS);
+        writeFeaturesToFile();
+        LHS->setAdditionalCost(0);
+        LHS->declareOptimal();
+        
+        return LHS;
+        
+    }
+    
+    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        // to be replace by generic features
+        computeFeatures(RHS);
+        if(setCost(LHS, RHS,terminals))
+             return LHS;
+        else
+        {
+            delete LHS;
+            return NULL;
+        }
+    }
+
+    LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS);
+        LHS->computeSpannedTerminals();
+        return LHS;
+    }
+    
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+        combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
+    }
+}; 
+
 template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
 {
@@ -2873,6 +2971,7 @@ class DoubleRule : public Rule
             double nodeCZ = extractedSymExpanded.at(i)->getCentroidZ();
             double ccDist = disp.norm();
             double range = modelsForLHS.at(i).centDistHorz->getMaxCutoff();
+            assert(1==2);// assumtion that extracted sym is of 1st type is not always  
             double maxCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMaxCutoff();
             double minCZ = nodeCZ + modelsForLHS.at(i).centZDiff->getMinCutoff();
             assert(range >= 0);
@@ -2898,16 +2997,6 @@ class DoubleRule : public Rule
         double cost = 0;
         for (halLoc.z = overallMinCZ; halLoc.z <= overallMaxCZ; halLoc.z += 0.02)
         {
-            //                halLoc.rad=0;
-            //            Eigen::Vector3d centroidxyz(centroid(0),centroid(1),halLoc.z);
-            //            HallucinatedTerminal halTerm(centroidxyz);
-            //           feats.computeInfo(extractedSym, &halTerm);
-            //           cost=PairInfo<float>::computeMinusLogProbHal(feats,modelsForLHS);
-            //           if(minCost<cost)
-            //           {
-            //               minCost=cost;
-            //               minHalLoc=halLoc;
-            //           }
             for (halLoc.rad = 0.0; halLoc.rad <= maxRange; halLoc.rad += 0.02/*2 cm*/)
             {
                 int numAngles = 1;
@@ -2929,10 +3018,33 @@ class DoubleRule : public Rule
                     }
 
                 }
-
-
             }
         }
+        
+        HallucinatedTerminal finalHal(minHalLoc.getCentroid(centroidxy));
+        finalHal.setNeighbors(Terminal::totalNumTerminals);
+        finalHal.declareOptimal();
+
+        Plane* pl = new Plane();
+        pl->addChild(&finalHal);
+        pl->computeSpannedTerminals();
+        pl->computeFeatures();
+        pl->setAbsoluteCost(0);
+        pl->declareOptimal();
+//        plane->returnPlaneParams();
+            vector<Terminal*> dummy;
+            
+       SingleRule<HalType, Plane> ruleCPUFront(false);
+       HalType *halPart=ruleCPUFront.applyRuleLearning(pl, dummy);
+
+       LHS_Type  *lhs ;//= applyRuleGeneric(extractedSym,halPart,dummy);
+       
+      
+
+        lhs->setAdditionalCost(minCost+10); // ideally max of other feature values which were not considered
+        addToPqueueIfNotDuplicate(lhs,pqueue);
+        
+        
 
         // vary z according to the centz diff range 
 
@@ -3070,103 +3182,6 @@ public:
     }
 }; 
 
-template<typename LHS_Type, typename RHS_Type>
-class SingleRule : public Rule
-{
-    void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
-    {
-        RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
-        
-        if(newNT!=NULL)
-        {
-                addToPqueueIfNotDuplicate(newNT, pqueue);
-        }
-    }
-
-    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
-    {
-        if (typeid (*extractedSym) == typeid (RHS_Type))
-        {
-            combineAndPushForParam(extractedSym, pqueue, terminals, iterationNo);
-        }
-    }
-
-public:
-    SingleRule(bool learning=false)
-    {
-        string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
-        if(learning)
-        {
-                featureFile.open(filename.data(),ios::app); // append to file
-        }else {
-            readDistribution(filename);
-        }
-    }
-    
-    void computeFeatures(RHS_Type* input)
-    {
-        features.clear();
-        input->appendFeatures(features);
-    }
-    
-     /**
-    
-     * @param output
-     * @param input
-     */
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
-//    {
-//        assert(3 == 2);
-//    }
-    
-    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(getMinusLogProbability(features));
-        return true;
-    }
-    
-    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
-    {
-        assert(featureFile.is_open()); // you need to construct this rule with false for learning
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
-        
-        computeFeatures(RHS);
-        writeFeaturesToFile();
-        LHS->setAdditionalCost(0);
-        LHS->declareOptimal();
-        
-        return LHS;
-        
-    }
-    
-    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
-    {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
-        
-        // to be replace by generic features
-        computeFeatures(RHS);
-        if(setCost(LHS, RHS,terminals))
-             return LHS;
-        else
-        {
-            delete LHS;
-            return NULL;
-        }
-    }
-
-    LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
-    {
-        LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS);
-        LHS->computeSpannedTerminals();
-        return LHS;
-    }
-    
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
-    {
-        combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
-    }
-}; 
 
 typedef boost::shared_ptr<Rule> RulePtr;
 
