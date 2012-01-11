@@ -821,7 +821,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
-        if (typeid (*min) == typeid (CPU)) {
+        Scene *dummyTypeCheck=dynamic_cast<Scene*>(min);
+        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+        {
             cout << "goal reached!!" << endl;
             min->printData();
             return;
