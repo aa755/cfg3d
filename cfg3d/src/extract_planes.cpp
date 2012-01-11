@@ -184,7 +184,7 @@ public:
 
     bool compute_object(const int i, std::vector<pcl::PointIndices > &segments) {
         // Call get_plane, get_cylinder, get_sphere
-        float plane_score = compute_plane(); // plane_inliers_ has the pc.
+//        float plane_score = compute_plane(); // plane_inliers_ has the pc.
         // float cylinder_score = compute_cylinder(); // cylinder_inliers_ has the pc
 
         // Select the lowest score and store it in object_inliers_.

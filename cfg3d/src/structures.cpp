@@ -938,21 +938,23 @@ public:
     
     void setPoint(PointT & p, float x, float y, float z)
     {
+        static ColorRGB blue(0.0,0.0,1.0);
         p.x=x;
         p.y=y;
         p.z=z;
+        p.rgb=blue.getFloatRep();
+        p.segment=index;
     }
     
     HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
     {
-            ColorRGB green(0.0,0.0,1.0);
         neighbors.resize(totalNumTerminals,false);
         int start=scene.size();
         int numPoints=7;
         pointIndices.resize(numPoints);
         scene.points.resize(start+numPoints);
 //        this->centroid=centroid;
-        for(unsigned int i=0;i<numPoints;i++)
+        for(int i=0;i<numPoints;i++)
         {
             pointIndices.at(i)=start+i;
         }
@@ -966,7 +968,10 @@ public:
         setPoint(scene.points.at(start+4),centroid(0),centroid(1),centroid(2)-0.1);
     
         featuresComputed=false;
-        computeFeatures();
+        computeFeatures(); 
+        //delete all the points
+        // we could avoid adding points totally if we could write code for all featueres to compute directly
+        scene.points.resize(start);
     }
     
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
@@ -976,11 +981,21 @@ public:
 
     virtual void colorScene()
     {
-        float greenColor=ColorRGB(0,1,0).getFloatRep();
-        for(vector<int>::iterator it=pointIndices.begin(); it!=pointIndices.end();it++)
-        {
-            scene.points[*it].rgb=greenColor;
-        }
+        Eigen::Vector3d centroid=getCentroidVector();
+        int start=scene.size();
+        int numPoints=7;
+        scene.points.resize(start+numPoints);
+        
+        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+        setPoint(scene.points.at(start+1),centroid(0)+0.01,centroid(1),centroid(2));
+        setPoint(scene.points.at(start+2),centroid(0)-0.01,centroid(1),centroid(2));
+        setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.01,centroid(2));
+        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.01,centroid(2));
+        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.01);
+        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
+        scene.width=1;
+        scene.height=scene.size();
+        cerr<<"added points hal\n";
     }    
 
 };
@@ -1839,7 +1854,7 @@ class Scene : public NonTerminal {
         
         scene.width=1;
         scene.height=scene.size();
-      //  pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
         
         graphvizFile<<"digraph g{\n";
         while(!parseTreeNodes.empty())
@@ -1873,7 +1888,8 @@ class Scene : public NonTerminal {
         graphvizFile <<"}\n";
         graphvizFile.close();
         NTmembershipFile.close();
-        
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+
     }
     
     void printNodeData(std::ofstream & membershipFile, NonTerminal *node)
@@ -2586,12 +2602,19 @@ public:
      */
     virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
 
-    virtual void addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
+    virtual bool addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
         if(newNT==NULL)
-            return;
+            return false;
         if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
+        {
             delete newNT;
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 };
 /**
@@ -2697,7 +2720,7 @@ public:
     static double computeMinusLogProbHal(PairInfo<float> feats, vector<PairInfo<ProbabilityDistribution*> > allpairmodels, bool type2Hal /* = true */)
     {
         double sum=0;
-        for(int i=0;i<allpairmodels.size();i++)
+        for(int i=0;i<(int)allpairmodels.size();i++)
         {
             sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal);
         }        
@@ -2985,6 +3008,11 @@ class DoubleRule : public Rule
     {
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
+        //if(typeid(HalType)!=typeid(CPULSide))
+        
+        if(extractedSymExpanded.size()<4)
+            return;
+        
         int numNodes = extractedSymExpanded.size();
         if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
         {
@@ -3051,6 +3079,7 @@ class DoubleRule : public Rule
         HalLocation halLoc, minHalLoc;
         PairInfo<float> feats;
 
+        cout<<overallMinCZ<<","<<overallMaxCZ<<","<<maxRange<<endl;
         double cost = 0;
         for (halLoc.z = overallMinCZ; halLoc.z <= overallMaxCZ; halLoc.z += 0.02)
         {
@@ -3068,7 +3097,7 @@ class DoubleRule : public Rule
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
                     feats.computeInfo(extractedSym, &halTerm,true);
                     cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS, type2Hallucinated);
-                    if (minCost < cost)
+                    if (minCost > cost)
                     {
                         minCost = cost;
                         minHalLoc = halLoc;
@@ -3078,12 +3107,12 @@ class DoubleRule : public Rule
             }
         }
         
-        HallucinatedTerminal finalHal(minHalLoc.getCentroid(centroidxy));
-        finalHal.setNeighbors(Terminal::totalNumTerminals);
-        finalHal.declareOptimal();
+        HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
+        finalHal->setNeighbors(Terminal::totalNumTerminals);
+        finalHal->declareOptimal();
 
         Plane* pl = new Plane();
-        pl->addChild(&finalHal);
+        pl->addChild(finalHal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
         pl->setAbsoluteCost(0);
@@ -3105,14 +3134,19 @@ class DoubleRule : public Rule
        else 
        {
            lhs=applyRuleGeneric(halPart,extractedSym,dummy);
+           delete finalHal;
+           delete pl;
        }
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        addToPqueueIfNotDuplicate(lhs,pqueue);
+        if(addToPqueueIfNotDuplicate(lhs,pqueue))
+                cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
+        else
+                cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
+            
         
         
-
         // vary z according to the centz diff range 
 
     }
