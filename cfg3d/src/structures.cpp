@@ -2685,6 +2685,14 @@ public:
     
     void computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion=false);
     
+    void computeInfoOcclusion(Symbol * extracted, HallucinatedTerminal * hal, bool type2Hal)
+    {
+        if(type2Hal)
+            computeInfo(extracted,hal,true );
+        else
+            computeInfo(hal,extracted,true ); // type 1 hallucinated
+            
+    }
     
 
     static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models, bool type2Hal)
@@ -2708,10 +2716,10 @@ public:
             asymEnd=NUM_OCCLUSION_FEATS;
         }
             
-        for(int i=asymStart;i<asymEnd;i++)
-        {
-            sum+=models.all[i]->minusLogProb(feats.all[i]);
-        }
+//        for(int i=asymStart;i<asymEnd;i++)
+//        {
+//            sum+=models.all[i]->minusLogProb(feats.all[i]);
+//        }
         
         sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
@@ -2746,6 +2754,8 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
     
+//        if(occlusion)
+  //          return;
 
     if(plane1!=NULL)
     {
@@ -3010,7 +3020,7 @@ class DoubleRule : public Rule
         extractedSym->expandIntermediates(extractedSymExpanded);
         //if(typeid(HalType)!=typeid(CPULSide))
         
-        if(extractedSymExpanded.size()<4)
+        if(extractedSymExpanded.size()<3)
             return;
         
         int numNodes = extractedSymExpanded.size();
@@ -3095,7 +3105,7 @@ class DoubleRule : public Rule
                 {
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
-                    feats.computeInfo(extractedSym, &halTerm,true);
+                    feats.computeInfoOcclusion(extractedSym, &halTerm,true);
                     cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS, type2Hallucinated);
                     if (minCost > cost)
                     {
@@ -3106,6 +3116,9 @@ class DoubleRule : public Rule
                 }
             }
         }
+        
+        if(isinf(minCost))
+            return;
         
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNeighbors(Terminal::totalNumTerminals);
