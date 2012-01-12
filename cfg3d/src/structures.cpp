@@ -1455,6 +1455,78 @@ public:
     }
 
 };
+class Scene : public NonTerminal {
+    // the printData below should be used only for the Goal NT type
+    void printData() {
+        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
+        sceneOut=scene;
+        std::ofstream graphvizFile;
+        std::ofstream NTmembershipFile;
+        string treeFileName=fileName+".dot";
+        graphvizFile.open(treeFileName.data(), ios::out);
+        string membersipFileName=fileName+"_membership.txt";
+        NTmembershipFile.open(membersipFileName.data(), ios::out);
+        stack<NonTerminal*> parseTreeNodes;
+        parseTreeNodes.push(this);
+        
+        scene.width=1;
+        scene.height=scene.size();
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        
+        graphvizFile<<"digraph g{\n";
+        while(!parseTreeNodes.empty())
+        {
+            NonTerminal *curNode=parseTreeNodes.top();
+            string curName=curNode->getName();
+            parseTreeNodes.pop();
+            printNodeData(NTmembershipFile,curNode);
+            for(size_t i=0;i<curNode->getNumChildren();i++)
+            {
+                Symbol * childs=curNode->getChild(i);
+                
+                graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
+                Terminal *childT= dynamic_cast<Terminal *>(childs);
+                if(childT==NULL) // not of type Terminal
+                {
+                 //   assert(childs!=NULL);
+                    NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
+                    assert(child!=NULL);
+                    parseTreeNodes.push(child);
+                }
+                else
+                {
+                    childT->colorScene();
+                }
+            }
+            
+        }
+        
+
+        graphvizFile <<"}\n";
+        graphvizFile.close();
+        NTmembershipFile.close();
+        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+
+    }
+    
+    void printNodeData(std::ofstream & membershipFile, NonTerminal *node)
+    {
+        if(node==this) // will always cover full scene
+            return;
+        
+        membershipFile<<node->getId();
+        
+
+        node->resetTerminalIterator();
+        int index;
+        while(node->nextTerminalIndex(index))
+        {
+            membershipFile<<","<<index+1;
+        }
+        membershipFile<<endl;
+    }
+    
+};
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
     //start with MSBs
@@ -1838,78 +1910,6 @@ class Corner : public NonTerminal {
 class KeyboardTray : public NonTerminal {
 };
 
-class Scene : public NonTerminal {
-    // the printData below should be used only for the Goal NT type
-    void printData() {
-        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
-        sceneOut=scene;
-        std::ofstream graphvizFile;
-        std::ofstream NTmembershipFile;
-        string treeFileName=fileName+".dot";
-        graphvizFile.open(treeFileName.data(), ios::out);
-        string membersipFileName=fileName+"_membership.txt";
-        NTmembershipFile.open(membersipFileName.data(), ios::out);
-        stack<NonTerminal*> parseTreeNodes;
-        parseTreeNodes.push(this);
-        
-        scene.width=1;
-        scene.height=scene.size();
-        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
-        
-        graphvizFile<<"digraph g{\n";
-        while(!parseTreeNodes.empty())
-        {
-            NonTerminal *curNode=parseTreeNodes.top();
-            string curName=curNode->getName();
-            parseTreeNodes.pop();
-            printNodeData(NTmembershipFile,curNode);
-            for(size_t i=0;i<curNode->getNumChildren();i++)
-            {
-                Symbol * childs=curNode->getChild(i);
-                
-                graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
-                Terminal *childT= dynamic_cast<Terminal *>(childs);
-                if(childT==NULL) // not of type Terminal
-                {
-                 //   assert(childs!=NULL);
-                    NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
-                    assert(child!=NULL);
-                    parseTreeNodes.push(child);
-                }
-                else
-                {
-                    childT->colorScene();
-                }
-            }
-            
-        }
-        
-
-        graphvizFile <<"}\n";
-        graphvizFile.close();
-        NTmembershipFile.close();
-        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
-
-    }
-    
-    void printNodeData(std::ofstream & membershipFile, NonTerminal *node)
-    {
-        if(node==this) // will always cover full scene
-            return;
-        
-        membershipFile<<node->getId();
-        
-
-        node->resetTerminalIterator();
-        int index;
-        while(node->nextTerminalIndex(index))
-        {
-            membershipFile<<","<<index+1;
-        }
-        membershipFile<<endl;
-    }
-    
-};
 
 class Computer : public NonTerminal{};
 
