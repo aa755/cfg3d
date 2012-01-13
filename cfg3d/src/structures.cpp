@@ -37,7 +37,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 5
+#define MAX_SEG_INDEX 3
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -142,17 +142,20 @@ public:
     double minusLogProb(double x)
     {
         double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
+ //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
         assert(lp>=0);
         return lp;
     }
     
     virtual double getMaxCutoff()
     {
+        assert(sigma>=0);
         return std::max(max,mean+3*sigma);
     }
 
     virtual double getMinCutoff()
     {
+        assert(sigma>=0);
         return std::min(min,mean-3*sigma);
     }
     
@@ -423,7 +426,9 @@ public:
 
     virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
     {
-        nonIntermediateChildren.push_back(this);
+        // works for Teminals and NonTerminals, overridden for NTIntermediate 
+        nonIntermediateChildren.push_back(this); 
+        // children at lowest level of an NTI will be pushed latest
     }
     
     virtual void computeCentroidAndColorAndNumPoints()=0 ;
@@ -2695,10 +2700,11 @@ public:
     }
     
 
-    static double computeMinusLogProbHal(PairInfo<float> feats, PairInfo<ProbabilityDistribution*> models, bool type2Hal)
+    static double computeMinusLogProbHal(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models, bool type2Hal)
     {
         double sum=0;
-        for(int i=0;i<NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC;i++)
+//        for(int i=0;i<(NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC);i++)
+        for(int i=0;i<1;i++)
         {
             sum+=models.all[i]->minusLogProb(feats.all[i]);
         }
@@ -2725,10 +2731,10 @@ public:
         return sum;
     }
 
-    static double computeMinusLogProbHal(PairInfo<float> feats, vector<PairInfo<ProbabilityDistribution*> > allpairmodels, bool type2Hal /* = true */)
+    static double computeMinusLogProbHal(PairInfo<float> & feats, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
     {
         double sum=0;
-        for(int i=0;i<(int)allpairmodels.size();i++)
+        for(unsigned int i=0;i<allpairmodels.size();i++)
         {
             sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal);
         }        
@@ -2936,7 +2942,7 @@ class DoubleRule : public Rule
 //        pl->declareOptimal();
 ////        plane->returnPlaneParams();
 //            vector<Terminal*> dummy;
-//            
+//             
 //       SingleRule<NT_PlaneType, Plane> ruleCPUFront(false);
 //       return ruleCPUFront.applyRuleLearning(pl, dummy);
 //        
@@ -2944,7 +2950,7 @@ class DoubleRule : public Rule
     
     vector<PairInfo<ProbabilityDistribution *> > modelsForLHS; // LHS might me an intermediate for multiple NTs
     
-    void readPairModels(int numSymsInRHS1)
+   void readPairModels(int numSymsInRHS1)
     {
         modelsForLHS.resize(numSymsInRHS1);
         
@@ -3018,10 +3024,13 @@ class DoubleRule : public Rule
     {
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
+        
         //if(typeid(HalType)!=typeid(CPULSide))
         
-        if(extractedSymExpanded.size()<3)
+        if(extractedSymExpanded.size()<MAX_SEG_INDEX)
             return;
+        for(unsigned int i=0;i<extractedSymExpanded.size();i++)
+            cerr<<"type NTIC:"<<i<<typeid(*extractedSymExpanded.at(i)).name()<<endl;
         
         int numNodes = extractedSymExpanded.size();
         if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
@@ -3030,6 +3039,24 @@ class DoubleRule : public Rule
         }
         //find the XY centroids
 
+        
+//        for(int i=0;i<numNodes;i++)
+//        {
+//            cerr<<"centroids "<<i<<":";
+//            cerr<<extractedSymExpanded.at(i)->getCentroidVector();
+//            cerr<<"\n";
+//        }
+//        
+//        for(int i=0;i<numNodes;i++)
+//        {
+//            cerr<<modelsForLHS.at(i).centDist->getMean()<<endl;
+//        }
+//        
+//        for(int i=0;i<numNodes;i++)
+//        {
+//            cerr<<modelsForLHS.at(i).centDist->getVar()<<endl;
+//        }
+        
         vector<Symbol*>::iterator it;
 
         Eigen::Vector2d sum(0, 0);
