@@ -969,11 +969,12 @@ public:
         setPoint(scene.points.at(start+2),centroid(0)-0.1,centroid(1),centroid(2));
         setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.1,centroid(2));
         setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.1,centroid(2));
-        setPoint(scene.points.at(start+4),centroid(0),centroid(1),centroid(2)+0.1);
-        setPoint(scene.points.at(start+4),centroid(0),centroid(1),centroid(2)-0.1);
+        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.1);
+        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.1);
     
         featuresComputed=false;
         computeFeatures(); 
+        
         //delete all the points
         // we could avoid adding points totally if we could write code for all featueres to compute directly
         scene.points.resize(start);
@@ -2727,16 +2728,19 @@ public:
 //            sum+=models.all[i]->minusLogProb(feats.all[i]);
 //        }
         
-        sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
+     //   sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
     }
 
-    static double computeMinusLogProbHal(PairInfo<float> & feats, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
+    static double computeMinusLogProbHal(vector<Symbol*> & extractedSymExpanded, HallucinatedTerminal & halTerm, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
     {
         double sum=0;
+        assert(allpairmodels.size()==extractedSymExpanded.size());
         for(unsigned int i=0;i<allpairmodels.size();i++)
         {
-            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal);
+            PairInfo<float> feats;
+            feats.computeInfoOcclusion(extractedSymExpanded.at(i), &halTerm,type2Hal); // ignore some models
+            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal); // ignore some models based on HAL
         }        
         return sum;
     }
@@ -3114,7 +3118,7 @@ class DoubleRule : public Rule
         //        HallucinatedTerminal halTerm(centroid);
         double minCost = infinity();
         HalLocation halLoc, minHalLoc;
-        PairInfo<float> feats;
+//        PairInfo<float> feats;
 
         cout<<overallMinCZ<<","<<overallMaxCZ<<","<<maxRange<<endl;
         double cost = 0;
@@ -3132,8 +3136,13 @@ class DoubleRule : public Rule
                 {
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
-                    feats.computeInfoOcclusion(extractedSym, &halTerm,true);
-                    cost = PairInfo<float>::computeMinusLogProbHal(feats, modelsForLHS, type2Hallucinated);
+                    cerr<<"centroid:\n"<<halTerm.getCentroidVector()<<endl;
+               //     cerr<<halLoc.getCentroid(centroidxy)<<endl;
+               //     cerr<<halTerm.getCentroidVector()<<endl;
+                    assert((halLoc.getCentroid(centroidxy)-halTerm.getCentroidVector()).norm()<0.01);
+  //                  feats.computeInfoOcclusion(extractedSym, &halTerm,true);
+                    cost = PairInfo<float>::computeMinusLogProbHal(extractedSymExpanded, halTerm, modelsForLHS, type2Hallucinated);
+                    cerr<<"cost:"<<cost<<endl;
                     if (minCost > cost)
                     {
                         minCost = cost;
@@ -3147,6 +3156,7 @@ class DoubleRule : public Rule
         if(isinf(minCost))
             return;
         
+        cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNeighbors(Terminal::totalNumTerminals);
         finalHal->declareOptimal();
@@ -3174,8 +3184,6 @@ class DoubleRule : public Rule
        else 
        {
            lhs=applyRuleGeneric(halPart,extractedSym,dummy);
-           delete finalHal;
-           delete pl;
        }
       
 
@@ -3183,8 +3191,11 @@ class DoubleRule : public Rule
         if(addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
+        {
                 cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
-            
+           delete finalHal;
+           delete pl;
+        }   
         
         
         // vary z according to the centz diff range 
