@@ -2704,8 +2704,8 @@ public:
     static double computeMinusLogProbHal(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models, bool type2Hal)
     {
         double sum=0;
-//        for(int i=0;i<(NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC);i++)
-        for(int i=0;i<1;i++)
+//        for(int i=0;i<3;i++)
+        for(int i=0;i<(NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC);i++)
         {
             sum+=models.all[i]->minusLogProb(feats.all[i]);
         }
@@ -2723,10 +2723,10 @@ public:
             asymEnd=NUM_OCCLUSION_FEATS;
         }
             
-//        for(int i=asymStart;i<asymEnd;i++)
-//        {
-//            sum+=models.all[i]->minusLogProb(feats.all[i]);
-//        }
+        for(int i=asymStart;i<asymEnd;i++)
+        {
+            sum+=models.all[i]->minusLogProb(feats.all[i]);
+        }
         
      //   sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
@@ -2764,8 +2764,6 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
     
-//        if(occlusion)
-  //          return;
 
     if(plane1!=NULL)
     {
@@ -2779,7 +2777,8 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
     }
-        
+
+    // set the remaining values for safety
         if(occlusion)
             return;
 
