@@ -37,7 +37,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 3
+#define MAX_SEG_INDEX 1
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -1447,6 +1447,7 @@ public:
     virtual void appendFeatures(vector<float> & features)
     {
         // intermediate types dont contribute to features
+        assert(false);
     }
     
     virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
@@ -1461,7 +1462,7 @@ public:
     }
 
 };
-class Scene : public NonTerminal {
+class Scene : public NonTerminalIntermediate {
     // the printData below should be used only for the Goal NT type
     void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
@@ -3135,13 +3136,13 @@ class DoubleRule : public Rule
                 {
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
-                    cerr<<"centroid:\n"<<halTerm.getCentroidVector()<<endl;
+                //    cerr<<"centroid:\n"<<halTerm.getCentroidVector()<<endl;
                //     cerr<<halLoc.getCentroid(centroidxy)<<endl;
                //     cerr<<halTerm.getCentroidVector()<<endl;
                     assert((halLoc.getCentroid(centroidxy)-halTerm.getCentroidVector()).norm()<0.01);
   //                  feats.computeInfoOcclusion(extractedSym, &halTerm,true);
                     cost = PairInfo<float>::computeMinusLogProbHal(extractedSymExpanded, halTerm, modelsForLHS, type2Hallucinated);
-                    cerr<<"cost:"<<cost<<endl;
+                  //  cerr<<"cost:"<<cost<<endl;
                     if (minCost > cost)
                     {
                         minCost = cost;
