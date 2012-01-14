@@ -3087,6 +3087,9 @@ class DoubleRule : public Rule
 
         Eigen::Vector2d centxy[numNodes];
         int count = 0;
+        //compute the region to sample
+        // get the centroid of centroids of the available parts
+        // this will be the centre(x,y component) of the vertical cylinder to sample
         for (vector<Symbol*>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
         {
             centxy[count] = (*it)->getHorizontalCentroidVector();
@@ -3095,9 +3098,10 @@ class DoubleRule : public Rule
         }
         Eigen::Vector2d centroidxy = sum / numNodes;
 
-        double maxRange = 0;
-        double overallMaxCZ = -infinity();
-        double overallMinCZ = infinity();
+        // estimate the radius and starting and ending heights of the cylinder
+        double maxRange = 0; // radius of culinder
+        double overallMaxCZ = -infinity(); // ending Z of cylinder
+        double overallMinCZ = infinity(); // starting Z of cylinder
         double maxCZ,minCZ;
         Eigen::Vector2d disp;
         for (int i = 0; i < numNodes; i++)
@@ -3146,6 +3150,7 @@ class DoubleRule : public Rule
 #endif
 //        PairInfo<float> feats;
 
+        // sample each point in the cylinder. density: points separated by 2 cm
         cout<<overallMinCZ<<","<<overallMaxCZ<<","<<maxRange<<endl;
         double cost = 0;
         for (halLoc.z = overallMinCZ; halLoc.z <= overallMaxCZ; halLoc.z += 0.02)
@@ -3320,10 +3325,10 @@ public:
         float rhs2Area=rhs2->getHorzArea();
         float lhsArea=output->getHorzArea();
         
-        features.push_back(rhs1Area+rhs2Area-lhsArea);
-        features.push_back(lhsArea/max(rhs1Area,rhs2Area));
+       // features.push_back(rhs1Area+rhs2Area-lhsArea);
+       // features.push_back(lhsArea/max(rhs1Area,rhs2Area));
         
-        output->appendFeatures(features);
+      //  output->appendFeatures(features);
     }
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
