@@ -37,7 +37,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 1
+#define MAX_SEG_INDEX 2
 #define OCCLUSION_SHOW_HEATMAP
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
@@ -1016,7 +1016,7 @@ public:
         int start=scene.size();
         int numPoints=1;
         scene.points.resize(start+numPoints);
-        double scaledCost=(cost-minCost)/(maxCost-minCost);
+        double scaledCost=(log(cost)-log(minCost))/(log(maxCost)-log(minCost));
         ColorRGB color(1.0-scaledCost,0,scaledCost);
         setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
         scene.points.at(start+0).rgb=color.getFloatRep();
@@ -1468,7 +1468,7 @@ public:
     virtual void appendFeatures(vector<float> & features)
     {
         // intermediate types dont contribute to features
-        assert(false);
+//        assert(false);
     }
     
     virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
