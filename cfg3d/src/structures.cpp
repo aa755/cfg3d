@@ -38,6 +38,7 @@ using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 #define MAX_SEG_INDEX 1
+#define OCCLUSION_SHOW_HEATMAP
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -943,12 +944,17 @@ public:
     
     void setPoint(PointT & p, float x, float y, float z)
     {
-        static ColorRGB blue(0.0,0.0,1.0);
+        static ColorRGB green(0.0,1.0,0.0);
         p.x=x;
         p.y=y;
         p.z=z;
-        p.rgb=blue.getFloatRep();
+        p.rgb=green.getFloatRep();
         p.segment=index;
+    }
+    
+    void setAbsoluteCost(double cost)
+    {
+        this->cost=cost;
     }
     
     HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
@@ -1004,6 +1010,21 @@ public:
         cerr<<"added points hal\n";
     }    
 
+    virtual void colorCentroid(double minCost, double maxCost)
+    {
+        Eigen::Vector3d centroid=getCentroidVector();
+        int start=scene.size();
+        int numPoints=1;
+        scene.points.resize(start+numPoints);
+        double scaledCost=(cost-minCost)/(maxCost-minCost);
+        ColorRGB color(1.0-scaledCost,0,scaledCost);
+        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+        scene.points.at(start+0).rgb=color.getFloatRep();
+        
+        scene.width=1;
+        scene.height=scene.size();
+//        cerr<<"added points hal\n";
+    }    
 };
 
     bool Symbol :: isATerminal()
@@ -3061,13 +3082,12 @@ class DoubleRule : public Rule
 //            cerr<<modelsForLHS.at(i).centDist->getVar()<<endl;
 //        }
         
-        vector<Symbol*>::iterator it;
 
         Eigen::Vector2d sum(0, 0);
 
         Eigen::Vector2d centxy[numNodes];
         int count = 0;
-        for (it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
+        for (vector<Symbol*>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
         {
             centxy[count] = (*it)->getHorizontalCentroidVector();
             sum += centxy[count];
@@ -3118,6 +3138,12 @@ class DoubleRule : public Rule
         //        HallucinatedTerminal halTerm(centroid);
         double minCost = infinity();
         HalLocation halLoc, minHalLoc;
+
+#ifdef OCCLUSION_SHOW_HEATMAP
+        
+        double maxCost = -infinity();
+        vector<HallucinatedTerminal> halTermsForHeatmap;
+#endif
 //        PairInfo<float> feats;
 
         cout<<overallMinCZ<<","<<overallMaxCZ<<","<<maxRange<<endl;
@@ -3142,6 +3168,15 @@ class DoubleRule : public Rule
                     assert((halLoc.getCentroid(centroidxy)-halTerm.getCentroidVector()).norm()<0.01);
   //                  feats.computeInfoOcclusion(extractedSym, &halTerm,true);
                     cost = PairInfo<float>::computeMinusLogProbHal(extractedSymExpanded, halTerm, modelsForLHS, type2Hallucinated);
+                    
+#ifdef OCCLUSION_SHOW_HEATMAP
+                    halTerm.setAbsoluteCost(cost);
+                    halTermsForHeatmap.push_back(halTerm);
+                    if(maxCost< cost)
+                    {
+                        maxCost=cost;
+                    }
+#endif                    
                   //  cerr<<"cost:"<<cost<<endl;
                     if (minCost > cost)
                     {
@@ -3153,9 +3188,16 @@ class DoubleRule : public Rule
             }
         }
         
-        if(isinf(minCost))
-            return;
+        assert(!isinf(minCost)); // this should not happen. if it does for a good reason, just replace by the line below which just returns 
+        //if(isinf(minCost)) return;
+
+#ifdef OCCLUSION_SHOW_HEATMAP
         
+        for(vector<HallucinatedTerminal>::iterator ith=halTermsForHeatmap.begin();ith!=halTermsForHeatmap.end();ith++)
+        {
+            (*ith).colorCentroid(minCost,maxCost);
+        }
+#endif        
         cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNeighbors(Terminal::totalNumTerminals);
