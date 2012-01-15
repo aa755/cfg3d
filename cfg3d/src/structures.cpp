@@ -1131,6 +1131,16 @@ public:
         return spanned_terminals.nextOnBit(tindex);
     }
     
+    /**
+     * can be used to check if this part was made from a hallucinated terminals ..
+     * 
+     * @return pointer to halTerm child, NULL if it was not directly made up of halTerm 
+     */
+    HallucinatedTerminal * getHalChild()
+    {
+        return dynamic_cast<HallucinatedTerminal* >(getChild(0));
+    }
+    
         
     virtual float getMinLength()
     {
@@ -2753,6 +2763,16 @@ public:
      //   sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
     }
+    
+    static double computeMinusLogProb(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models)
+    {
+        double sum=0;
+        for(int i=0;i<NUM_FEATS;i++)
+        {
+            sum+=models.all[i]->minusLogProb(feats.all[i]);
+        }
+        return sum;
+    }
 
     static double computeMinusLogProbHal(vector<Symbol*> & extractedSymExpanded, HallucinatedTerminal & halTerm, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
     {
@@ -2765,6 +2785,20 @@ public:
             sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal); // ignore some models based on HAL
         }        
         return sum;
+    }
+    
+    static double computeMinusLogProbHal(Symbol* sym, HallucinatedTerminal * halTerm, PairInfo<ProbabilityDistribution*> & pairmodel, bool type2Hal /* = true */)
+    {
+            PairInfo<float> feats;
+            feats.computeInfoOcclusion(sym, halTerm,type2Hal); // ignore some models
+            return computeMinusLogProbHal(feats,pairmodel,type2Hal); // ignore some models based on HAL
+    }
+    
+    static double computeMinusLogProb(Symbol* rhs1, Symbol* rhs2, PairInfo<ProbabilityDistribution*> & pairmodel, bool type2Hal /* = true */)
+    {
+            PairInfo<float> feats;
+            feats.computeInfo(rhs1, rhs2,false); 
+            return computeMinusLogProb(feats,pairmodel); // ignore some models based on HAL
     }
 };
 
@@ -3321,14 +3355,15 @@ public:
         output->computeFeatures();
      //   Symbol * rhs1;
       //  Symbol * rhs2;
-        float rhs1Area=rhs1->getHorzArea();
-        float rhs2Area=rhs2->getHorzArea();
-        float lhsArea=output->getHorzArea();
         
-       // features.push_back(rhs1Area+rhs2Area-lhsArea);
-       // features.push_back(lhsArea/max(rhs1Area,rhs2Area));
+        //disabled for occlusion handling
         
-      //  output->appendFeatures(features);
+//        float rhs1Area=rhs1->getHorzArea();
+//        float rhs2Area=rhs2->getHorzArea();
+//        float lhsArea=output->getHorzArea();
+//        features.push_back(rhs1Area+rhs2Area-lhsArea);
+//        features.push_back(lhsArea/max(rhs1Area,rhs2Area));        
+//        output->appendFeatures(features);
     }
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
@@ -3354,16 +3389,51 @@ public:
         
         // below to be replaced by generic learned rules
         
-        appendAllFeatures(LHS, RHS1, RHS2, terminals);
-        
-        if(setCost(LHS,RHS1,RHS2, terminals)) {
-            return LHS;
+        bool temporary=true;
+        if(!temporary)
+        {
+                appendAllFeatures(LHS, RHS1, RHS2, terminals);
         }
         else
         {
-            delete LHS;
-            return NULL;
+            features.clear();
+
+            vector<Symbol*> RHS1Expanded;
+            vector<Symbol*> RHS2Expanded;
+            RHS1->expandIntermediates(RHS1Expanded);
+            RHS2->expandIntermediates(RHS2Expanded);
+            assert(RHS2Expanded.size() == 1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
+
+            vector<Symbol*>::iterator it1;
+            vector<Symbol*>::iterator it2;
+
+            int count=0;
+                    double cost=0;
+            for (it1 = RHS1Expanded.begin(); it1 != RHS1Expanded.end(); it1++)
+            {
+                for (it2 = RHS2Expanded.begin(); it2 != RHS2Expanded.end(); it2++)
+                {
+                    HallucinatedTerminal * rhs1e=(dynamic_cast<NonTerminal*>(*it1))->getHalChild();
+                    HallucinatedTerminal * rhs2e=(dynamic_cast<NonTerminal*>(*it2))->getHalChild();
+                    if(rhs1e!=NULL)
+                    {
+                        cost += PairInfo<float>::computeMinusLogProbHal(*it2, rhs1e, modelsForLHS.at(count), false);                    
+                    }
+                    else if (rhs2e!=NULL)
+                    {
+                        cost += PairInfo<float>::computeMinusLogProbHal(*it1, rhs2e, modelsForLHS.at(count), true);                                            
+                    }
+                    else
+                    {
+                        cost += PairInfo<float>::computeMinusLogProb(*it1, *it2, modelsForLHS.at(count), true);                                                                    
+                    }
+                }
+            }
+                    LHS->setAdditionalCost(cost);
+
         }
+        return LHS;
+        
     }
     
     LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
