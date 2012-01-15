@@ -86,6 +86,30 @@ void getTokens(string str, vector<int>& out) {
         }
 }
 
+vector<int> splitLineAsIntVector(string str) {
+        boost::char_separator<char> sep(",");
+        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
+        
+        vector<int> out;
+        BOOST_FOREACH(string t, tokens) 
+        {
+                out.push_back(boost::lexical_cast<int>(t));
+        }
+        return out;
+}
+
+vector<string> splitLineAsStringVector(string str) {
+        boost::char_separator<char> sep(",");
+        boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
+        
+        vector<string> out;
+        BOOST_FOREACH(string t, tokens) 
+        {
+                out.push_back(t);
+        }
+        return out;
+}
+
 void getTokens(string str, vector<string>& out) {
         boost::char_separator<char> sep(",");
         boost::tokenizer<boost::char_separator<char> > tokens(str, sep);

@@ -234,22 +234,28 @@ int main(int argc, char** argv) {
     
     ///////////////////// Generating Rules ////////////////////
     
-    if(argc!=4)
+    if(argc!=4 && argc!=5)
     {
-        cerr<<"usage:"<<argv[0]<<" <neighborMapFile> <seg2labelFile> <ObjectName> "<<endl;
+        cerr<<"usage:"<<argv[0]<<" <neighborMapFile> <seg2labelFile> <ObjectName> [<Order>]"<<endl;
         exit(-1);        
     }
     
     map<int, set<int> > nodeToNeighbors;
     parseGraph(argv[1], nodeToNeighbors);
     
-    map<int, string> nodeToLabelText;
-    parseNodeToLabelText(argv[2], nodeToLabelText);
+    map<int, string> nodeToLabel;
+    map<string, int> labelToNode;
+    parseNodeToLabel(argv[2], nodeToLabel, labelToNode);
     
     string fileFront = argv[3];
     fileFront.append("Rules.txt");
     rulesFile.open(fileFront.c_str());
-    generateRules(nodeToNeighbors, nodeToLabelText, argv[3]);
+    
+    if (argc==4) {
+        generateRules(nodeToNeighbors, nodeToLabel, argv[3]);
+    } else if (argc==5) {
+        
+    }
     
     string dataStructuresFileFront = "";
     dataStructuresFileFront.append(argv[3]).append("_generatedDataStructures.cpp");

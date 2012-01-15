@@ -105,7 +105,7 @@ int parseLabels(char* file, map<int, int> &nodeToLabel)
     return max;
 }
 
-int parseLabelIndexToText(char* file, map<int, string> &labelsToText)
+int parseNodeToLabel(char* file, map<int, string> &nodeToLabel, map<string, int> &labelToNode)
 {
     ifstream labelFile;
     string line;
@@ -125,44 +125,10 @@ int parseLabelIndexToText(char* file, map<int, string> &labelsToText)
             }
 
             getTokens(line, nbrs);
-            int label = boost::lexical_cast<int>(nbrs.at(0));
-            string labelText = nbrs.at(1);
-            labelsToText[label] = labelText;
-        }
-    }
-    else
-    {
-        printFileError();
-        exit(-1);
-    }
-    cout<<endl;
-    return max;
-}
-
-
-int parseNodeToLabelText(char* file, map<int, string> &nodeToLabelText)
-{
-    ifstream labelFile;
-    string line;
-    labelFile.open(file);
-
-    vector<string> nbrs;
-
-    int max = 0;
-    if (labelFile.is_open())
-    {
-        while (labelFile.good())
-        {
-            getline(labelFile, line); //each line is a label
-            if (line.size() == 0) 
-            {
-                break;
-            }
-
-            getTokens(line, nbrs);
-            int nodeIndex = boost::lexical_cast<int>(nbrs.at(0));
-            string labelText = nbrs.at(1);
-            nodeToLabelText[nodeIndex] = labelText;
+            int node = boost::lexical_cast<int>(nbrs.at(0));
+            string label = nbrs.at(1);
+            nodeToLabel[node] = label;
+            labelToNode[label] = node;
         }
     }
     else
@@ -182,11 +148,11 @@ void printSet(set<int>& intSet) {
 }
 
 
-void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, set<int> >& nodeToNeighbors, map<int, string>& nodeToLabelText) {
+void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, set<int> >& nodeToNeighbors, map<int, string>& nodeToLabel) {
     set<int>::iterator it;
     conquered.insert(conquering);
     toConquer.erase(conquering);
-    string conqueringName = nodeToLabelText[conquering];
+    string conqueringName = nodeToLabel[conquering];
     rulesFile<<conqueringName<<","<<"Plane"<<endl;
     set<int> neighbors = nodeToNeighbors[conquering];
      
@@ -201,15 +167,15 @@ void printRule(string leftNonTerminal, string rNT1, string rNT2) {
     rulesFile<<leftNonTerminal<<","<<rNT1<<","<<rNT2<<endl;
 }
 
-void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, string> &nodeToLabelText, string goal) {
+void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, string> &nodeToLabel, string goal) {
     set<int> conquered;
     set<int> toConquer;
-    conquer(1, conquered, toConquer, nodeToNeighbors, nodeToLabelText);
-    string internalNonTerminal = nodeToLabelText[1];
+    conquer(1, conquered, toConquer, nodeToNeighbors, nodeToLabel);
+    string internalNonTerminal = nodeToLabel[1];
     while(!toConquer.empty()) {
         int conquering = *toConquer.begin();
-        string conqueringName = nodeToLabelText[conquering];
-        conquer(conquering, conquered, toConquer, nodeToNeighbors, nodeToLabelText);
+        string conqueringName = nodeToLabel[conquering];
+        conquer(conquering, conquered, toConquer, nodeToNeighbors, nodeToLabel);
         if (toConquer.empty()) {
             printRule(goal, internalNonTerminal, conqueringName);
         } else {
@@ -218,4 +184,51 @@ void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, string> &nodeT
             printRule(internalNonTerminal, previousInternalNonTerminal, conqueringName);
         }
     }
+}
+
+/**
+ * 
+ * @param currentConqueredSet
+ * @param newLabel
+ * @param nodeToNeighbors
+ * @param labelToNode
+ * @return 
+ */
+bool validateNext(set<string> currentConqueredSet, string newLabel, map<int, set<int> > &nodeToNeighbors, map<string, int> &labelToNode) {
+    int newNode = labelToNode.at(newLabel);
+    
+    BOOST_FOREACH(string currentConqueredNode, currentConqueredSet) {
+        int node = labelToNode.at(currentConqueredNode);
+        set<int> currentConqueredNodeNeighbors = nodeToNeighbors.at(node);
+        if (currentConqueredNodeNeighbors.find(newNode) != currentConqueredNodeNeighbors.end()) {
+            return true;
+        } 
+    }
+    return false;
+}
+
+/**
+ * 
+ * @param nodeToNeighbors
+ * @param nodesParseOrder
+ * @param goal
+ * @param labelToNode
+ * @return 
+ */
+bool validateOrder(string nodesParseOrder, map<int, set<int> > &nodeToNeighbors, map<string, int> &labelToNode) {
+    vector<string> parseOrderVector = splitLineAsStringVector(nodesParseOrder);
+    set<string> currentConqueredSet;
+    currentConqueredSet.insert(*(parseOrderVector.begin()));
+    parseOrderVector.erase(parseOrderVector.begin());
+    while (!parseOrderVector.empty()) {
+        string firstInVector = parseOrderVector.at(0);
+        if (!validateNext(currentConqueredSet, firstInVector, nodeToNeighbors, labelToNode)) {
+            cout<<"Invalid order specified"<<endl;
+            return false;
+        }
+        currentConqueredSet.insert(*(parseOrderVector.begin()));
+        parseOrderVector.erase(parseOrderVector.begin());
+    }
+    return true;
+    
 }
