@@ -257,6 +257,8 @@ public:
         return fabs(cv::contourArea(cv::Mat(contour)));
     }
     
+    virtual Symbol * childIfHallucinated()=0;
+    
     float getMinDistance(Symbol * other)
     {
         resetSpannedTerminalIterator();
@@ -669,7 +671,11 @@ protected:
     bool start;
 public:
     string label;
-    
+    virtual Symbol * childIfHallucinated()
+    {
+        return this;
+    }
+
     void setLabel(string newLabel) {
         label = newLabel;
     }
@@ -1121,6 +1127,18 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    
+    virtual Symbol * childIfHallucinated()
+    {
+        HallucinatedTerminal * hl=getHalChild();
+        if(hl==NULL)
+        {
+            return this;
+        }
+        else
+            return hl;        
+    }
+
     virtual void resetSpannedTerminalIterator()
     {
         spanned_terminals.iteratorReset();
@@ -1129,6 +1147,16 @@ public:
     virtual bool nextSpannedTerminal(int & tindex)
     {
         return spanned_terminals.nextOnBit(tindex);
+    }
+    
+    /**
+     * can be used to check if this part was made from a hallucinated terminals ..
+     * 
+     * @return pointer to halTerm child, NULL if it was not directly made up of halTerm 
+     */
+    HallucinatedTerminal * getHalChild()
+    {
+        return dynamic_cast<HallucinatedTerminal* >(getChild(0));
     }
     
         
@@ -2680,9 +2708,14 @@ public:
         };
     };
 
+    bool type1Hal;
+    bool type2Hal;
+    
     PairInfo()
     {
-        assert(sizeof(PairInfo<T>)==NUM_FEATS*sizeof(T)); // assuming all fields in struct are useful, we dont want to loose any
+        assert(sizeof(PairInfo<T>)-2*sizeof(bool)==NUM_FEATS*sizeof(T)); // assuming all fields in struct are useful, we dont want to loose any
+        type1Hal=true;
+        type2Hal=true;
     }
     
     void pushToVector(vector<T> & infos)
@@ -2711,46 +2744,89 @@ public:
         //       }
     }
     
-    void computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion=false);
+    void computeInfo(Symbol * rhs1, Symbol * rhs2);
     
-    void computeInfoOcclusion(Symbol * extracted, HallucinatedTerminal * hal, bool type2Hal)
-    {
-        if(type2Hal)
-            computeInfo(extracted,hal,true );
-        else
-            computeInfo(hal,extracted,true ); // type 1 hallucinated
-            
-    }
+//    void computeInfoOcclusion(Symbol * extracted, HallucinatedTerminal * hal, bool type2Hal)
+//    {
+//        if(type2Hal)
+//            computeInfo(extracted->childIfHallucinated(),hal,true );
+//        else
+//            computeInfo(extracted->childIfHallucinated(),extracted,true ); // type 1 hallucinated
+//            
+//    }
     
 
-    static double computeMinusLogProbHal(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models, bool type2Hal)
+//    static double computeMinusLogProbHal(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models, bool type2Hal)
+//    {
+//        double sum=0;
+////        for(int i=0;i<3;i++)
+//        for(int i=0;i<(NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC);i++)
+//        {
+//            sum+=models.all[i]->minusLogProb(feats.all[i]);
+//        }
+//        
+//        int asymStart,asymEnd;
+//
+//        if (type2Hal)
+//        {
+//            asymStart=NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC;
+//            asymEnd=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
+//        }
+//        else
+//        {
+//            asymStart=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
+//            asymEnd=NUM_OCCLUSION_FEATS;
+//        }
+//            
+//        for(int i=asymStart;i<asymEnd;i++)
+//        {
+//            sum+=models.all[i]->minusLogProb(feats.all[i]);
+//        }
+//        
+//     //   sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
+//        return sum;
+//    }
+    
+    static double computeMinusLogProb(PairInfo<float> & feats, PairInfo<ProbabilityDistribution*> & models)
     {
         double sum=0;
-//        for(int i=0;i<3;i++)
-        for(int i=0;i<(NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC);i++)
+        if (!(feats.type1Hal || feats.type2Hal)) // none of them hallucinated
         {
-            sum+=models.all[i]->minusLogProb(feats.all[i]);
-        }
-        
-        int asymStart,asymEnd;
-
-        if (type2Hal)
-        {
-            asymStart=NUM_OCCLUSION_FEATS-2*NUM_OCCLUSION_FEATS_ASYMMETRIC;
-            asymEnd=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
+            for (int i = 0; i < NUM_FEATS; i++)
+            {
+                sum += models.all[i]->minusLogProb(feats.all[i]);
+            }
         }
         else
         {
-            asymStart=NUM_OCCLUSION_FEATS-NUM_OCCLUSION_FEATS_ASYMMETRIC;
-            asymEnd=NUM_OCCLUSION_FEATS;
+            for (int i = 0; i < (NUM_OCCLUSION_FEATS - 2 * NUM_OCCLUSION_FEATS_ASYMMETRIC); i++)
+            {
+                sum += models.all[i]->minusLogProb(feats.all[i]);
+            }
+
+            if (feats.type1Hal && feats.type2Hal) // both hallucinated
+                return sum+(NUM_FEATS-NUM_OCCLUSION_FEATS+2*NUM_OCCLUSION_FEATS_ASYMMETRIC);
+
+            int asymStart, asymEnd;
+
+            if (feats.type2Hal)
+            {
+                asymStart = NUM_OCCLUSION_FEATS - 2 * NUM_OCCLUSION_FEATS_ASYMMETRIC;
+                asymEnd = NUM_OCCLUSION_FEATS - NUM_OCCLUSION_FEATS_ASYMMETRIC;
+            }
+            else
+            {
+                asymStart = NUM_OCCLUSION_FEATS - NUM_OCCLUSION_FEATS_ASYMMETRIC;
+                asymEnd = NUM_OCCLUSION_FEATS;
+            }
+
+            for (int i = asymStart; i < asymEnd; i++)
+            {
+                sum += models.all[i]->minusLogProb(feats.all[i]);
+            }
+            sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC);
+
         }
-            
-        for(int i=asymStart;i<asymEnd;i++)
-        {
-            sum+=models.all[i]->minusLogProb(feats.all[i]);
-        }
-        
-     //   sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC); // for unaccounted features
         return sum;
     }
 
@@ -2760,16 +2836,34 @@ public:
         assert(allpairmodels.size()==extractedSymExpanded.size());
         for(unsigned int i=0;i<allpairmodels.size();i++)
         {
-            PairInfo<float> feats;
-            feats.computeInfoOcclusion(extractedSymExpanded.at(i), &halTerm,type2Hal); // ignore some models
-            sum+=computeMinusLogProbHal(feats,allpairmodels.at(i),type2Hal); // ignore some models based on HAL
+  //          PairInfo<float> feats;
+//            feats.computeInfo(extractedSymExpanded.at(i), &halTerm); // ignore some models
+            if(type2Hal)
+                sum+=computeMinusLogProb(extractedSymExpanded.at(i)->childIfHallucinated(), & halTerm, allpairmodels.at(i)); // ignore some models based on HAL
+            else
+                sum+=computeMinusLogProb( & halTerm,extractedSymExpanded.at(i)->childIfHallucinated(), allpairmodels.at(i)); // ignore some models based on HAL
+                
         }        
         return sum;
+    }
+    
+//    static double computeMinusLogProbHal(Symbol* sym, HallucinatedTerminal * halTerm, PairInfo<ProbabilityDistribution*> & pairmodel, bool type2Hal /* = true */)
+//    {
+//            PairInfo<float> feats;
+//            feats.computeInfoOcclusion(sym, halTerm,type2Hal); // ignore some models
+//            return computeMinusLogProbHal(feats,pairmodel,type2Hal); // ignore some models based on HAL
+//    }
+    
+    static double computeMinusLogProb(Symbol* rhs1, Symbol* rhs2, PairInfo<ProbabilityDistribution*> & pairmodel)
+    {
+            PairInfo<float> feats;
+            feats.computeInfo(rhs1, rhs2); 
+            return computeMinusLogProb(feats,pairmodel); // ignore some models based on HAL
     }
 };
 
 template<>
-void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
+void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 {
     //centroid related features
     centDist=(rhs1->centroidDistance(rhs2));
@@ -2785,12 +2879,15 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
     Plane * plane2 = dynamic_cast<Plane *> (rhs2);
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
-    
+bool hallucination=true;    
 
     if(plane1!=NULL)
     {
         for (int i = 0; i < 3; i++)
             distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
+        hallucination=true;
+        type1Hal=false;
+        
     }   
 
     
@@ -2798,10 +2895,12 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2, bool occlusion)
     {
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
+        hallucination=true;
+        type2Hal=false;
     }
 
     // set the remaining values for safety
-        if(occlusion)
+        if(hallucination)
             return;
 
         assert(plane1 != NULL && plane2 != NULL);
@@ -3292,7 +3391,7 @@ public:
     void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
         PairInfo<float> pairFeats;
-        pairFeats.computeInfo(rhs1,rhs2,false);
+        pairFeats.computeInfo(rhs1,rhs2);
         pairFeats.pushToVector(features);
     }
     
@@ -3321,14 +3420,15 @@ public:
         output->computeFeatures();
      //   Symbol * rhs1;
       //  Symbol * rhs2;
-        float rhs1Area=rhs1->getHorzArea();
-        float rhs2Area=rhs2->getHorzArea();
-        float lhsArea=output->getHorzArea();
         
-       // features.push_back(rhs1Area+rhs2Area-lhsArea);
-       // features.push_back(lhsArea/max(rhs1Area,rhs2Area));
+        //disabled for occlusion handling
         
-      //  output->appendFeatures(features);
+//        float rhs1Area=rhs1->getHorzArea();
+//        float rhs2Area=rhs2->getHorzArea();
+//        float lhsArea=output->getHorzArea();
+//        features.push_back(rhs1Area+rhs2Area-lhsArea);
+//        features.push_back(lhsArea/max(rhs1Area,rhs2Area));        
+//        output->appendFeatures(features);
     }
     
     bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
@@ -3354,16 +3454,47 @@ public:
         
         // below to be replaced by generic learned rules
         
-        appendAllFeatures(LHS, RHS1, RHS2, terminals);
-        
-        if(setCost(LHS,RHS1,RHS2, terminals)) {
-            return LHS;
+        bool temporary=true;
+        if(!temporary)
+        {
+            appendAllFeatures(LHS, RHS1, RHS2, terminals);
+            if (setCost(LHS, RHS1, RHS2, terminals))
+            {
+                return LHS;
+            }
+            else
+            {
+                 delete LHS;
+               return NULL;
+            }
         }
         else
         {
-            delete LHS;
-            return NULL;
+            features.clear();
+
+            vector<Symbol*> RHS1Expanded;
+            vector<Symbol*> RHS2Expanded;
+            RHS1->expandIntermediates(RHS1Expanded);
+            RHS2->expandIntermediates(RHS2Expanded);
+            assert(RHS2Expanded.size() == 1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
+
+            vector<Symbol*>::iterator it1;
+            vector<Symbol*>::iterator it2;
+
+            int count=0;
+                    double cost=0;
+            for (it1 = RHS1Expanded.begin(); it1 != RHS1Expanded.end(); it1++)
+            {
+                for (it2 = RHS2Expanded.begin(); it2 != RHS2Expanded.end(); it2++)
+                {
+                        cost += PairInfo<float>::computeMinusLogProb((*it1)->childIfHallucinated(), (*it2)->childIfHallucinated(), modelsForLHS.at(count));                                                                    
+                }
+            }
+                    LHS->setAdditionalCost(cost);
+
         }
+        return LHS;
+        
     }
     
     LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
