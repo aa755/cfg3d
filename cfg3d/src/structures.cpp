@@ -37,7 +37,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 2
+#define MAX_SEG_INDEX 1
 #define OCCLUSION_SHOW_HEATMAP
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
@@ -2723,7 +2723,8 @@ public:
     
     PairInfo()
     {
-        assert(sizeof(PairInfo<T>)-2*sizeof(bool)==NUM_FEATS*sizeof(T)); // assuming all fields in struct are useful, we dont want to loose any
+        //cerr<<sizeof(PairInfo<T>)<<","<<sizeof(bool)<<","<<sizeof(T)<<endl;
+        assert(sizeof(PairInfo<T>)-2*sizeof(bool)>=NUM_FEATS*sizeof(T)); // assuming all fields in struct are useful, we dont want to loose any
         type1Hal=true;
         type2Hal=true;
     }
@@ -2889,13 +2890,11 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     Plane * plane2 = dynamic_cast<Plane *> (rhs2);
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
-bool hallucination=true;    
 
     if(plane1!=NULL)
     {
         for (int i = 0; i < 3; i++)
             distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
-        hallucination=true;
         type1Hal=false;
         
     }   
@@ -2905,12 +2904,11 @@ bool hallucination=true;
     {
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
-        hallucination=true;
         type2Hal=false;
     }
 
     // set the remaining values for safety
-        if(hallucination)
+        if(type1Hal||type2Hal)
             return;
 
         assert(plane1 != NULL && plane2 != NULL);
@@ -3488,19 +3486,26 @@ public:
             RHS2->expandIntermediates(RHS2Expanded);
             assert(RHS2Expanded.size() == 1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
 
+            int numNodes = RHS1Expanded.size();
+            if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
+            {
+                readPairModels(numNodes);
+            }
+
             vector<Symbol*>::iterator it1;
             vector<Symbol*>::iterator it2;
 
-            int count=0;
-                    double cost=0;
+            int count = 0;
+            double cost = 0;
             for (it1 = RHS1Expanded.begin(); it1 != RHS1Expanded.end(); it1++)
             {
                 for (it2 = RHS2Expanded.begin(); it2 != RHS2Expanded.end(); it2++)
                 {
-                        cost += PairInfo<float>::computeMinusLogProb((*it1)->grandChildIfHallucinated(), (*it2)->grandChildIfHallucinated(), modelsForLHS.at(count));                                                                    
+                    cost += PairInfo<float>::computeMinusLogProb((*it1)->grandChildIfHallucinated(), (*it2)->grandChildIfHallucinated(), modelsForLHS.at(count));
+                    count++;
                 }
             }
-                    LHS->setAdditionalCost(cost);
+            LHS->setAdditionalCost(cost);
 
         }
         return LHS;
