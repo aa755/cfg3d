@@ -161,3 +161,14 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
 Plane* getPlane(string label) {
     return labelToPlanes.at(label);
 }
+
+vector<string> splitLine(string line) {
+    char_separator<char> sep(", ");
+    tokenizer<char_separator<char> > tokens(line, sep);
+    vector<string> tokenList;
+    BOOST_FOREACH(string t, tokens)
+    {   
+        tokenList.push_back(t);
+    }
+    return tokenList;
+}
