@@ -46,6 +46,7 @@ using boost::math::normal;
 string fileName;
 class NonTerminal;
 class Terminal;
+class HallucinatedTerminal;
 class NTSetComparison {
 public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
@@ -257,8 +258,9 @@ public:
         return fabs(cv::contourArea(cv::Mat(contour)));
     }
     
-    virtual Symbol * childIfHallucinated()=0;
-    
+    virtual Symbol * grandChildIfHallucinated()=0;
+    virtual  HallucinatedTerminal * getHalChild()=0;
+
     float getMinDistance(Symbol * other)
     {
         resetSpannedTerminalIterator();
@@ -670,8 +672,13 @@ protected:
     }
     bool start;
 public:
+    virtual  HallucinatedTerminal * getHalChild()
+    {
+        return NULL;
+    }
+    
     string label;
-    virtual Symbol * childIfHallucinated()
+    virtual Symbol * grandChildIfHallucinated()
     {
         return this;
     }
@@ -1128,9 +1135,12 @@ protected:
     bool costSet;
 public:
     
-    virtual Symbol * childIfHallucinated()
+    virtual Symbol * grandChildIfHallucinated()
     {
-        HallucinatedTerminal * hl=getHalChild();
+        if(children.size()>1)
+            return this;
+        
+        HallucinatedTerminal * hl=getChild(0)->getHalChild(); // if hallucinated, it's child would be a plane and that plane's child could be Halterm
         if(hl==NULL)
         {
             return this;
@@ -2839,9 +2849,9 @@ public:
   //          PairInfo<float> feats;
 //            feats.computeInfo(extractedSymExpanded.at(i), &halTerm); // ignore some models
             if(type2Hal)
-                sum+=computeMinusLogProb(extractedSymExpanded.at(i)->childIfHallucinated(), & halTerm, allpairmodels.at(i)); // ignore some models based on HAL
+                sum+=computeMinusLogProb(extractedSymExpanded.at(i)->grandChildIfHallucinated(), & halTerm, allpairmodels.at(i)); // ignore some models based on HAL
             else
-                sum+=computeMinusLogProb( & halTerm,extractedSymExpanded.at(i)->childIfHallucinated(), allpairmodels.at(i)); // ignore some models based on HAL
+                sum+=computeMinusLogProb( & halTerm,extractedSymExpanded.at(i)->grandChildIfHallucinated(), allpairmodels.at(i)); // ignore some models based on HAL
                 
         }        
         return sum;
@@ -3487,7 +3497,7 @@ public:
             {
                 for (it2 = RHS2Expanded.begin(); it2 != RHS2Expanded.end(); it2++)
                 {
-                        cost += PairInfo<float>::computeMinusLogProb((*it1)->childIfHallucinated(), (*it2)->childIfHallucinated(), modelsForLHS.at(count));                                                                    
+                        cost += PairInfo<float>::computeMinusLogProb((*it1)->grandChildIfHallucinated(), (*it2)->grandChildIfHallucinated(), modelsForLHS.at(count));                                                                    
                 }
             }
                     LHS->setAdditionalCost(cost);
