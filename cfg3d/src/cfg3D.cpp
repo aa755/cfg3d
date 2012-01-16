@@ -826,6 +826,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
             cout << "goal reached!!" << endl;
+            cerr << "goal reached!! with cost:"<<min->getCost()<< endl;
             min->printData();
             return;
         }

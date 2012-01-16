@@ -1260,7 +1260,7 @@ public:
             name++;
             count++;
         }
-        return string(name)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id);
+        return string(name)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id)+"_"+boost::lexical_cast<string>((int)getCost());;
     }
     
 
@@ -2710,7 +2710,7 @@ class PairInfo
     const static int NUM_OCCLUSION_FEATS = 9;
     const static int NUM_OCCLUSION_FEATS_ASYMMETRIC = 3;
     const static int NUM_FEATS = 26;
-    const static double UNKNOWN_FEATURE_LOG_PROB=2.0;
+    const static double UNKNOWN_FEATURE_LOG_PROB=5.0;
 public:
 
     union
@@ -2827,6 +2827,7 @@ public:
         }
         else
         {
+            assert(false);
             for (int i = 0; i < (NUM_OCCLUSION_FEATS - 2 * NUM_OCCLUSION_FEATS_ASYMMETRIC); i++)
             {
                 sum += models.all[i]->minusLogProb(feats.all[i]);
@@ -3176,7 +3177,7 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-      //  return;
+        return;
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3342,7 +3343,7 @@ class DoubleRule : public Rule
         pl->addChild(finalHal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
-        pl->setAbsoluteCost(10);// replace with cost of forming a plane by estimating nof points
+        pl->setAbsoluteCost(0);
         pl->declareOptimal();
 //        pl->setAbsoluteCost(0);
 //        plane->returnPlaneParams();
@@ -3350,7 +3351,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       halPart->setAdditionalCost(0);
+       halPart->setAdditionalCost(1000);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
        LHS_Type  *lhs;

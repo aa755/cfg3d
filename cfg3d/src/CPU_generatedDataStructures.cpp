@@ -1,7 +1,7 @@
 #include "helper.cpp"
 class CPU : public Scene{};
 class CPUTop_CPUFront : public NonTerminalIntermediate{};
-class CPUTop_CPUFront_CPULSide : public NonTerminalIntermediate{};
+class CPUTop_CPUFront_CPULSide : public Scene{};
 class CPUTop_CPUFront_CPULSide_CPURSide : public NonTerminalIntermediate{};
 class CPUBack : public Plane{};
 class CPUFront : public Plane{};
