@@ -801,6 +801,13 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     while (true) {
         min = pq.pop(alreadyExtracted);
 
+        
+        if(min==NULL)
+        {
+            outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
+            exit(-1);
+        }
+        
         if(alreadyExtracted)
         {
             delete min;
@@ -812,13 +819,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             // deleting does not cause dangling pointers
             continue;
         }
-        
-        if(min==NULL)
-        {
-            outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
-            exit(-1);
-        }
-        
+
         cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
 
         Scene *dummyTypeCheck=dynamic_cast<Scene*>(min);

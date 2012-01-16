@@ -38,7 +38,7 @@ using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 //options
 
-#define MAX_SEG_INDEX 2
+#define MAX_SEG_INDEX 6
 //#define OCCLUSION_SHOW_HEATMAP
 #define PROPABILITY_RANGE_CHECK
 
@@ -2567,12 +2567,13 @@ public:
     }
 
     Symbol * pop(bool & duplicate) {
+        cout<<"sizeq"<<costSortedQueue.size()<<endl;
+        duplicate=false;
         if(costSortedQueue.empty())
             return NULL;
         Symbol * top = costSortedQueue.top();
         assert(top!=NULL);
         costSortedQueue.pop();
-        duplicate=false;
         if (typeid (*top) != typeid (Terminal)) {
             NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
             
@@ -3174,6 +3175,7 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
+        return;
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
