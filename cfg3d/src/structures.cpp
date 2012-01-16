@@ -38,9 +38,9 @@ using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 //options
 
-#define MAX_SEG_INDEX 6
+#define MAX_SEG_INDEX 3
 //#define OCCLUSION_SHOW_HEATMAP
-#define PROPABILITY_RANGE_CHECK
+//#define PROPABILITY_RANGE_CHECK
 
 
 
@@ -2710,6 +2710,7 @@ class PairInfo
     const static int NUM_OCCLUSION_FEATS = 9;
     const static int NUM_OCCLUSION_FEATS_ASYMMETRIC = 3;
     const static int NUM_FEATS = 26;
+    const static double UNKNOWN_FEATURE_LOG_PROB=2.0;
 public:
 
     union
@@ -2832,7 +2833,7 @@ public:
             }
 
             if (feats.type1Hal && feats.type2Hal) // both hallucinated
-                return sum+(NUM_FEATS-NUM_OCCLUSION_FEATS+2*NUM_OCCLUSION_FEATS_ASYMMETRIC);
+                return sum+UNKNOWN_FEATURE_LOG_PROB*(NUM_FEATS-NUM_OCCLUSION_FEATS+2*NUM_OCCLUSION_FEATS_ASYMMETRIC);
 
             int asymStart, asymEnd;
 
@@ -2851,7 +2852,7 @@ public:
             {
                 sum += models.all[i]->minusLogProb(feats.all[i]);
             }
-            sum+=(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC);
+            sum+=UNKNOWN_FEATURE_LOG_PROB*(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC);
 
         }
         return sum;
@@ -3175,7 +3176,7 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-        return;
+      //  return;
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3341,7 +3342,7 @@ class DoubleRule : public Rule
         pl->addChild(finalHal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
-        pl->setAbsoluteCost(0);
+        pl->setAbsoluteCost(10);// replace with cost of forming a plane by estimating nof points
         pl->declareOptimal();
 //        pl->setAbsoluteCost(0);
 //        plane->returnPlaneParams();
