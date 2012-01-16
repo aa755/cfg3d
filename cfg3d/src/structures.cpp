@@ -31,14 +31,19 @@
 #include "color.cpp"
 #include "pcl/features/feature.h"
 #include <math.h>
-#define PROPABILITY_RANGE_CHECK
 //sac_model_plane.h
 
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
+//options
+
 #define MAX_SEG_INDEX 2
 //#define OCCLUSION_SHOW_HEATMAP
+#define PROPABILITY_RANGE_CHECK
+
+
+
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -203,7 +208,7 @@ PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
 }
 
 int NUMPointsToBeParsed;
-OccupancyMap<PointT> * occlusionChecker;
+//OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 

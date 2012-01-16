@@ -238,41 +238,41 @@ vector<pcl::PointXYZ> getPointsToSample(pcl::PointXYZ& c1, pcl::PointXYZ& occlus
     return samplePoints;
 }
 
-bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
-    float numOccludedPoints = 0;
-    vector<pcl::PointXYZ>::iterator it;
-    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
-        bool isOccluded = occlusionChecker->isOccluded(*it);
-        printPoint(*it);
-        cout<<"^^isOccluded = "<<isOccluded<<endl;
-        if (isOccluded) {
-            numOccludedPoints = numOccludedPoints + 1;
-        }
-    }
-    return (numOccludedPoints / (sampleFactor * sampleFactor)) > occlusionThreshold;
-}
+//bool isSamplePointsOccluded(vector<pcl::PointXYZ>& samplePoints, float occlusionThreshold, float sampleFactor) {
+//    float numOccludedPoints = 0;
+//    vector<pcl::PointXYZ>::iterator it;
+//    for (it = samplePoints.begin(); it != samplePoints.end(); it++) {
+//        bool isOccluded = occlusionChecker->isOccluded(*it);
+//        printPoint(*it);
+//        cout<<"^^isOccluded = "<<isOccluded<<endl;
+//        if (isOccluded) {
+//            numOccludedPoints = numOccludedPoints + 1;
+//        }
+//    }
+//    return (numOccludedPoints / (sampleFactor * sampleFactor)) > occlusionThreshold;
+//}
 
-bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
-    float sampleFactor = 5;
-    float occlusionThreshold = .5;
-    pcl::PointXYZ c1;
-    pcl::PointXYZ c2;
-    Vector2f d1;
-    Vector2f d2;
-    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
-    samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
-    if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
-        cout<<"PlaneTripletGenerated"<<endl;
-        return true;
-    } else {
-        samplePoints = getPointsToSample(c2, occlusionPoint, plane2, sampleFactor);
-        if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
-            cout<<"PlaneTripletGenerated"<<endl;
-            return true;
-        }
-    }
-    return false;
-}
+//bool canHallucinatePlane(Plane& plane1, Plane& plane2, vector<pcl::PointXYZ>& samplePoints) {
+//    float sampleFactor = 5;
+//    float occlusionThreshold = .5;
+//    pcl::PointXYZ c1;
+//    pcl::PointXYZ c2;
+//    Vector2f d1;
+//    Vector2f d2;
+//    pcl::PointXYZ occlusionPoint = getPlanePlaneOcclusionPoint(plane1, plane2, c1, c2, d1, d2);
+//    samplePoints = getPointsToSample(c1, occlusionPoint, plane1, sampleFactor);
+//    if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+//        cout<<"PlaneTripletGenerated"<<endl;
+//        return true;
+//    } else {
+//        samplePoints = getPointsToSample(c2, occlusionPoint, plane2, sampleFactor);
+//        if (isSamplePointsOccluded(samplePoints, occlusionThreshold, sampleFactor)) {
+//            cout<<"PlaneTripletGenerated"<<endl;
+//            return true;
+//        }
+//    }
+//    return false;
+//}
 
 //class RPlaneTriplet_PlanePairPlane : public Rule {
 //public:
@@ -882,7 +882,7 @@ int main(int argc, char** argv) {
     fileName=string(argv[1]);
     fileName=fileName.substr(0, fileName.length()-4);
 
-    occlusionChecker = new OccupancyMap<PointT>(scene);
+    //occlusionChecker = new OccupancyMap<PointT>(scene);
 
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
