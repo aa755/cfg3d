@@ -31,13 +31,13 @@
 #include "color.cpp"
 #include "pcl/features/feature.h"
 #include <math.h>
-
+#define PROPABILITY_RANGE_CHECK
 //sac_model_plane.h
 
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 4
+#define MAX_SEG_INDEX 2
 //#define OCCLUSION_SHOW_HEATMAP
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
@@ -92,6 +92,9 @@ void setDifference(std::set<T> & set_1, std::set<T> & set_2) {
         }
     }
 }
+double infinity() {
+    return numeric_limits<double>::infinity();
+}
 
 class ProbabilityDistribution {
 public:
@@ -100,6 +103,11 @@ public:
     virtual double getVar()=0;
     virtual double getMaxCutoff()=0;
     virtual double getMinCutoff()=0;
+    
+    bool isInRange(double x)
+    {
+        return (getMinCutoff()<=x && x<=getMaxCutoff());
+    }
 };
 
 class Gaussian : public ProbabilityDistribution {
@@ -143,6 +151,10 @@ public:
      */
     double minusLogProb(double x)
     {
+#ifdef PROPABILITY_RANGE_CHECK
+        if(!isInRange(x))
+            return infinity();
+#endif
         double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
  //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
         assert(lp>=0);
@@ -163,9 +175,7 @@ public:
     
 };
 
-double infinity() {
-    return numeric_limits<double>::infinity();
-}
+
 Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
 //double sqr(double value) {
@@ -3007,8 +3017,13 @@ public:
 //    }
     
     bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
-        output->setAdditionalCost(getMinusLogProbability(features));
-        return true;
+        double cost=getMinusLogProbability(features);
+        output->setAdditionalCost(cost);
+        
+        if(isinf(cost))
+            return false;
+        else
+            return true;
     }
     
     LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
@@ -3300,8 +3315,8 @@ class DoubleRule : public Rule
             }
         }
         
-        assert(!isinf(minCost)); // this should not happen. if it does for a good reason, just replace by the line below which just returns 
-        //if(isinf(minCost)) return;
+      //  assert(!isinf(minCost)); // this should not happen. if it does for a good reason, just replace by the line below which just returns 
+        if(isinf(minCost)) return;
 
 #ifdef OCCLUSION_SHOW_HEATMAP
         
@@ -3505,7 +3520,15 @@ public:
                     count++;
                 }
             }
+            
+            if(isinf(cost))
+            {
+                delete LHS;
+                return NULL;
+            }
+            
             LHS->setAdditionalCost(cost);
+            
 
         }
         return LHS;

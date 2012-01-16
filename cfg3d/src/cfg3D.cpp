@@ -872,6 +872,7 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 
 
 int main(int argc, char** argv) {
+    assert(isinf(infinity()));
     
     if(argc!=3)
     {
@@ -889,7 +890,7 @@ int main(int argc, char** argv) {
     int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"scene has "<<scene.size()<<" points"<<endl;
     runParse(neighbors,maxSegIndex);
-    
+
     return 0;
     
 }
