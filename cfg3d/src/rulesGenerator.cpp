@@ -140,13 +140,16 @@ void printSet(set<int>& intSet) {
     }
 }
 
+void printTerminalRule(string terminal) {
+    rulesFile<<terminal<<",Plane"<<endl;
+}
 
 void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, set<int> >& nodeToNeighbors, map<int, string>& nodeToLabel) {
     set<int>::iterator it;
     conquered.insert(conquering);
     toConquer.erase(conquering);
     string conqueringName = nodeToLabel[conquering];
-    rulesFile<<conqueringName<<","<<"Plane"<<endl;
+    printTerminalRule(conqueringName);
     set<int> neighbors = nodeToNeighbors[conquering];
      
     cout<<"Neighbors size: "<<neighbors.size()<<endl;
@@ -160,10 +163,6 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
 
 void printRule(string leftNonTerminal, string rNT1, string rNT2) {
     rulesFile<<leftNonTerminal<<","<<rNT1<<","<<rNT2<<endl;
-}
-
-void printTerminalRule(string terminal) {
-    rulesFile<<terminal<<",Plane"<<endl;
 }
 
 void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, string> &nodeToLabel, string goal) {
