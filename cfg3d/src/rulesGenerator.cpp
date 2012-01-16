@@ -46,21 +46,15 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
             getTokens(line, nbrs);
             int segIndex = nbrs.at(0);
 
-            if (segIndex > MAX_SEG_INDEX)
-                continue;
-
             set<int> temp;
             nodeToNeighbors[segIndex] = temp;
             if (max < segIndex)
                 max = segIndex;
             for (size_t i = 1; i < nbrs.size(); i++)
             {
-
-                if (nbrs.at(i) > MAX_SEG_INDEX)
-                    continue;
-
                 nodeToNeighbors[segIndex].insert(nbrs.at(i));
             }
+            cout<<endl;
         }
     }
     else
@@ -68,7 +62,6 @@ int parseGraph(char* file, map<int, set<int> > &nodeToNeighbors)
         printFileError();
         exit(-1);
     }
-//    cout<<endl;
     return max;
 }
 
@@ -156,6 +149,8 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
     rulesFile<<conqueringName<<","<<"Plane"<<endl;
     set<int> neighbors = nodeToNeighbors[conquering];
      
+    cout<<"Neighbors size: "<<neighbors.size()<<endl;
+    // Add all neighbor nodes of conquering that are not yet conquered to toConquer
     for (it = neighbors.begin(); it != neighbors.end(); it++) {
         if (conquered.find(*it) == conquered.end()) {
             toConquer.insert(*it);
@@ -165,6 +160,10 @@ void conquer(int conquering, set<int>& conquered, set<int>& toConquer, map<int, 
 
 void printRule(string leftNonTerminal, string rNT1, string rNT2) {
     rulesFile<<leftNonTerminal<<","<<rNT1<<","<<rNT2<<endl;
+}
+
+void printTerminalRule(string terminal) {
+    rulesFile<<terminal<<",Plane"<<endl;
 }
 
 void generateRules(map<int, set<int> > &nodeToNeighbors, map<int, string> &nodeToLabel, string goal) {
@@ -215,15 +214,13 @@ bool validateNext(set<string> currentConqueredSet, string newLabel, map<int, set
  * @param labelToNode
  * @return 
  */
-bool validateOrder(string nodesParseOrder, map<int, set<int> > &nodeToNeighbors, map<string, int> &labelToNode) {
-    vector<string> parseOrderVector = splitLineAsStringVector(nodesParseOrder);
+bool validateOrder(vector<string> parseOrderVector, map<int, set<int> > &nodeToNeighbors, map<string, int> &labelToNode) {
     set<string> currentConqueredSet;
     currentConqueredSet.insert(*(parseOrderVector.begin()));
     parseOrderVector.erase(parseOrderVector.begin());
     while (!parseOrderVector.empty()) {
         string firstInVector = parseOrderVector.at(0);
         if (!validateNext(currentConqueredSet, firstInVector, nodeToNeighbors, labelToNode)) {
-            cout<<"Invalid order specified"<<endl;
             return false;
         }
         currentConqueredSet.insert(*(parseOrderVector.begin()));
@@ -231,4 +228,39 @@ bool validateOrder(string nodesParseOrder, map<int, set<int> > &nodeToNeighbors,
     }
     return true;
     
+}
+
+void generateRulesInOrder(map<int, set<int> > &nodeToNeighbors, map<string, int> &labelToNode, string nodesParseOrder, string goal) {
+    cout<<nodesParseOrder<<endl;
+    vector<string> parseOrderVector = splitLineAsStringVector(nodesParseOrder);
+    if (!validateOrder(parseOrderVector, nodeToNeighbors, labelToNode)) {
+        cout<<"Invalid Order Specified"<<endl;
+        assert(1==2);
+    }
+    cout<<"Valid Order"<<endl;
+    // Use first to conquer as previous
+    
+    string newInternalNonTerminal = parseOrderVector.at(0);
+    printTerminalRule(newInternalNonTerminal);
+    parseOrderVector.erase(parseOrderVector.begin());
+    
+    // While we still have stuff to conquer,
+    while(!parseOrderVector.empty()) {
+        
+        cout<<parseOrderVector.size()<<endl;
+        // Conquer the first in line
+        string conqueringName = parseOrderVector.at(0);
+        printTerminalRule(conqueringName);
+        parseOrderVector.erase(parseOrderVector.begin());
+        
+        // If we are at the last node to be conquered,
+        if (parseOrderVector.empty()) {
+            printRule(goal, newInternalNonTerminal, conqueringName);
+        // If there are more nodes to conquer after this one,
+        } else {
+            string previousInternalNonTerminal = newInternalNonTerminal;
+            newInternalNonTerminal.append("_").append(conqueringName);
+            printRule(newInternalNonTerminal, previousInternalNonTerminal, conqueringName);
+        }
+    }
 }

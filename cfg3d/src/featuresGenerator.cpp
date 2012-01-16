@@ -42,6 +42,7 @@ void createNonIntermediateClassAndWrite(string dataStructure) {
     string front = "class ";
     string className = dataStructure;
     string back = " : public NonTerminal{};";
+//    string back = " : public Plane{};";
     outputDataStructuresCode<<front.append(className).append(back)<<endl;
 }
 
@@ -254,7 +255,7 @@ int main(int argc, char** argv) {
     if (argc==4) {
         generateRules(nodeToNeighbors, nodeToLabel, argv[3]);
     } else if (argc==5) {
-        
+        generateRulesInOrder(nodeToNeighbors, labelToNode, argv[4], argv[3]);
     }
     
     string dataStructuresFileFront = "";
