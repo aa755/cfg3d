@@ -41,7 +41,8 @@ void createLearnerImports(string objectName) {
 void createNonIntermediateClassAndWrite(string dataStructure) {
     string front = "class ";
     string className = dataStructure;
-    string back = " : public NonTerminal{};";
+    string back = " : public Plane{};";
+//    string back = " : public Plane{};";
     outputDataStructuresCode<<front.append(className).append(back)<<endl;
 }
 
@@ -49,6 +50,13 @@ void createIntermediateClassAndWrite(string dataStructure) {
     string front = "class ";
     string className = dataStructure;
     string back = " : public NonTerminalIntermediate{};";
+    outputDataStructuresCode<<front.append(className).append(back)<<endl;
+}
+
+void createGoal(string dataStructure) {
+    string front = "class ";
+    string className = dataStructure;
+    string back = " : public NonTerminal{};";
     outputDataStructuresCode<<front.append(className).append(back)<<endl;
 }
 
@@ -79,7 +87,10 @@ void createDataStructureFromString(string line, set<string>& intermediateDataStr
         tokenList.push_back(t);
     }
     
-    if (tokenList.size() == 2 || tokenList.at(0) == objectName) {        
+    if (tokenList.at(0) == objectName) {
+        createGoal(objectName);
+    }
+    else if (tokenList.size() == 2) {        
         nonIntermediateDataStructuresSet.insert(tokenList.at(0));
     } else if (tokenList.size() == 3) {
         intermediateDataStructuresSet.insert(tokenList.at(0));
@@ -254,7 +265,7 @@ int main(int argc, char** argv) {
     if (argc==4) {
         generateRules(nodeToNeighbors, nodeToLabel, argv[3]);
     } else if (argc==5) {
-        
+        generateRulesInOrder(nodeToNeighbors, labelToNode, argv[4], argv[3]);
     }
     
     string dataStructuresFileFront = "";
