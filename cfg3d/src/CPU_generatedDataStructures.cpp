@@ -1,10 +1,10 @@
 #include "helper.cpp"
-//class CPUTop_CPURSide : public NonTerminalIntermediate{};
-class CPUTop_CPURSide : public Scene{};
-//class CPUTop_CPURSide_CPUFront : public NonTerminalIntermediate{};
-class CPUTop_CPURSide_CPUFront : public Scene{};
-class CPUTop_CPURSide_CPUFront_CPUBack : public Scene{};
-//class CPUTop_CPURSide_CPUFront_CPUBack : public NonTerminalIntermediate{};
+class CPUTop_CPURSide : public NonTerminalIntermediate{};
+//class CPUTop_CPURSide : public Scene{};
+class CPUTop_CPURSide_CPUFront : public NonTerminalIntermediate{};
+//class CPUTop_CPURSide_CPUFront : public Scene{};
+//class CPUTop_CPURSide_CPUFront_CPUBack : public Scene{};
+class CPUTop_CPURSide_CPUFront_CPUBack : public NonTerminalIntermediate{};
 class CPU : public Scene{};
 class CPUBack : public Plane{};
 class CPUFront : public Plane{};

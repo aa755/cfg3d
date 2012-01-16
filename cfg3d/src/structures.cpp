@@ -37,8 +37,8 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-#define MAX_SEG_INDEX 1
-#define OCCLUSION_SHOW_HEATMAP
+#define MAX_SEG_INDEX 4
+//#define OCCLUSION_SHOW_HEATMAP
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -3159,8 +3159,8 @@ class DoubleRule : public Rule
         
         //if(typeid(HalType)!=typeid(CPULSide))
         
-        if(extractedSymExpanded.size()<MAX_SEG_INDEX)
-            return;
+   //     if(extractedSymExpanded.size()<MAX_SEG_INDEX)
+     //       return;
         for(unsigned int i=0;i<extractedSymExpanded.size();i++)
             cerr<<"type NTIC:"<<i<<typeid(*extractedSymExpanded.at(i)).name()<<endl;
         
