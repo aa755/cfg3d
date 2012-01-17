@@ -68,6 +68,7 @@ void initializePlanes(int maxSegNum) {
         pl->computeSpannedTerminals();
         pl->computeFeatures();
         pl->setAbsoluteCost(0);
+        assert(false); //next line needs to be fixed
         pl->declareOptimal();
 //        plane->returnPlaneParams();
       

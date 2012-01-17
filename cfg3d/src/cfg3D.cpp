@@ -99,6 +99,7 @@ public:
         
         Plane * LHS = new Plane();
         LHS->addChild(RHS_plane);
+        //TODO : FIRST COMPUTE PLANE PARAMS FROM JUST THIS AND THEN 
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndSetCost();
