@@ -6,11 +6,11 @@ class CPUTop_CPURSide_CPUFront : public Scene{};
 //class CPUTop_CPURSide_CPUFront_CPUBack : public Scene{};
 class CPUTop_CPURSide_CPUFront_CPUBack : public NonTerminalIntermediate{};
 class CPU : public Scene{};
-class CPUBack : public Plane{};
-class CPUFront : public Plane{};
-class CPULSide : public Plane{};
-class CPURSide : public Plane{};
-class CPUTop : public Plane{};
+class CPUBack : public PlanarPrimitive{};
+class CPUFront : public PlanarPrimitive{};
+class CPULSide : public PlanarPrimitive{};
+class CPURSide : public PlanarPrimitive{};
+class CPUTop : public PlanarPrimitive{};
 
 void CPUAppendLearningRules(vector<RulePtr>& learningRules) {
     learningRules.push_back(RulePtr(new SingleRule<CPUTop, Plane>()));

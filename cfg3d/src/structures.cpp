@@ -1697,11 +1697,11 @@ public:
         return getZNormal() >= .88;
     }
 
-    double getNorm() {
+    double getNorm() const {
         return (planeParams[0] * planeParams[0] + planeParams[1] * planeParams[1] + planeParams[2] * planeParams[2]);
     }
     
-    double getZNormal() {
+    double getZNormal() const {
         return fabs(planeParams[2]);
     }
 
@@ -1807,35 +1807,35 @@ public:
      * @param i
      * @return 
      */
-    Eigen::Vector3d getEigenVector(int i)
+    Eigen::Vector3d getEigenVector(int i) const
     {
         return eigenVecs.col(i);
     }
     
-    Eigen::Vector3d getLengthDirection()
+    Eigen::Vector3d getLengthDirection() const
     {
         return getEigenVector(2);
     }
     
-    Eigen::Vector3d getWidthDirection()
+    Eigen::Vector3d getWidthDirection() const
     {
         return getEigenVector(1);
     }
     
-    Eigen::Vector3d getPlaneNormal() {
+    Eigen::Vector3d getPlaneNormal() const {
         return Vector3d(planeParams[0], planeParams[1], planeParams[2]);
     }
     
-    Eigen::Vector4f getPlaneParams() {
+    Eigen::Vector4f getPlaneParams() const {
         return planeParams;
     }
     
-    float getLength()
+    float getLength() const
     {
         assert(planeParamsComputed);
         return 2*sqrt(eigenValsAscending(2)/(float)getNumPoints()); // rms
     }
-    float getWidth()
+    float getWidth() const
     {
         assert(planeParamsComputed);
         return 2*sqrt(eigenValsAscending(1)/(float)getNumPoints()); // rms
@@ -1873,6 +1873,18 @@ public:
         }
         return true;
     }   
+};
+
+class PlanarPrimitive : public NonTerminal
+{
+public:
+    const Plane * getPlaneChild() 
+    {
+        assert(children.size()==1);
+        Plane * ret=dynamic_cast<Plane *>(children.at(0));
+        assert(ret!=NULL);
+        return ret;
+    }
 };
 
 bool isVerticalEnough(Plane* plane) {
@@ -2905,24 +2917,24 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     Eigen::Vector3d c12 = c1 - c2;
 
 
-    Plane * plane1 = dynamic_cast<Plane *> (rhs1);
-    Plane * plane2 = dynamic_cast<Plane *> (rhs2);
+    PlanarPrimitive * plane1 = dynamic_cast<PlanarPrimitive *> (rhs1);
+    PlanarPrimitive * plane2 = dynamic_cast<PlanarPrimitive *> (rhs2);
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
 
-    if(plane1!=NULL)
+    if(plane1!=NULL) //TODO:CHANGE TO PLANE PRIM
     {
         for (int i = 0; i < 3; i++)
-            distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getEigenVector(i))));
+            distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getPlaneChild()->getEigenVector(i))));
         type1Hal=false;
         
     }   
 
     
-    if(plane2!=NULL)
+    if(plane2!=NULL) //TODO:CHANGE TO PLANE PRIM
     {
         for (int i = 0; i < 3; i++)
-            distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getEigenVector(i))));
+            distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getPlaneChild()->getEigenVector(i))));
         type2Hal=false;
     }
 
@@ -2933,7 +2945,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
         assert(plane1 != NULL && plane2 != NULL);
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                EVdots12[i*3+j]=(fabs(plane1->getEigenVector(i).dot(plane2->getEigenVector(j))));
+                EVdots12[i*3+j]=(fabs(plane1->getPlaneChild()->getEigenVector(i).dot(plane2->getPlaneChild()->getEigenVector(j))));
 
 
     z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
