@@ -5,7 +5,8 @@
 #define MAX_SEG_INDEX 29
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
-#define DISABLE_HALLUCINATION
+//#define DISABLE_HALLUCINATION
+
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -3373,7 +3374,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=10000+std::max(3-numNodes,0)*10000;
+       double additionalCost=500+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
