@@ -224,6 +224,7 @@ protected:
      *  required for being a superior CFG
      */
 //    bool featuresComputed;
+    bool isDeclaredOptimal;
     double cost;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
