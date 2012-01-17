@@ -1,6 +1,11 @@
 #ifndef STRUCTURES_CPP
 #define	STRUCTURES_CPP
 
+//options
+#define MAX_SEG_INDEX 29
+//#define OCCLUSION_SHOW_HEATMAP
+//#define PROPABILITY_RANGE_CHECK
+#define DISABLE_HALLUCINATION
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -36,11 +41,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-//options
 
-#define MAX_SEG_INDEX 29
-//#define OCCLUSION_SHOW_HEATMAP
-//#define PROPABILITY_RANGE_CHECK
 
 
 
@@ -1763,9 +1764,9 @@ public:
     }
     
     
-     virtual void additionalFinalize() {
-         computePlaneParamsAndSetCost();
-     }
+//     virtual void additionalFinalize() {
+//         computePlaneParamsAndSetCost();
+//     }
     
     void computePlaneParamsAndSetCost()
     {
@@ -3360,7 +3361,8 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       halPart->setAdditionalCost(0);// replace with cost of forming a plane by estimating nof points
+       double additionalCost=10000+std::max(3-numNodes,0)*10000;
+       halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
        LHS_Type  *lhs;
@@ -3374,8 +3376,7 @@ class DoubleRule : public Rule
        }
       
 
-       double additionalCost=1000+std::max(3-numNodes,0)*1000;
-        lhs->setAdditionalCost(minCost+additionalCost); // ideally max of other feature values which were not considered
+        lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
         if(/*occlusionChecker->isOccluded() && */addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
