@@ -2972,12 +2972,12 @@ public:
         return Eigen::Vector3d(hal2d(0),hal2d(1),z);
     }
     
-    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
-    {
-        assert(rad>=0);
-        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
-        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
-    }
+//    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
+//    {
+//        assert(rad>=0);
+//        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
+//        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
+//    }
     
 };
 
@@ -3184,7 +3184,7 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-      //  return;
+        return;
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3373,7 +3373,7 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost+2000); // ideally max of other feature values which were not considered
-        if(occlusionChecker->isOccluded() && addToPqueueIfNotDuplicate(lhs,pqueue))
+        if(/*occlusionChecker->isOccluded() && */addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
         {
