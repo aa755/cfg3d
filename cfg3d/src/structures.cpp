@@ -38,7 +38,7 @@ using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 //options
 
-#define MAX_SEG_INDEX 3
+#define MAX_SEG_INDEX 29
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 
@@ -208,7 +208,7 @@ PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
 }
 
 int NUMPointsToBeParsed;
-//OccupancyMap<PointT> * occlusionChecker;
+OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
@@ -2827,7 +2827,7 @@ public:
         }
         else
         {
-            assert(false);
+           // assert(false);
             for (int i = 0; i < (NUM_OCCLUSION_FEATS - 2 * NUM_OCCLUSION_FEATS_ASYMMETRIC); i++)
             {
                 sum += models.all[i]->minusLogProb(feats.all[i]);
@@ -2966,6 +2966,13 @@ public:
     }
     
     Eigen::Vector3d getCentroid(Eigen::Vector2d centxy)
+    {
+        assert(rad>=0);
+        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
+        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
+    }
+    
+    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
     {
         assert(rad>=0);
         Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
@@ -3177,7 +3184,7 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-        return;
+      //  return;
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3351,7 +3358,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       halPart->setAdditionalCost(1000);// replace with cost of forming a plane by estimating nof points
+       halPart->setAdditionalCost(0);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
        LHS_Type  *lhs;
@@ -3365,8 +3372,8 @@ class DoubleRule : public Rule
        }
       
 
-        lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        if(addToPqueueIfNotDuplicate(lhs,pqueue))
+        lhs->setAdditionalCost(minCost+2000); // ideally max of other feature values which were not considered
+        if(occlusionChecker->isOccluded() && addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
         {
