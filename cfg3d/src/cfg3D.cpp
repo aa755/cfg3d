@@ -884,7 +884,7 @@ int main(int argc, char** argv) {
     fileName=string(argv[1]);
     fileName=fileName.substr(0, fileName.length()-4);
 
-    //occlusionChecker = new OccupancyMap<PointT>(scene);
+    occlusionChecker = new OccupancyMap<PointT>(scene);
 
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
