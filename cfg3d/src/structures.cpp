@@ -3184,7 +3184,9 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
+#ifdef DISABLE_HALLUCINATION        
         return;
+#endif
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3372,7 +3374,8 @@ class DoubleRule : public Rule
        }
       
 
-        lhs->setAdditionalCost(minCost+2000); // ideally max of other feature values which were not considered
+       double additionalCost=1000+std::max(3-numNodes,0)*1000;
+        lhs->setAdditionalCost(minCost+additionalCost); // ideally max of other feature values which were not considered
         if(/*occlusionChecker->isOccluded() && */addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
