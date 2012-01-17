@@ -1,6 +1,11 @@
 #ifndef STRUCTURES_CPP
 #define	STRUCTURES_CPP
 
+//options
+#define MAX_SEG_INDEX 29
+//#define OCCLUSION_SHOW_HEATMAP
+//#define PROPABILITY_RANGE_CHECK
+#define DISABLE_HALLUCINATION
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -36,11 +41,7 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-//options
 
-#define MAX_SEG_INDEX 29
-//#define OCCLUSION_SHOW_HEATMAP
-//#define PROPABILITY_RANGE_CHECK
 
 
 
@@ -1763,9 +1764,9 @@ public:
     }
     
     
-     virtual void additionalFinalize() {
-         computePlaneParamsAndSetCost();
-     }
+//     virtual void additionalFinalize() {
+//         computePlaneParamsAndSetCost();
+//     }
     
     void computePlaneParamsAndSetCost()
     {
@@ -2973,12 +2974,12 @@ public:
         return Eigen::Vector3d(hal2d(0),hal2d(1),z);
     }
     
-    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
-    {
-        assert(rad>=0);
-        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
-        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
-    }
+//    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
+//    {
+//        assert(rad>=0);
+//        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
+//        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
+//    }
     
 };
 
@@ -3185,7 +3186,9 @@ class DoubleRule : public Rule
     typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-      //  return;
+#ifdef DISABLE_HALLUCINATION        
+        return;
+#endif
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3359,7 +3362,8 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       halPart->setAdditionalCost(0);// replace with cost of forming a plane by estimating nof points
+       double additionalCost=10000+std::max(3-numNodes,0)*10000;
+       halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
        LHS_Type  *lhs;
@@ -3373,8 +3377,8 @@ class DoubleRule : public Rule
        }
       
 
-        lhs->setAdditionalCost(minCost+2000); // ideally max of other feature values which were not considered
-        if(occlusionChecker->isOccluded() && addToPqueueIfNotDuplicate(lhs,pqueue))
+        lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
+        if(/*occlusionChecker->isOccluded() && */addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
         {
