@@ -842,9 +842,6 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             }
 
         }
-
-
-
         //pq.pop();
 
     }
