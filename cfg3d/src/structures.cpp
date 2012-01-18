@@ -225,6 +225,7 @@ protected:
      *  required for being a superior CFG
      */
 //    bool featuresComputed;
+    bool isDeclaredOptimal;
     double cost;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
@@ -1801,6 +1802,7 @@ public:
         eigenValsAscending=eigen_values;
         eigenVecs=eigen_vectors;
         double sumSquaredDistances = eigen_values(0);
+        // Serious bug. This is called after setting the real cost.
         setAbsoluteCost(sumSquaredDistances);
     }
     
