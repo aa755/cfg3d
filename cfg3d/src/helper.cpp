@@ -23,10 +23,10 @@ int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
 }
 
 /**
- * Initialize Terminals without any points.
+ * Initialize global "terminals" vector without any points.
  * @param maxSegNum
  */
-        vector<Terminal *> terminals;
+vector<Terminal *> terminals;
 void initializeTerminals(int & maxSegNum) {
     Terminal* temp;
     for (int i = 1; i <= maxSegNum; i++) {
@@ -38,8 +38,7 @@ void initializeTerminals(int & maxSegNum) {
             break;
         }
         
-        temp = new Terminal(i - 1); // index is segment Number -1 
-        cout<<"segNumToLabel.size() = "<<segNumToLabel.size()<<endl;
+        temp = new Terminal(i - 1); // index is segment Number -1
         string terminalLabel = segNumToLabel.at(i - 1);
         temp->setLabel(terminalLabel);
         labelToTerminals[terminalLabel] = temp;
@@ -48,7 +47,6 @@ void initializeTerminals(int & maxSegNum) {
     
     Terminal::totalNumTerminals=maxSegNum;
     assert((int)terminals.size()==Terminal::totalNumTerminals);
-    
 }
 
 /**
@@ -67,10 +65,9 @@ void initializePlanes(int maxSegNum) {
         pl->addChild(terminal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
+        pl->computePlaneParamsAndEigens();
         pl->setAbsoluteCost(0);
-        assert(false); //next line needs to be fixed
         pl->declareOptimal();
-//        plane->returnPlaneParams();
       
         cout<<"Label: "<<label<<endl;
         labelToPlanes[label] = pl;
@@ -84,14 +81,16 @@ vector<string> addToSegNumToLabelFromString(string line) {
     cout<<"segmentLabelPair: "<<endl;
     BOOST_FOREACH(string t, tokens)
     {
-//        cout<<t<<",";
         segmentLabelPair.push_back(t);
     }
     cout<<endl;
     return segmentLabelPair;
 }
 
-//run fridge.pcd_segmented.pcd fridge.pcd_segmented.pcd_nbr.txt
+/**
+ * Initializes the mapping, segNumToLabel, between the segment number and the label we assign to it in learning.
+ * @param segNumToLabelFileName
+ */
 void initializeSegNumToLabel(char* segNumToLabelFileName) {
     ifstream segNumToLabelStream;
     segNumToLabelStream.open(segNumToLabelFileName);
@@ -100,7 +99,6 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     if (segNumToLabelStream.is_open())
     {
         while (segNumToLabelStream.good()) {
-//            cout<<"testhere"<<endl;
             getline(segNumToLabelStream, line);
             if (line.size() == 0) 
             {
@@ -136,9 +134,9 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
             string label = segNumToLabel[currentSegNum];
             cout<<endl;
             Terminal* terminalToAddTo = labelToTerminals[label];
-//            cout<<labelToTerminals.size()<<endl;
-//            cout<<"with label: "<<label<<endl;
             assert(terminalToAddTo!=NULL);
+            
+            // Adding points indices to the empty Terminals.
             terminalToAddTo->addPointIndex(i);            
         }
     
