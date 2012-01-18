@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 29
+#define MAX_SEG_INDEX 30
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 //#define DISABLE_HALLUCINATION
@@ -3377,7 +3377,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=500+std::max(3-numNodes,0)*500;
+       double additionalCost=1100+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
