@@ -1772,12 +1772,6 @@ public:
         return true;
     }
     
-    
-//     virtual void additionalFinalize() {
-//         computePlaneParamsAndSetCost();
-//     }
-    
-    
     void computePlaneParamsAndEigens() {
         if (planeParamsComputed)
             return;

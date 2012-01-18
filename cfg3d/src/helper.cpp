@@ -67,7 +67,6 @@ void initializePlanes(int maxSegNum) {
         pl->computeFeatures();
         pl->computePlaneParamsAndEigens();
         pl->setAbsoluteCost(0);
-//        assert(false); //next line needs to be fixed
         pl->declareOptimal();
       
         cout<<"Label: "<<label<<endl;
