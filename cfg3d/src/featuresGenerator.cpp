@@ -41,8 +41,7 @@ void createLearnerImports(string objectName) {
 void createNonIntermediateClassAndWrite(string dataStructure) {
     string front = "class ";
     string className = dataStructure;
-    string back = " : public Plane{};";
-//    string back = " : public Plane{};";
+    string back = " : public PlanarPrimitive{};";
     outputDataStructuresCode<<front.append(className).append(back)<<endl;
 }
 
@@ -59,12 +58,6 @@ void createGoal(string dataStructure) {
     string back = " : public NonTerminal{};";
     outputDataStructuresCode<<front.append(className).append(back)<<endl;
 }
-
-//void writeDataStructuresToFile(set<string> dataStructuresSet) {
-//    BOOST_FOREACH(string dataStructure, dataStructuresSet) {
-//        createIntermediateClassAndWrite(dataStructure);
-//    }
-//}
 
 void writeIntermediateDataStructuresToFile(set<string> dataStructuresSet) {
     BOOST_FOREACH(string dataStructure, dataStructuresSet) {

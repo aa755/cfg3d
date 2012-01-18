@@ -81,14 +81,12 @@ vector<string> addToSegNumToLabelFromString(string line) {
     cout<<"segmentLabelPair: "<<endl;
     BOOST_FOREACH(string t, tokens)
     {
-//        cout<<t<<",";
         segmentLabelPair.push_back(t);
     }
     cout<<endl;
     return segmentLabelPair;
 }
 
-//run fridge.pcd_segmented.pcd fridge.pcd_segmented.pcd_nbr.txt
 /**
  * Initializes the mapping, segNumToLabel, between the segment number and the label we assign to it in learning.
  * @param segNumToLabelFileName
@@ -137,6 +135,7 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
             cout<<endl;
             Terminal* terminalToAddTo = labelToTerminals[label];
             assert(terminalToAddTo!=NULL);
+            
             // Adding points indices to the empty Terminals.
             terminalToAddTo->addPointIndex(i);            
         }

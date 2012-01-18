@@ -2570,8 +2570,6 @@ public:
         Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
         return Eigen::Vector3d(hal2d(0),hal2d(1),z);
     }
-    
-    
 };
 
 template<typename LHS_Type, typename RHS_Type>
@@ -3008,9 +3006,6 @@ public:
         } else {
             readDistribution(filename);
         }
-        
-        
-        
     }
 
 //    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
