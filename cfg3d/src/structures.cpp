@@ -432,6 +432,7 @@ public:
 
     Symbol()
     {
+        isDeclaredOptimal = false;
         featuresComputed=false;
     }
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
@@ -930,6 +931,7 @@ public:
     }
 
     bool declareOptimal() {
+        isDeclaredOptimal = true;
         return true;
     }
 
@@ -984,6 +986,7 @@ public:
     
     void setAbsoluteCost(double cost)
     {
+        assert(!isDeclaredOptimal);
         this->cost=cost;
     }
     
@@ -1326,6 +1329,7 @@ public:
     }
 
     void setAdditionalCost(double additionalCost) {
+        assert(!isDeclaredOptimal);
         assert(additionalCost >= 0);
         cost = 0;
         for (size_t i = 0; i < children.size(); i++)
@@ -1341,6 +1345,7 @@ public:
      * @param absoluteCost
      */
     void setAbsoluteCost(double absoluteCost) {
+        assert(!isDeclaredOptimal);
         cout<<absoluteCost<<endl;
         assert(absoluteCost >= (0 - .001));
         if (absoluteCost >= (0 - .001) && absoluteCost < 0) {
@@ -1439,6 +1444,7 @@ public:
      * @return
      */
     bool declareOptimal() {
+        isDeclaredOptimal = true;
         vector<Symbol*>::iterator it;
 
         for (it = children.begin(); it != children.end(); it++) {
