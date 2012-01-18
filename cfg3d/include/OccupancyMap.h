@@ -108,7 +108,7 @@ public:
             return true;
         
     }
-
+    
     bool isOccluded(const pcl::PointXYZ pt)
     {
         octomap::OcTreeROS::NodeType * treeNode;
@@ -119,6 +119,16 @@ public:
         else
             return false;
         
+    }
+    
+    bool isOccluded(Eigen::Vector3d ptv)
+    {
+        pcl::PointXYZ pt;
+        for(int i=0;i<3;i++)
+            pt.data[i]=ptv(i);
+        pt.data[3]=1.0f;
+        
+        return isOccluded(pt);        
     }
     
     OccupancyState getOccupancyState(size_t index)

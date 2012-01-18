@@ -1554,7 +1554,8 @@ class Scene : public NonTerminalIntermediate {
         
         scene.width=1;
         scene.height=scene.size();
-        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        //string halPCDFileName=fileName+"_hallucinated.pcd";
+        pcl::io::savePCDFile<PointT>(fileName+"_hallucinated.pcd", scene,true);
         
         graphvizFile<<"digraph g{\n";
         while(!parseTreeNodes.empty())
@@ -2986,12 +2987,6 @@ public:
         return Eigen::Vector3d(hal2d(0),hal2d(1),z);
     }
     
-//    pcl::PointXYZ getCentroid(Eigen::Vector2d centxy)
-//    {
-//        assert(rad>=0);
-//        Eigen::Vector2d hal2d=centxy+rad*getUnitVector();
-//        return Eigen::Vector3d(hal2d(0),hal2d(1),z);
-//    }
     
 };
 
@@ -3390,7 +3385,7 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        if(/*occlusionChecker->isOccluded() && */addToPqueueIfNotDuplicate(lhs,pqueue))
+        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         else
         {

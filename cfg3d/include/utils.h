@@ -141,5 +141,16 @@ void getTokens(string str, vector<float>& out) {
         }
 }
 
+//        
+//    template<typename PT>
+//    PT pointFromVector(const Eigen::Vector3d & d)
+//    {
+//        PT p;
+//        for(int i=0;i<3;i++)
+//            p.data[i]=d(i);
+//        p.data[3]=1.0f;
+//        return p;
+//    }
+//
 #endif	/* UTILS_H */
 
