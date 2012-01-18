@@ -20,18 +20,12 @@
 #include "pcl/kdtree/tree_types.h"
 #include <pcl_ros/io/bag_io.h>
 typedef pcl::PointXYZRGBCamSL PointT;
-#include<boost/numeric/ublas/matrix.hpp>
-#include<boost/numeric/ublas/io.hpp>
-#include<boost/numeric/bindings/traits/ublas_matrix.hpp>
-#include<boost/numeric/bindings/lapack/gels.hpp>
-#include <boost/numeric/bindings/traits/ublas_vector2.hpp>
 
 
 using namespace std;
 
 pcl::PCDWriter writer;
 
-using namespace std;
 
 /** 
  * takes a bag file containing a single PCD and camera positions and writes a 
