@@ -1777,8 +1777,8 @@ public:
 //         computePlaneParamsAndSetCost();
 //     }
     
-    void computePlaneParamsAndSetCost()
-    {
+    
+    void computePlaneParamsAndEigens() {
         if (planeParamsComputed)
             return;
 
@@ -1807,8 +1807,43 @@ public:
 
         eigenValsAscending=eigen_values;
         eigenVecs=eigen_vectors;
-        double sumSquaredDistances = eigen_values(0);
-        // Serious bug. This is called after setting the real cost.
+    }
+    
+    // TODO: Check if we have to call computeFeatures in this function.
+    void computePlaneParamsAndSetCost()
+    {
+//        if (planeParamsComputed)
+//            return;
+//
+//        computeFeatures();
+//        Eigen::Vector4f xyz_centroid_;
+//
+//        for (int i = 0; i < 3; i++)
+//            xyz_centroid_(i) = centroid.data[i];
+//        xyz_centroid_(3) = 1;
+//
+//        Eigen::Matrix3d covMat; //
+//        computeCovarianceMat(covMat);
+//
+//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> ei_symm(covMat);
+//        EIGEN_ALIGN16 Eigen::Vector3d eigen_values = ei_symm.eigenvalues();
+//        EIGEN_ALIGN16 Eigen::Matrix3d eigen_vectors = ei_symm.eigenvectors();
+//
+//        planeParams[0] = eigen_vectors(0, 0);
+//        planeParams[1] = eigen_vectors(1, 0);
+//        planeParams[2] = eigen_vectors(2, 0);
+//        planeParams[3] = 0;
+//
+//        // Hessian form (D = nc . p_plane (centroid here) + p)
+//        planeParams[3] = -1 * planeParams.dot(xyz_centroid_);
+//        planeParamsComputed = true;
+//
+//        eigenValsAscending=eigen_values;
+//        eigenVecs=eigen_vectors;
+//        double sumSquaredDistances = eigen_values(0);
+//        // Serious bug. This is called after setting the real cost.
+        computePlaneParamsAndEigens();
+        double sumSquaredDistances = eigenValsAscending(0);
         setAbsoluteCost(sumSquaredDistances);
     }
     
