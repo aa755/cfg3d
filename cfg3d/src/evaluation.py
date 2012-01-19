@@ -65,7 +65,7 @@ def compareTwoFiles(file1, file2, file3, fileWrite):
         totalDict2 = totalDict2 + len(dict2LabelSet)
         totalIntersections = totalIntersections + len(dict1LabelSet.intersection(dict2LabelSet))
 
-        strLst = [str(len(dict1LabelSet)),',',str(len(dict2LabelSet)),',',str(len(dict1LabelSet.intersection(dict2LabelSet))),'\n']
+        strLst = [label,',',str(len(dict1LabelSet)),',',str(len(dict2LabelSet)),',',str(len(dict1LabelSet.intersection(dict2LabelSet))),'\n']
         fileWrite.write(''.join(strLst))
 
     return totalDict1, totalDict2, totalIntersections
