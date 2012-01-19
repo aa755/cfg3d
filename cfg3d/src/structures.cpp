@@ -2997,10 +2997,12 @@ class DoubleRule : public Rule
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
         if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
+        {
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
+        }
         else
         {
-                cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
+           cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
            delete finalHal;
            delete pl;
         }   
