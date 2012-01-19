@@ -5,48 +5,48 @@ void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {
     queue<Symbol*> nodesCreatedSoFar;
     vector<Terminal*> temp;
 
+    SingleRule<CPUFront, Plane> ruleCPUFront(true);
+    nodesCreatedSoFar.push(ruleCPUFront.applyRuleLearning(labelToPlanes.at("CPUFront"), temp));
+
     SingleRule<CPUTop, Plane> ruleCPUTop(true);
     nodesCreatedSoFar.push(ruleCPUTop.applyRuleLearning(labelToPlanes.at("CPUTop"), temp));
+
+    DoubleRule<CPUFront_CPUTop, CPUFront, CPUTop> ruleCPUFront_CPUTop(true);;
+    CPUFront* secondToLastCPUFront = dynamic_cast<CPUFront*>(nodesCreatedSoFar.front());
+    nodesCreatedSoFar.pop();
+    CPUTop* lastCPUTop = dynamic_cast<CPUTop*>(nodesCreatedSoFar.front());
+    nodesCreatedSoFar.pop();
+    nodesCreatedSoFar.push(ruleCPUFront_CPUTop.applyRuleLearning(secondToLastCPUFront, lastCPUTop, temp));
 
     SingleRule<CPURSide, Plane> ruleCPURSide(true);
     nodesCreatedSoFar.push(ruleCPURSide.applyRuleLearning(labelToPlanes.at("CPURSide"), temp));
 
-    DoubleRule<CPUTop_CPURSide, CPUTop, CPURSide> ruleCPUTop_CPURSide(true);;
-    CPUTop* secondToLastCPUTop = dynamic_cast<CPUTop*>(nodesCreatedSoFar.front());
+    DoubleRule<CPUFront_CPUTop_CPURSide, CPUFront_CPUTop, CPURSide> ruleCPUFront_CPUTop_CPURSide(true);;
+    CPUFront_CPUTop* secondToLastCPUFront_CPUTop = dynamic_cast<CPUFront_CPUTop*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
     CPURSide* lastCPURSide = dynamic_cast<CPURSide*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-    nodesCreatedSoFar.push(ruleCPUTop_CPURSide.applyRuleLearning(secondToLastCPUTop, lastCPURSide, temp));
-
-    SingleRule<CPUFront, Plane> ruleCPUFront(true);
-    nodesCreatedSoFar.push(ruleCPUFront.applyRuleLearning(labelToPlanes.at("CPUFront"), temp));
-
-    DoubleRule<CPUTop_CPURSide_CPUFront, CPUTop_CPURSide, CPUFront> ruleCPUTop_CPURSide_CPUFront(true);;
-    CPUTop_CPURSide* secondToLastCPUTop_CPURSide = dynamic_cast<CPUTop_CPURSide*>(nodesCreatedSoFar.front());
-    nodesCreatedSoFar.pop();
-    CPUFront* lastCPUFront = dynamic_cast<CPUFront*>(nodesCreatedSoFar.front());
-    nodesCreatedSoFar.pop();
-    nodesCreatedSoFar.push(ruleCPUTop_CPURSide_CPUFront.applyRuleLearning(secondToLastCPUTop_CPURSide, lastCPUFront, temp));
+    nodesCreatedSoFar.push(ruleCPUFront_CPUTop_CPURSide.applyRuleLearning(secondToLastCPUFront_CPUTop, lastCPURSide, temp));
 
     SingleRule<CPUBack, Plane> ruleCPUBack(true);
     nodesCreatedSoFar.push(ruleCPUBack.applyRuleLearning(labelToPlanes.at("CPUBack"), temp));
 
-    DoubleRule<CPUTop_CPURSide_CPUFront_CPUBack, CPUTop_CPURSide_CPUFront, CPUBack> ruleCPUTop_CPURSide_CPUFront_CPUBack(true);;
-    CPUTop_CPURSide_CPUFront* secondToLastCPUTop_CPURSide_CPUFront = dynamic_cast<CPUTop_CPURSide_CPUFront*>(nodesCreatedSoFar.front());
+    DoubleRule<CPUFront_CPUTop_CPURSide_CPUBack, CPUFront_CPUTop_CPURSide, CPUBack> ruleCPUFront_CPUTop_CPURSide_CPUBack(true);;
+    CPUFront_CPUTop_CPURSide* secondToLastCPUFront_CPUTop_CPURSide = dynamic_cast<CPUFront_CPUTop_CPURSide*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
     CPUBack* lastCPUBack = dynamic_cast<CPUBack*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-    nodesCreatedSoFar.push(ruleCPUTop_CPURSide_CPUFront_CPUBack.applyRuleLearning(secondToLastCPUTop_CPURSide_CPUFront, lastCPUBack, temp));
+    nodesCreatedSoFar.push(ruleCPUFront_CPUTop_CPURSide_CPUBack.applyRuleLearning(secondToLastCPUFront_CPUTop_CPURSide, lastCPUBack, temp));
 
     SingleRule<CPULSide, Plane> ruleCPULSide(true);
     nodesCreatedSoFar.push(ruleCPULSide.applyRuleLearning(labelToPlanes.at("CPULSide"), temp));
 
-    DoubleRule<CPU, CPUTop_CPURSide_CPUFront_CPUBack, CPULSide> ruleCPU(true);;
-    CPUTop_CPURSide_CPUFront_CPUBack* secondToLastCPUTop_CPURSide_CPUFront_CPUBack = dynamic_cast<CPUTop_CPURSide_CPUFront_CPUBack*>(nodesCreatedSoFar.front());
+    DoubleRule<CPU, CPUFront_CPUTop_CPURSide_CPUBack, CPULSide> ruleCPU(true);;
+    CPUFront_CPUTop_CPURSide_CPUBack* secondToLastCPUFront_CPUTop_CPURSide_CPUBack = dynamic_cast<CPUFront_CPUTop_CPURSide_CPUBack*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
     CPULSide* lastCPULSide = dynamic_cast<CPULSide*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-    nodesCreatedSoFar.push(ruleCPU.applyRuleLearning(secondToLastCPUTop_CPURSide_CPUFront_CPUBack, lastCPULSide, temp));
+    nodesCreatedSoFar.push(ruleCPU.applyRuleLearning(secondToLastCPUFront_CPUTop_CPURSide_CPUBack, lastCPULSide, temp));
 
 }
 
