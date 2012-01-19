@@ -583,8 +583,8 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         pcl::PointXYZ p1Centroid;
         basePlane.getCentroid(p1Centroid);
         
-        distanceThreshold = .0025;       
-//        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
+//        distanceThreshold = .0025;
+        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
     } else {
         otherTerminal = terminal1;
         basePlane = terminal2Plane;
@@ -592,8 +592,8 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         pcl::PointXYZ p2Centroid;
         basePlane.getCentroid(p2Centroid);
         
-        distanceThreshold = .0075;
-//        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
+//        distanceThreshold = .0025;
+        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
     }
     
      boost::shared_ptr <std::vector<int> > terminal1BoostPtr = terminal1.getPointIndicesBoostPtr();

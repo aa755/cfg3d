@@ -115,7 +115,6 @@ void createDataStructures(const char* file, string objectName) {
     outputDataStructuresCode<<"void "<<objectName<<"AppendLearningRules(vector<RulePtr>& learningRules) {"<<endl;    
 }
 
-
 // Learner      // Front
 void createRunLearnFront() {
     outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {"<<endl;
