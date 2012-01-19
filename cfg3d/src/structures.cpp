@@ -43,9 +43,6 @@ using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
 
-
-
-
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
@@ -58,7 +55,6 @@ class NTSetComparison {
 public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
-
 
 /**
  * does in-place set intersection ...O(n) amortized... result is in set_1
@@ -184,20 +180,12 @@ public:
 
 Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
-//double sqr(double value) {
-//    return value * value;
-//}
-
-double pointPointDistance(PointT& point1, PointT& point2) {
+double pointPointDistance(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
     return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
 }
 
 Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
     return Vector3d(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z);
-}
-
-double pointPointDistance(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
-    return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
 }
 
 typedef set<NonTerminal*, NTSetComparison> NTSet;
@@ -1550,6 +1538,7 @@ public:
     }
 
 };
+
 class Scene : public NonTerminalIntermediate {
     // the printData below should be used only for the Goal NT type
     void printData() {
@@ -1722,7 +1711,7 @@ public:
         pointIndices.push_back(index);
     }
     
-       bool isHorizontalEnough() {
+    bool isHorizontalEnough() {
         return getZNormal() >= .88;
     }
 
@@ -1999,11 +1988,6 @@ bool isOnTop(float value, Symbol * x) {
         return true;
     }
 }
-
-class SceneGeneric : public Scene
-{
-    
-};
 
 /**
  * when an NT is extracted, this class will help in finding possible candidates
@@ -3190,7 +3174,6 @@ public:
     }
 }; 
 
-
 typedef boost::shared_ptr<Rule> RulePtr;
 
 /**
@@ -3241,6 +3224,5 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
     return max;
 
 }
-
 
 #endif
