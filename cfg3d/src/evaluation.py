@@ -26,13 +26,14 @@ def createDict(fileName,labels):
     mapping = {}
     file = getFile(fileName)
     for line in file:
-        vector = line.split(',')
+        vector = line.rstrip('\n').split(',')
         key = vector[0]
-        value = vector[1].rstrip('\n')
-        if mapping.has_key(key):
-            mapping[key].append(value)
-        else:
-            mapping[key] = [value]
+        if not len(vector) == 1:
+            value = vector[1:]
+            if mapping.has_key(key):
+                mapping[key].extend(value)
+            else:
+                mapping[key] = value
     return mapping
 
 def getListOfLabels(fileName):
@@ -43,10 +44,12 @@ def getListOfLabels(fileName):
     return labelList
 
 # Returns (# times label in file1, # times label in file2, # times file1 and file2 labeled segment with label)
-def compareTwoFiles(file1, file2, file3):
+def compareTwoFiles(file1, file2, file3, fileWrite):
     labels = getListOfLabels(file3)
     dict1 = createDict(file1,labels)
+    print dict1, '\n'
     dict2 = createDict(file2,labels)
+    print dict2, '\n'
 
     totalDict1 = 0
     totalDict2 = 0
@@ -61,6 +64,10 @@ def compareTwoFiles(file1, file2, file3):
         totalDict1 = totalDict1 + len(dict1LabelSet)
         totalDict2 = totalDict2 + len(dict2LabelSet)
         totalIntersections = totalIntersections + len(dict1LabelSet.intersection(dict2LabelSet))
+
+        strLst = [str(len(dict1LabelSet)),',',str(len(dict2LabelSet)),',',str(len(dict1LabelSet.intersection(dict2LabelSet))),'\n']
+        fileWrite.write(''.join(strLst))
+
     return totalDict1, totalDict2, totalIntersections
 
 def precision(TPITriplet):
@@ -101,12 +108,14 @@ def printRecall(TPITriplet):
 
 def main():
     # TPI = Truth/Precision/Intersection triplet
-    TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3])
     fileWrite = getFileAppend('out')
     if len(sys.argv) == 5:
         fileWrite = getFileWrite('out')
-    strLst = [str(TPI[0]),',',str(TPI[1]),',',str(TPI[2]),'\n']
-    fileWrite.write(''.join(strLst))
+
+    TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], fileWrite)
+
+##    strLst = [str(TPI[0]),',',str(TPI[1]),',',str(TPI[2]),'\n']
+##    fileWrite.write(''.join(strLst))
     pass
 
 if __name__ == '__main__':
