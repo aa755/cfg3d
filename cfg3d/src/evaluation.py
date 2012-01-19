@@ -111,6 +111,9 @@ def main():
     fileWrite = getFileAppend('out')
     if len(sys.argv) == 5:
         fileWrite = getFileWrite('out')
+    elif not len(sys.argv) == 4:
+        print '\nMalformed argument inputs!\nUsage: GroundTruth_labelmap Prediction_labelmap labelfile [overwrite_arg]\n'
+        exit()
 
     TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], fileWrite)
 
