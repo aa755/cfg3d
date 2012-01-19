@@ -37,9 +37,18 @@ int main(int argc, char** argv)
         cerr<<"usage:"<<argv[0]<<"sourcePCD targetPCD"<<endl;
     
     pcl::PointCloud<PointT> src;
+    pcl::PointCloud<PointT> cloud_temp;
     pcl::PointCloud<PointT> dst;
-    pcl::io::loadPCDFile<PointT>(argv[1], src);
+    pcl::io::loadPCDFile<PointT>(argv[1], cloud_temp);
     pcl::io::loadPCDFile<PointT>(argv[2], dst);
+    
+    for (size_t i = 0; i < cloud_temp.size(); i++)
+    {
+        if(isnan( cloud_temp.points[i].x))
+            continue;
+        
+        src.points.push_back(cloud_temp.points.at(i));
+    }
 
     assert(src.size()==dst.size());
     for(int i=0;i<(int)src.size();i++)

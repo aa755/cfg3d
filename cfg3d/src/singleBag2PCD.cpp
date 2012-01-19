@@ -88,8 +88,11 @@ int main(int argc, char** argv)
         }
 
         assert(tf_count == 1);
+        
+        string inputFile(argv[1]);
+        string opFile=inputFile.substr(0,inputFile.length()-4)+".pcd";
 
-        writer.write(std::string(argv[1])+".pcd",cloud,true);
+        writer.write(opFile,cloud,true);
 
     return 0;
 }
