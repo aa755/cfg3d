@@ -180,7 +180,7 @@ public:
 
 Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
-double pointPointDistance(PointT& point1, PointT& point2) {
+double pointPointDistance(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
     return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
 }
 
