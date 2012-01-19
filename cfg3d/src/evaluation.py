@@ -43,13 +43,30 @@ def getListOfLabels(fileName):
         labelList.append(line.rstrip('\n'))
     return labelList
 
+def roundDown(num):
+    if num >= 1:
+        return 1
+    else:
+        return 0
+
+def printErr():
+    print '\nMalformed argument inputs!\nUsage: GroundTruth_labelmap Prediction_labelmap labelfile binary? [overwrite_arg]\n'
+
 # Returns (# times label in file1, # times label in file2, # times file1 and file2 labeled segment with label)
-def compareTwoFiles(file1, file2, file3, fileWrite):
+def compareTwoFiles(file1, file2, file3, binaryStr, fileWrite):
+
+    binary = False
+    if binaryStr == 'yes' or binaryStr == 'y':
+        binary = True
+    elif binaryStr == 'no' or binaryStr == 'n':
+        binary = False
+    else:
+        printErr()
+        exit()
+
     labels = getListOfLabels(file3)
     dict1 = createDict(file1,labels)
-    print dict1, '\n'
     dict2 = createDict(file2,labels)
-    print dict2, '\n'
 
     totalDict1 = 0
     totalDict2 = 0
@@ -61,11 +78,21 @@ def compareTwoFiles(file1, file2, file3, fileWrite):
             dict1LabelSet = set(dict1[label])
         if dict2.has_key(label):
             dict2LabelSet = set(dict2[label])
-        totalDict1 = totalDict1 + len(dict1LabelSet)
-        totalDict2 = totalDict2 + len(dict2LabelSet)
-        totalIntersections = totalIntersections + len(dict1LabelSet.intersection(dict2LabelSet))
 
-        strLst = [label,',',str(len(dict1LabelSet)),',',str(len(dict2LabelSet)),',',str(len(dict1LabelSet.intersection(dict2LabelSet))),'\n']
+        dict1LabelSetSize = len(dict1LabelSet)
+        dict2LabelSetSize = len(dict2LabelSet)
+        intersectionSize = len(dict1LabelSet.intersection(dict2LabelSet))
+
+        if binary:
+            dict1LabelSetSize = roundDown(dict1LabelSetSize)
+            dict2LabelSetSize = roundDown(dict2LabelSetSize)
+            intersectionSize = roundDown(intersectionSize)
+
+        totalDict1 = totalDict1 + dict1LabelSetSize
+        totalDict2 = totalDict2 + dict2LabelSetSize
+        totalIntersections = totalIntersections + intersectionSize
+
+        strLst = [label,',',str(dict1LabelSetSize),',',str(dict2LabelSetSize),',',str(intersectionSize),'\n']
         fileWrite.write(''.join(strLst))
 
     return totalDict1, totalDict2, totalIntersections
@@ -109,16 +136,18 @@ def printRecall(TPITriplet):
 def main():
     # TPI = Truth/Precision/Intersection triplet
     fileWrite = getFileAppend('out')
-    if len(sys.argv) == 5:
+    if len(sys.argv) == 6:
         fileWrite = getFileWrite('out')
-    elif not len(sys.argv) == 4:
-        print '\nMalformed argument inputs!\nUsage: GroundTruth_labelmap Prediction_labelmap labelfile [overwrite_arg]\n'
+    elif not len(sys.argv) == 5:
+        printErr()
         exit()
 
-    TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], fileWrite)
+    TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], fileWrite)
 
-##    strLst = [str(TPI[0]),',',str(TPI[1]),',',str(TPI[2]),'\n']
-##    fileWrite.write(''.join(strLst))
+    print '\nSuccessful Evaluation'
+    printTPI(TPI)
+    printPrecision(TPI)
+    printRecall(TPI)
     pass
 
 if __name__ == '__main__':
