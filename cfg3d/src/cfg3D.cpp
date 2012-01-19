@@ -233,8 +233,9 @@ int main(int argc, char** argv) {
     fileName=string(argv[1]);
     fileName=fileName.substr(0, fileName.length()-4);
 
+#ifndef DISABLE_HALLUCINATION
     occlusionChecker = new OccupancyMap<PointT>(scene);
-
+#endif
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     map<int, set<int> > neighbors;

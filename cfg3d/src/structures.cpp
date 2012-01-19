@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 29
+#define MAX_SEG_INDEX 30
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 //#define DISABLE_HALLUCINATION
@@ -263,6 +263,7 @@ public:
         return fabs(cv::contourArea(cv::Mat(contour)));
     }
     
+    bool isPlanarPrimitive();    
     virtual Symbol * grandChildIfHallucinated()=0;
     virtual  HallucinatedTerminal * getHalChild()=0;
 
@@ -1246,6 +1247,11 @@ public:
     
       string getName()
     {
+        return getCleanedTypeName()+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id)+"_"+boost::lexical_cast<string>((int)getCost());;
+    }
+    
+      string getCleanedTypeName() const
+      {
         const char * name=typeid(*this).name();
         int count=0;
         while(isdigit(*name)&&count<5)
@@ -1253,9 +1259,9 @@ public:
             name++;
             count++;
         }
-        return string(name)+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id)+"_"+boost::lexical_cast<string>((int)getCost());;
-    }
-    
+        return string(name);
+          
+      }
 
     /**
      * is span(this) U span(nt) =all terminals 
@@ -1540,10 +1546,16 @@ class Scene : public NonTerminalIntermediate {
         sceneOut=scene;
         std::ofstream graphvizFile;
         std::ofstream NTmembershipFile;
+        std::ofstream labelmapFile;
+        
         string treeFileName=fileName+".dot";
         graphvizFile.open(treeFileName.data(), ios::out);
         string membersipFileName=fileName+"_membership.txt";
+        string labelmapFileName=fileName+"_labelmap.txt";
+        
         NTmembershipFile.open(membersipFileName.data(), ios::out);
+        labelmapFile.open(labelmapFileName.data(), ios::out);
+        
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(this);
         
@@ -1558,7 +1570,7 @@ class Scene : public NonTerminalIntermediate {
             NonTerminal *curNode=parseTreeNodes.top();
             string curName=curNode->getName();
             parseTreeNodes.pop();
-            printNodeData(NTmembershipFile,curNode);
+            printNodeData(NTmembershipFile,labelmapFile,curNode);
             for(size_t i=0;i<curNode->getNumChildren();i++)
             {
                 Symbol * childs=curNode->getChild(i);
@@ -1584,27 +1596,37 @@ class Scene : public NonTerminalIntermediate {
         graphvizFile <<"}\n";
         graphvizFile.close();
         NTmembershipFile.close();
+        labelmapFile.close();
         pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
 
     }
-    
-    void printNodeData(std::ofstream & membershipFile, NonTerminal *node)
+
+    void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal *node)
     {
-        if(node==this) // will always cover full scene
+        if (node == this) // will always cover full scene
             return;
-        
-        membershipFile<<node->getId();
-        
+
+        membershipFile << node->getId();
+
+        bool isPlanarPrimitive=node->isPlanarPrimitive();
+        if (isPlanarPrimitive)
+            labelmapFile << node->getCleanedTypeName();
 
         node->resetTerminalIterator();
         int index;
-        while(node->nextTerminalIndex(index))
+        while (node->nextTerminalIndex(index))
         {
-            membershipFile<<","<<index+1;
+            membershipFile << "," << index + 1;
+
+            if (isPlanarPrimitive)
+                labelmapFile << "," << index + 1;
         }
-        membershipFile<<endl;
+        membershipFile << endl;
+
+        if (isPlanarPrimitive)
+            labelmapFile << endl;
     }
-    
+
 };
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
@@ -1911,6 +1933,13 @@ public:
         return ret;
     }
 };
+
+    bool Symbol::isPlanarPrimitive()
+    {
+        PlanarPrimitive *temp=dynamic_cast<PlanarPrimitive *>(this);
+        return (temp!=NULL);
+    }
+    
 
 bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
@@ -2935,7 +2964,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=500+std::max(3-numNodes,0)*500;
+       double additionalCost=1100+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
