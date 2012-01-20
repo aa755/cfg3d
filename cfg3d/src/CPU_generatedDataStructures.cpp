@@ -1,10 +1,10 @@
 #include "helper.cpp"
 class CPU : public Scene{};
 class CPUFront_CPUTop : public NonTerminalIntermediate{};
-class CPUFront_CPUTop_CPURSide : public NonTerminalIntermediate{};
+class CPUFront_CPUTop_CPURSide : public Scene{};
 class CPUFront_CPUTop_CPURSide_CPUBack : public NonTerminalIntermediate{};
 class CPUFront_CPURSide : public NonTerminalIntermediate{};
-class CPUFront_CPURSide_CPUTop : public NonTerminalIntermediate{};
+class CPUFront_CPURSide_CPUTop : public Scene{};
 class CPUFront_CPURSide_CPUTop_CPUBack : public NonTerminalIntermediate{};
 class CPUBack : public PlanarPrimitive{};
 class CPUFront : public PlanarPrimitive{};
