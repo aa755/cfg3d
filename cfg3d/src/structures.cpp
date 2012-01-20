@@ -2964,7 +2964,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=1100+std::max(3-numNodes,0)*500;
+       double additionalCost=2000+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
@@ -2980,7 +2980,8 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
+        if(/*occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) &&*/ addToPqueueIfNotDuplicate(lhs,pqueue))
+//        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
         {
                 cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         }

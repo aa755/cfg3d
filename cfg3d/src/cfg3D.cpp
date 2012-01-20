@@ -155,8 +155,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     bool alreadyExtracted=false;
     while (true) {
         min = pq.pop(alreadyExtracted);
-        
-        if(min==NULL)
+        if(min==NULL||min->getCost()>3000)
         {
             outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
             exit(-1);
