@@ -1,3 +1,7 @@
+#ifndef CFG3D_HELPER_CPP
+#define	CFG3D_HELPER_CPP
+
+
 #include "structures.cpp"
 #include <iostream>
 #include <string>
@@ -171,3 +175,5 @@ vector<string> splitLine(string line) {
     }
     return tokenList;
 }
+
+#endif //CFG3D_HELPER_CPP

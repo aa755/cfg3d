@@ -7,6 +7,7 @@
 
 #include "structures.cpp"
 #include "CPU_generatedDataStructures.cpp"
+#include "Monitor_generatedDataStructures.cpp"
 
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -90,7 +91,8 @@ void outputOnBothStreams(string str)
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
-    CPUAppendLearningRules(rules);
+    //CPUAppendLearningRules(rules);
+    MonitorAppendLearningRules(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
@@ -155,7 +157,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     bool alreadyExtracted=false;
     while (true) {
         min = pq.pop(alreadyExtracted);
-        if(min==NULL||min->getCost()>3000)
+        if(min==NULL||min->getCost()>100)
         {
             outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
             exit(-1);
