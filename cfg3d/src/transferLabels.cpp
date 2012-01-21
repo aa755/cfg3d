@@ -28,7 +28,7 @@ pcl::PCDWriter writer;
 
 
 /**
- * 
+ * barring nan's, points in source and destination PCD must be in same order
  */
 int main(int argc, char** argv)
 {
@@ -37,23 +37,42 @@ int main(int argc, char** argv)
         cerr<<"usage:"<<argv[0]<<"sourcePCD targetPCD"<<endl;
     
     pcl::PointCloud<PointT> src;
-    pcl::PointCloud<PointT> cloud_temp;
     pcl::PointCloud<PointT> dst;
-    pcl::io::loadPCDFile<PointT>(argv[1], cloud_temp);
+    pcl::io::loadPCDFile<PointT>(argv[1], src);
     pcl::io::loadPCDFile<PointT>(argv[2], dst);
-    
-    for (size_t i = 0; i < cloud_temp.size(); i++)
-    {
-        if(isnan( cloud_temp.points[i].x))
-            continue;
-        
-        src.points.push_back(cloud_temp.points.at(i));
-    }
 
-    assert(src.size()==dst.size());
-    for(int i=0;i<(int)src.size();i++)
-    {
-        dst.points[i].label=src.points[i].label;
+    {//braces to restrict scope of iterators .. to prevent accidental use
+        
+         
+        pcl::PointCloud<PointT>::iterator itSrc = src.begin();
+        pcl::PointCloud<PointT>::iterator itDst = dst.begin();
+        for (;(itSrc!=src.end()&&itDst!=dst.end()) ;)
+        {
+            if (isnan((*itSrc).x))
+            {
+                itSrc++;
+                continue;
+            }
+            if (isnan((*itDst).x))
+            {
+                itDst++;
+                continue;
+            }
+            
+            (*itDst).label=(*itSrc).label;
+            itSrc++;
+            itDst++;
+        }
+        // the remaining part in this scope is only for safety check
+            while (itSrc!=src.points.end() && isnan((*itSrc).x))
+                itSrc++;
+        
+            while (itDst!=dst.points.end() && isnan((*itDst).x))
+                itDst++;
+        
+        assert(itSrc==src.points.end()&&itDst==dst.points.end()); // both src and dst must have same number of nonNans
+        
+        
     }
     
     writer.write<PointT>(argv[2],dst,true);
