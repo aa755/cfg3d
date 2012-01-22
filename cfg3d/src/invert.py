@@ -47,7 +47,7 @@ def invert(fileName, mappingFileName):
             tail = vector[1:]
             for elem in tail:
                 if mappingDict.has_key(head):
-                    writeFile.write(''.join([elem,',',mappingDict[head],'\n']))
+                    writeFile.write(''.join([elem,' ',mappingDict[head],'\n']))
                 else:
                     sys.exit(''.join(['No corresponding labelIndex in labelToLabelIndexFile: ',head]))
 
