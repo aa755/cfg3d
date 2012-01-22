@@ -1029,7 +1029,7 @@ public:
         setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
         scene.width=1;
         scene.height=scene.size();
-        cerr<<"added points hal\n";
+        cerr<<"Added points hal\n";
     }    
 
     virtual void colorCentroid(double minCost, double maxCost)
@@ -1134,15 +1134,15 @@ protected:
         
     }
 
-    bool isSpanExclusive(NonTerminal * nt) {
-        return !(spanned_terminals.intersects(nt->spanned_terminals));
-    }
-
     /**
      * compute leaves by concatenating
      * leaves of children */
     bool costSet;
 public:
+    // Returns true if both Symbols do not overlap
+    bool isSpanExclusive(NonTerminal * nt) {
+        return !(spanned_terminals.intersects(nt->spanned_terminals));
+    }
     
     virtual Symbol * grandChildIfHallucinated()
     {
@@ -1330,7 +1330,7 @@ public:
             cost += children[i]->getCost();
         cost += additionalCost;
         costSet = true;
-        cout << "ac: " << additionalCost << " tc: " << cost << endl;
+        cout << "Setting additional cost: " << additionalCost << ", total cost to: " << cost << endl;
     }
 
     /**
@@ -1351,7 +1351,7 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
-        cout << "absc: " << cost << endl;
+        cout << "Setting absolute cost to: " << cost << endl;
     }
 
     void addChild(Symbol * child) {
@@ -1539,17 +1539,17 @@ public:
 
 };
 
+std::ofstream graphvizFile;
+
 class Scene : public NonTerminalIntermediate {
     // the printData below should be used only for the Goal NT type
+public:
     void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut=scene;
-        std::ofstream graphvizFile;
         std::ofstream NTmembershipFile;
         std::ofstream labelmapFile;
         
-        string treeFileName=fileName+".dot";
-        graphvizFile.open(treeFileName.data(), ios::out);
         string membersipFileName=fileName+"_membership.txt";
         string labelmapFileName=fileName+"_labelmap.txt";
         
@@ -1564,7 +1564,7 @@ class Scene : public NonTerminalIntermediate {
         //string halPCDFileName=fileName+"_hallucinated.pcd";
         pcl::io::savePCDFile<PointT>(fileName+"_hallucinated.pcd", scene,true);
         
-        graphvizFile<<"digraph g{\n";
+//        graphvizFile<<"digraph g{\n"; // Move to postparse printer
         while(!parseTreeNodes.empty())
         {
             NonTerminal *curNode=parseTreeNodes.top();
@@ -1593,8 +1593,8 @@ class Scene : public NonTerminalIntermediate {
         }
         
 
-        graphvizFile <<"}\n";
-        graphvizFile.close();
+//        graphvizFile <<"}\n"; // Move to postparse printer
+//        graphvizFile.close(); // Move to postparse printer
         NTmembershipFile.close();
         labelmapFile.close();
         pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
@@ -3214,11 +3214,11 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
                         continue;
                 
                 neighbors[segIndex].insert(nbrs.at(i));
-                cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
+                cout<<"Adding "<<nbrs.at(i)<<" as a neighbors of "<<segIndex<<endl;
             }
         }
     } else {
-        cout << "could not open label file...exiting\n";
+        cout << "Could not open label file ... exiting\n";
         exit(-1);
     }
 
