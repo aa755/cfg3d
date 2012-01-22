@@ -7,7 +7,7 @@
 
 #include "structures.cpp"
 #include "CPU_generatedDataStructures.cpp"
-#include "Monitor_generatedDataStructures.cpp"
+//#include "Monitor_generatedDataStructures.cpp"
 
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -69,7 +69,6 @@ public:
                 NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
                 addToPqueueIfNotDuplicate(newNT,pqueue);
             }
-
         }
     }
 };
@@ -91,8 +90,9 @@ void outputOnBothStreams(string str)
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
-    //CPUAppendLearningRules(rules);
-    MonitorAppendLearningRules(rules);
+    vector<Scene*> identifiedScenes;
+    CPUAppendLearningRules(rules);
+//    MonitorAppendLearningRules(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
@@ -113,7 +113,6 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if(rand()%10 != 1)
             continue;
         int segIndex=scene.points[i].segment;
-  //      cout<<"seg "<<segIndex<<endl;
         if(segIndex>0 && segIndex<=maxSegIndex)
         {
             terminals.at(segIndex-1)->addPointIndex(i);
@@ -157,16 +156,26 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     bool alreadyExtracted=false;
     while (true) {
         min = pq.pop(alreadyExtracted);
-        if(min==NULL||min->getCost()>30)
+
+        if (min == NULL || min->getCost() > 30)
         {
-            outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
+            //outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
+
+            if (identifiedScenes.size() == 0)
+            {
+                outputOnBothStreams("Parsing failed. Goal is not derivable from the given rules. Fix the neighbor map.\n");
+            }
+            else
+            {
+                Scene::printAllScenes(identifiedScenes);
+            }
             exit(-1);
         }
         
         if(alreadyExtracted)
         {
             delete min;
-            cout << "dup" << endl;
+            cout << "Dup." << endl;
             // since there are no parent links yet(not yet declared optimal),
             // and it was not a child of anyone (not yet combined)
             // and it was repoved from PQ
@@ -175,15 +184,20 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
             continue;
         }
 
-        cout << "\n\n\niter: " << count++ << " cost:" << min->getCost() <<" typ:"<<min->getName()<< endl;
+        cout << "\n\n\nIteration: " << count++ << " Cost: " << min->getCost() <<" Type: "<<min->getName()<< endl;
 
         Scene *dummyTypeCheck=dynamic_cast<Scene*>(min);
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
-            cout << "goal reached!!" << endl;
-            cerr << "goal reached!! with cost:"<<min->getCost()<< endl;
-            min->printData();
-            return;
+            cout << "Goal reached!!" << endl;
+            cerr << "Goal reached!! with cost:"<<min->getCost()<< endl;
+            // We will print stuff after the threshold terminating condition.
+//            min->printData();
+            // If no overlap,
+            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) {
+                identifiedScenes.push_back(dummyTypeCheck);
+            }
+//            return;
         }
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal();
@@ -228,11 +242,11 @@ int main(int argc, char** argv) {
     
     if(argc!=3)
     {
-        cerr<<"usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    fileName=string(argv[1]);
-    fileName=fileName.substr(0, fileName.length()-4);
+    fileName = string(argv[1]);
+    fileName = fileName.substr(0, fileName.length()-4);
 
 #ifndef DISABLE_HALLUCINATION
     occlusionChecker = new OccupancyMap<PointT>(scene);
@@ -241,8 +255,8 @@ int main(int argc, char** argv) {
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     map<int, set<int> > neighbors;
     int maxSegIndex= parseNbrMap(argv[2],neighbors);
-    cout<<"scene has "<<scene.size()<<" points"<<endl;
-    runParse(neighbors,maxSegIndex);
+    cout<<"Scene has "<<scene.size()<<" points."<<endl;
+    runParse(neighbors, maxSegIndex);
 
     return 0;
     

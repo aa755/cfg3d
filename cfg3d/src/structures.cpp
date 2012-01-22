@@ -1029,7 +1029,7 @@ public:
         setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
         scene.width=1;
         scene.height=scene.size();
-        cerr<<"added points hal\n";
+        cerr<<"Added points hal\n";
     }    
 
     virtual void colorCentroid(double minCost, double maxCost)
@@ -1134,15 +1134,15 @@ protected:
         
     }
 
-    bool isSpanExclusive(NonTerminal * nt) {
-        return !(spanned_terminals.intersects(nt->spanned_terminals));
-    }
-
     /**
      * compute leaves by concatenating
      * leaves of children */
     bool costSet;
 public:
+    // Returns true if both Symbols do not overlap
+    bool isSpanExclusive(NonTerminal * nt) {
+        return !(spanned_terminals.intersects(nt->spanned_terminals));
+    }
     
     virtual Symbol * grandChildIfHallucinated()
     {
@@ -1330,7 +1330,7 @@ public:
             cost += children[i]->getCost();
         cost += additionalCost;
         costSet = true;
-        cout << "ac: " << additionalCost << " tc: " << cost << endl;
+        cout << "Setting additional cost: " << additionalCost << ", total cost to: " << cost << endl;
     }
 
     /**
@@ -1351,7 +1351,7 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
-        cout << "absc: " << cost << endl;
+        cout << "Setting absolute cost to: " << cost << endl;
     }
 
     void addChild(Symbol * child) {
@@ -1539,49 +1539,78 @@ public:
 
 };
 
-class Scene : virtual public NonTerminal {
+class Scene : virtual public NonTerminal
+{
+    static std::ofstream graphvizFile;
+    static std::ofstream NTmembershipFile;
+    static std::ofstream labelmapFile;
+
     // the printData below should be used only for the Goal NT type
-    void printData() {
-        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
-        sceneOut=scene;
-        std::ofstream graphvizFile;
-        std::ofstream NTmembershipFile;
-        std::ofstream labelmapFile;
-        
-        string treeFileName=fileName+".dot";
-        graphvizFile.open(treeFileName.data(), ios::out);
-        string membersipFileName=fileName+"_membership.txt";
-        string labelmapFileName=fileName+"_labelmap.txt";
-        
+public:
+
+    static void printAllScenes(vector<Scene*> & identifiedScenes)
+    {
+        string treeFileName = fileName + ".dot";
+        string membersipFileName = fileName + "_membership.txt";
+        string labelmapFileName = fileName + "_labelmap.txt";
+
         NTmembershipFile.open(membersipFileName.data(), ios::out);
         labelmapFile.open(labelmapFileName.data(), ios::out);
-        
+        graphvizFile.open(treeFileName.data(), ios::out | ios::app);
+        graphvizFile << "digraph g{\n"; // Move to postparse printer
+        vector<Scene*>::iterator it;
+        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
+        {
+            (*it)->printData();
+        }
+        graphvizFile << "}\n"; // Move to postparse printer
+        graphvizFile.close(); // Move to postparse printer
+        NTmembershipFile.close();
+        labelmapFile.close();
+        pcl::io::savePCDFile<PointT > ("hallucinated.pcd", scene, true);
+    }
+
+    bool doesNotOverlapWithScenes(vector<Scene*> & identifiedScenes)
+    {
+        vector<Scene*>::iterator it;
+        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
+        {
+            if (isSpanExclusive(*it))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void printData()
+    {
+        pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
+        sceneOut = scene;
+
+
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(this);
-        
-        scene.width=1;
-        scene.height=scene.size();
-        //string halPCDFileName=fileName+"_hallucinated.pcd";
-        pcl::io::savePCDFile<PointT>(fileName+"_hallucinated.pcd", scene,true);
-        
-        graphvizFile<<"digraph g{\n";
-        while(!parseTreeNodes.empty())
+
+        scene.width = 1;
+        scene.height = scene.size();
+        while (!parseTreeNodes.empty())
         {
-            NonTerminal *curNode=parseTreeNodes.top();
-            string curName=curNode->getName();
+            NonTerminal *curNode = parseTreeNodes.top();
+            string curName = curNode->getName();
             parseTreeNodes.pop();
-            printNodeData(NTmembershipFile,labelmapFile,curNode);
-            for(size_t i=0;i<curNode->getNumChildren();i++)
+            printNodeData(NTmembershipFile, labelmapFile, curNode);
+            for (size_t i = 0; i < curNode->getNumChildren(); i++)
             {
-                Symbol * childs=curNode->getChild(i);
-                
-                graphvizFile<<curName<<" -> "<<childs->getName()<<" ;\n";
-                Terminal *childT= dynamic_cast<Terminal *>(childs);
-                if(childT==NULL) // not of type Terminal
+                Symbol * childs = curNode->getChild(i);
+
+                graphvizFile << curName << " -> " << childs->getName() << " ;\n";
+                Terminal *childT = dynamic_cast<Terminal *> (childs);
+                if (childT == NULL) // not of type Terminal
                 {
-                 //   assert(childs!=NULL);
-                    NonTerminal * child=dynamic_cast<NonTerminal*>(childs);
-                    assert(child!=NULL);
+                    //   assert(childs!=NULL);
+                    NonTerminal * child = dynamic_cast<NonTerminal*> (childs);
+                    assert(child != NULL);
                     parseTreeNodes.push(child);
                 }
                 else
@@ -1589,15 +1618,8 @@ class Scene : virtual public NonTerminal {
                     childT->colorScene();
                 }
             }
-            
-        }
-        
 
-        graphvizFile <<"}\n";
-        graphvizFile.close();
-        NTmembershipFile.close();
-        labelmapFile.close();
-        pcl::io::savePCDFile<PointT>("hallucinated.pcd", scene,true);
+        }
 
     }
 
@@ -1608,7 +1630,7 @@ class Scene : virtual public NonTerminal {
 
         membershipFile << node->getId();
 
-        bool isPlanarPrimitive=node->isPlanarPrimitive();
+        bool isPlanarPrimitive = node->isPlanarPrimitive();
         if (isPlanarPrimitive)
             labelmapFile << node->getCleanedTypeName();
 
@@ -1628,6 +1650,10 @@ class Scene : virtual public NonTerminal {
     }
 
 };
+
+std::ofstream Scene::graphvizFile;
+std::ofstream Scene::NTmembershipFile;
+std::ofstream Scene::labelmapFile;
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
     //start with MSBs
@@ -3214,11 +3240,11 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
                         continue;
                 
                 neighbors[segIndex].insert(nbrs.at(i));
-                cout<<"adding "<<nbrs.at(i)<<" as a neighbos of "<<segIndex<<endl;
+                cout<<"Adding "<<nbrs.at(i)<<" as a neighbors of "<<segIndex<<endl;
             }
         }
     } else {
-        cout << "could not open label file...exiting\n";
+        cout << "Could not open label file ... exiting\n";
         exit(-1);
     }
 
