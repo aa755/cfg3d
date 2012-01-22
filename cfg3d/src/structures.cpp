@@ -5,7 +5,7 @@
 #define MAX_SEG_INDEX 30
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
-//#define DISABLE_HALLUCINATION
+#define DISABLE_HALLUCINATION
 
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
@@ -2798,8 +2798,8 @@ class DoubleRule : public Rule
         
    //     if(extractedSymExpanded.size()<MAX_SEG_INDEX)
      //       return;
-        for(unsigned int i=0;i<extractedSymExpanded.size();i++)
-            cerr<<"type NTIC:"<<i<<typeid(*extractedSymExpanded.at(i)).name()<<endl;
+//        for(unsigned int i=0;i<extractedSymExpanded.size();i++)
+//            cerr<<"type NTIC:"<<i<<typeid(*extractedSymExpanded.at(i)).name()<<endl;
         
         int numNodes = extractedSymExpanded.size();
         if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
@@ -2947,7 +2947,7 @@ class DoubleRule : public Rule
             (*ith).colorCentroid(minCost,maxCost);
         }
 #endif        
-        cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
+     //   cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNeighbors(Terminal::totalNumTerminals);
         finalHal->declareOptimal();
@@ -2964,7 +2964,7 @@ class DoubleRule : public Rule
             
        SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=2000+std::max(3-numNodes,0)*500;
+       double additionalCost=1000+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
@@ -2983,11 +2983,11 @@ class DoubleRule : public Rule
         if(/*occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) &&*/ addToPqueueIfNotDuplicate(lhs,pqueue))
 //        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
         {
-                cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
+             //   cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         }
         else
         {
-           cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
+          // cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
            delete finalHal;
            delete pl;
         }   
