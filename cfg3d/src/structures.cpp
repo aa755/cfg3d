@@ -1539,7 +1539,7 @@ public:
 
 };
 
-class Scene : public NonTerminalIntermediate {
+class Scene : virtual public NonTerminal {
     // the printData below should be used only for the Goal NT type
     void printData() {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
@@ -1923,7 +1923,7 @@ public:
     }   
 };
 
-class PlanarPrimitive : public NonTerminal {
+class PlanarPrimitive : virtual public NonTerminal {
 public:
     const Plane * getPlaneChild() 
     {
