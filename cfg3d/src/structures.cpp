@@ -1579,7 +1579,7 @@ public:
         vector<Scene*>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
-            if (isSpanExclusive(*it))
+            if (!isSpanExclusive(*it))
             {
                 return false;
             }
@@ -1629,12 +1629,14 @@ public:
 
     void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal *node)
     {
-        if (node == this) // will always cover full scene
-            return;
+     //   if (node == this) // will always cover full scene
+       //     return;
 
         membershipFile << node->getId();
 
         bool isPlanarPrimitive = node->isPlanarPrimitive();
+//        if(typeid(*node)==typeid(monitor))
+  //          isPlanarPrimitive=true;
         if (isPlanarPrimitive)
             labelmapFile << node->getCleanedTypeName();
 
@@ -2638,6 +2640,12 @@ class SingleRule : public Rule
     }
 
 public:
+    double getCostScaleFactor()
+    {
+        return 1.0;
+    }
+    
+    
     SingleRule(bool learning=false)
     {
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
@@ -2667,7 +2675,7 @@ public:
     
     bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
         double cost=getMinusLogProbability(features);
-        output->setAdditionalCost(cost);
+        output->setAdditionalCost(cost*getCostScaleFactor());
         
         if(isinf(cost))
             return false;

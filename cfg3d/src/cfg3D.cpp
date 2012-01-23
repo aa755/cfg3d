@@ -7,7 +7,7 @@
 
 #include "structures.cpp"
 #include "CPU_generatedDataStructures.cpp"
-//#include "Monitor_generatedDataStructures.cpp"
+#include "Monitor_generatedDataStructures.cpp"
 
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -92,7 +92,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     appendRuleInstancesForPrimitives(rules);
     vector<Scene*> identifiedScenes;
     CPUAppendLearningRules(rules);
-//    MonitorAppendLearningRules(rules);
+    MonitorAppendLearningRules(rules);
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
