@@ -198,6 +198,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
                 identifiedScenes.push_back(dummyTypeCheck);
             }
 //            return;
+            continue;
         }
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal();

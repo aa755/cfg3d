@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 300
+#define MAX_SEG_INDEX 35
 #define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -257,6 +257,7 @@ protected:
     
 public:
 
+    virtual ~Symbol(){};
     static float _getPolygonArea(const vector<cv::Point2f>& cv2D)
     {
         vector<cv::Point2f> contour;
@@ -680,6 +681,7 @@ protected:
     }
     bool start;
 public:
+    virtual ~Terminal(){}
     virtual  HallucinatedTerminal * getHalChild()
     {
         return NULL;
@@ -1140,6 +1142,7 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    virtual ~NonTerminal(){}
     // Returns true if both Symbols do not overlap
     bool isSpanExclusive(NonTerminal * nt) {
         return !(spanned_terminals.intersects(nt->spanned_terminals));
@@ -1557,7 +1560,7 @@ public:
 
         NTmembershipFile.open(membersipFileName.data(), ios::out);
         labelmapFile.open(labelmapFileName.data(), ios::out);
-        graphvizFile.open(treeFileName.data(), ios::out | ios::app);
+        graphvizFile.open(treeFileName.data(), ios::out);
         graphvizFile << "digraph g{\n"; // Move to postparse printer
         vector<Scene*>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
