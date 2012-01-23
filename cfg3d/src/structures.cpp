@@ -2,10 +2,11 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 30
+#define MAX_SEG_INDEX 300
+#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
-#define DISABLE_HALLUCINATION
+//#define DISABLE_HALLUCINATION
 
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
@@ -2811,7 +2812,7 @@ class DoubleRule : public Rule
     }
 
     template <typename ExtractedType, typename HalType>
-    typename boost::disable_if<boost::is_base_of<NonTerminalIntermediate, HalType>, void>::type
+    typename boost::enable_if<boost::is_base_of<PlanarPrimitive, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
 #ifdef DISABLE_HALLUCINATION        
@@ -3024,7 +3025,7 @@ class DoubleRule : public Rule
     }
    
     template <typename ExtractedType, typename HalType>
-    typename boost::enable_if<boost::is_base_of<NonTerminalIntermediate, HalType>,void>::type
+    typename boost::disable_if<boost::is_base_of<PlanarPrimitive, HalType>,void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
         //cerr<<"nohal"<<typeid(HalType).name()<<endl;
