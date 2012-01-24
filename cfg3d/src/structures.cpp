@@ -1937,7 +1937,7 @@ public:
     }
 
     bool isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .3) {
+        if (costOfAddingPoint(p) > .03) {
             return false;
         } else {
             return true;
