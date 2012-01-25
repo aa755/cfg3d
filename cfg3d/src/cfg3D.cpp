@@ -72,24 +72,21 @@ public:
         }
     }
 };
-class Wall: public PlanarPrimitive{};
+class Wall : public PlanarPrimitive{};
+class Floor : public PlanarPrimitive{};
 
 template<>
-bool SingleRule<Wall, Plane> ::setCost(Wall* output, Plane* input, vector<Terminal*> & terminals)
+void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
 {
+    features.push_back(input->getZNormal());
+    //add distance to boundary
+}
 
-    Vector4f planeParams = input->getPlaneParams();
-
-    double additionalCost = fabs(planeParams[2]);
-
-    if (additionalCost > 0.2 || !input->checkSize(output))
-
-        return false;
-    else
-    {
-        output->setAdditionalCost(additionalCost);
-        return true;
-    }
+template<>
+void SingleRule<Floor, Plane> ::computeFeaturesSpecializable(Plane* input)
+{
+    features.push_back(input->getZNormal());
+    features.push_back(input->getCentroidZ());
 }
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {

@@ -2665,9 +2665,13 @@ public:
     void computeFeatures(RHS_Type* input)
     {
         features.clear();
-        input->appendFeatures(features);
+        computeFeaturesSpecializable(input);
     }
     
+    void computeFeaturesSpecializable(RHS_Type* input)
+    {
+        input->appendFeatures(features);
+    }
      /**
     
      * @param output
