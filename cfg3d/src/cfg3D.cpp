@@ -8,6 +8,7 @@
 #include "structures.cpp"
 #include "CPU_generatedDataStructures.cpp"
 #include "Monitor_generatedDataStructures.cpp"
+#include "wallDistance.h"
 
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -142,6 +143,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         terminals.at(i)->computeFeatures();
     }
 
+    getSegmentDistanceToBoundaryOptimized(scene,terminals);
+    
     segMinDistances.setZero(terminals.size(),terminals.size());
     
     for(unsigned int i1=0;i1<terminals.size();i1++)

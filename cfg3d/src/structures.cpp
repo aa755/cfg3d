@@ -221,6 +221,7 @@ protected:
     pcl::PointXYZ centroid;
     pcl::PointXYZ minxyz;
     pcl::PointXYZ maxxyz;
+    double distanceToBoundary;
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
@@ -601,6 +602,16 @@ public:
     {
         return horzArea;
     }
+
+    void setDistanceToBoundary(double distanceToBoundary)
+    {
+        this->distanceToBoundary = distanceToBoundary;
+    }
+
+    double getDistanceToBoundary() const
+    {
+        return distanceToBoundary;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -687,6 +698,10 @@ public:
         return NULL;
     }
     
+    PointT & getPoint(pcl::PointCloud<PointT> & cloud,int i)
+    {
+        return cloud.points.at(pointIndices.at(i));
+    }
     string label;
     virtual Symbol * grandChildIfHallucinated()
     {
