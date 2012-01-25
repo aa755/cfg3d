@@ -1358,7 +1358,7 @@ public:
         cout << "Setting absolute cost to: " << cost << endl;
     }
 
-    void addChild(Symbol * child) {
+    virtual void addChild(Symbol * child) {
         assert(!costSet);
         children.push_back(child);
     }
@@ -1964,6 +1964,11 @@ public:
         assert(ret!=NULL);
         return ret;
     }
+//    
+//    virtual void addChild(Symbol * child) {
+//        assert(typeid(*child)==typeid(Plane));
+//        NonTerminal::addChild(child);
+//    }
 };
 
     bool Symbol::isPlanarPrimitive()

@@ -774,8 +774,8 @@ int main(int argc, char** argv)
         {
             set<int> ptNbrs;
             tIndex=clusters[i].indices[j];
-//            occupancy.getNeighborSegs(tIndex, ptNbrs );
-            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
+            occupancy.getNeighborSegs(tIndex, ptNbrs, true );
+//            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
         }
         

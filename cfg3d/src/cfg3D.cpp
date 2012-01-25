@@ -72,6 +72,25 @@ public:
         }
     }
 };
+class Wall: public PlanarPrimitive{};
+
+template<>
+bool SingleRule<Wall, Plane> ::setCost(Wall* output, Plane* input, vector<Terminal*> & terminals)
+{
+
+    Vector4f planeParams = input->getPlaneParams();
+
+    double additionalCost = fabs(planeParams[2]);
+
+    if (additionalCost > 0.2 || !input->checkSize(output))
+
+        return false;
+    else
+    {
+        output->setAdditionalCost(additionalCost);
+        return true;
+    }
+}
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     
