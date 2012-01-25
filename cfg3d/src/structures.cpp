@@ -2320,6 +2320,7 @@ public:
     double getMinusLogProbability(vector<float> x) {
         double sum = 0;
         int counter = 0;
+        assert(g.size()==x.size());
         BOOST_FOREACH(ProbabilityDistribution *p, g) {
             sum = sum + p->minusLogProb(x.at(counter));
             counter = counter + 1;

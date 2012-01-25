@@ -7,6 +7,7 @@ function [  ] = generateDistributionParameters( featureFile )
 
     matrix = dlmread(featureFile);
     outputFileName = [featureFile '.out'];
+    %delete(outputFileName);
     dlmwrite(outputFileName,'');
     [n,m] = size(matrix);
     matrix = matrix(:,1:m-1);

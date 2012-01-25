@@ -73,14 +73,15 @@ public:
         }
     }
 };
-class Wall : public PlanarPrimitive{};
-class Floor : public PlanarPrimitive{};
+class Wall : public Scene, PlanarPrimitive{};
+class Floor : public Scene, PlanarPrimitive{};
 
 template<>
 void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
 {
     features.push_back(input->getZNormal());
-    //add distance to boundary
+    features.push_back(input->getDistanceToBoundary());
+    
 }
 
 template<>
@@ -110,6 +111,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<Scene*> identifiedScenes;
     CPUAppendLearningRules(rules);
     MonitorAppendLearningRules(rules);
+    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
+
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
     SymbolPriorityQueue pq(maxSegIndex);
