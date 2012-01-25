@@ -1125,6 +1125,7 @@ protected:
         centroid.x = 0;
         centroid.y = 0;
         centroid.z = 0;
+        distanceToBoundary=0;
         
         for (size_t i = 0; i < children.size(); i++) {
             children.at(i)->getCentroid(childCent);
@@ -1134,12 +1135,14 @@ protected:
             centroid.y += numPointsInChild*childCent.y;
             centroid.z += numPointsInChild*childCent.z;
             avg+=(children.at(i)->getAvgColor()*numPointsInChild);
+            distanceToBoundary += numPointsInChild * (children.at(i)->getDistanceToBoundary());
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+        distanceToBoundary/=numPoints;
     }
     
     void computeCovarianceMatrixWoMean()
