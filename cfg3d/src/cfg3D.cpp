@@ -6,9 +6,11 @@
  */
 
 #include "structures.cpp"
+#include "wallDistance.h"
 #include "CPU_generatedDataStructures.cpp"
 #include "Monitor_generatedDataStructures.cpp"
-#include "wallDistance.h"
+#include "Rules_Floor.h"
+#include "Rules_Wall.h"
 
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -73,23 +75,6 @@ public:
         }
     }
 };
-class Wall : public Scene, PlanarPrimitive{};
-class Floor : public Scene, PlanarPrimitive{};
-
-template<>
-void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
-{
-    features.push_back(input->getZNormal());
-    features.push_back(input->getDistanceToBoundary());
-    
-}
-
-template<>
-void SingleRule<Floor, Plane> ::computeFeaturesSpecializable(Plane* input)
-{
-    features.push_back(input->getZNormal());
-    features.push_back(input->getCentroidZ());
-}
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     
