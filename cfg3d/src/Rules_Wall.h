@@ -18,6 +18,12 @@ void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
     
 }
 
+template<> 
+    double SingleRule<Wall, Plane>::getCostScaleFactor()
+    {
+        return 600.0;
+    }
+
 
 
 #endif	/* RULES_WALL_H */

@@ -16,5 +16,11 @@ void SingleRule<Floor, Plane> ::computeFeaturesSpecializable(Plane* input)
     features.push_back(input->getCentroidZ());
 }
 
+template<> 
+    double SingleRule<Floor, Plane>::getCostScaleFactor()
+    {
+        return 600.0;
+    }
+
 #endif	/* RULES_FLOOR_H */
 
