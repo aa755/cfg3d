@@ -19,7 +19,7 @@ void SingleRule<Floor, Plane> ::computeFeaturesSpecializable(Plane* input)
 template<> 
     double SingleRule<Floor, Plane>::getCostScaleFactor()
     {
-        return 600.0;
+        return 700.0;
     }
 
 #endif	/* RULES_FLOOR_H */
