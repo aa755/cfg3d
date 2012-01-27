@@ -19,9 +19,10 @@
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
 #include "extract_planes.cpp"
-
+#define FILTER_SEGMENTS_SEGMENTATION
 typedef pcl::PointXYZRGBCamSL PointOutT;
-typedef pcl::PointXYZRGB PointInT;
+typedef pcl::PointXYZRGBCamSL PointInT;
+//typedef pcl::PointXYZRGB PointInT;
 
 int** intArrPointer;
 
@@ -526,17 +527,17 @@ Eigen::Vector3f getPoint(PointET p)
     }
   }
   
-  void extractRansacClusters(  pcl::PointCloud<PointInT> &cloud, std::vector<pcl::PointIndices> &segments)
-  {
-    Extractor p;
-
-    p.initializeFromCloud(createStaticShared<pcl::PointCloud<PointInT> >(& cloud));
-    int i = 0;
-    while(i < 100 && p.compute_object(i,segments)) {
-        i++;
-    }
-
-  }
+//  void extractRansacClusters(  pcl::PointCloud<PointInT> &cloud, std::vector<pcl::PointIndices> &segments)
+//  {
+//    Extractor p;
+//
+//    p.initializeFromCloud(createStaticShared<pcl::PointCloud<PointInT> >(& cloud));
+//    int i = 0;
+//    while(i < 100 && p.compute_object(i,segments)) {
+//        i++;
+//    }
+//
+//  }
 
 #define MIN_SEG_SIZE 10
 
@@ -676,11 +677,17 @@ int main(int argc, char** argv)
         cloud.points.reserve(cloud_temp.size());
         cloud.sensor_origin_=cloud_temp.sensor_origin_;
         //remove Nans
+#ifdef FILTER_SEGMENTS_SEGMENTATION
+      LabelSelector lselect(1);  
+#endif
     for (size_t i = 0; i < cloud_temp.size(); i++)
     {
         if(isnan( cloud_temp.points[i].x))
             continue;
-        
+#ifdef FILTER_SEGMENTS_SEGMENTATION
+        if(!lselect.acceptLabel(cloud_temp.points[i].label))
+            continue;
+#endif
         cloud.points.push_back(cloud_temp.points.at(i));
     }
         
@@ -731,6 +738,7 @@ int main(int argc, char** argv)
     vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
     cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
     pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
+    assert(cameraOrigin.z!=0);
     vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);
@@ -774,8 +782,8 @@ int main(int argc, char** argv)
         {
             set<int> ptNbrs;
             tIndex=clusters[i].indices[j];
-            occupancy.getNeighborSegs(tIndex, ptNbrs, true );
-//            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
+//            occupancy.getNeighborSegs(tIndex, ptNbrs, true );// consider occlusion
+            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
         }
         

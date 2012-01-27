@@ -3292,4 +3292,19 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors) {
 
 }
 
+class LabelSelector
+{
+public:
+    set<int> targetLabels;
+    LabelSelector(int label)
+    {
+        targetLabels.insert(label);//Wall
+    }
+
+    bool acceptLabel(int label)
+    {
+        return (targetLabels.find(label)!=targetLabels.end());
+    }
+};
+
 #endif
