@@ -2687,10 +2687,22 @@ public:
         computeFeaturesSpecializable(input);
     }
     
+    /**
+     * to be specialied by rules ishing to add all feats on their own
+     * @param input
+     */
     void computeFeaturesSpecializable(RHS_Type* input)
     {
         input->appendFeatures(features);
+        computeAdditionalFeats(input);
     }
+    
+    /** to be specialized for rules requiring additional features
+     */
+    void computeAdditionalFeats(RHS_Type* input)
+    {
+    }
+    
      /**
     
      * @param output

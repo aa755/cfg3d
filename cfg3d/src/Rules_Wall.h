@@ -10,13 +10,13 @@
 #include "structures.cpp"
 class Wall : public Scene , PlanarPrimitive{};
 
-//template<>
-//void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
-//{
+template<>
+void SingleRule<Wall, Plane> ::computeAdditionalFeats(Plane* input)
+{
 //    features.push_back(input->getZNormal());
-//    features.push_back(input->getDistanceToBoundary());
-//    
-//}
+    features.push_back(input->getDistanceToBoundary());
+    
+}
 
 template<> 
     double SingleRule<Wall, Plane>::getCostScaleFactor()
