@@ -7,21 +7,21 @@
 
 #ifndef RULES_WALL_H
 #define	RULES_WALL_H
+#include "structures.cpp"
+class Wall : public Scene , PlanarPrimitive{};
 
-class Wall : public Scene, PlanarPrimitive{};
-
-template<>
-void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
-{
-    features.push_back(input->getZNormal());
-    features.push_back(input->getDistanceToBoundary());
-    
-}
+//template<>
+//void SingleRule<Wall, Plane> ::computeFeaturesSpecializable(Plane* input)
+//{
+//    features.push_back(input->getZNormal());
+//    features.push_back(input->getDistanceToBoundary());
+//    
+//}
 
 template<> 
     double SingleRule<Wall, Plane>::getCostScaleFactor()
     {
-        return 600.0;
+        return 300.0;
     }
 
 

@@ -326,7 +326,7 @@ public:
         assert(featuresComputed);
       //  features.push_back(centroid.z);
      //   features.push_back(minxyz.z);
-        features.push_back(zSquaredSum/numPoints-sqr(centroid.z)); // variance along z
+        features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
         
         

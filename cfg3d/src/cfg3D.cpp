@@ -96,7 +96,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     vector<Scene*> identifiedScenes;
     CPUAppendLearningRules(rules);
     MonitorAppendLearningRules(rules);
-//    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
+    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
 
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());

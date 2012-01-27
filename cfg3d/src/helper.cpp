@@ -33,6 +33,7 @@ int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
 vector<Terminal *> terminals;
 void initializeTerminals(int & maxSegNum) {
     Terminal* temp;
+    cerr<<maxSegNum<<endl;
     for (int i = 1; i <= maxSegNum; i++) {
         
         if(segNumToLabel.find(i-1)==segNumToLabel.end())
