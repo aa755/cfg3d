@@ -80,6 +80,7 @@ public:
     
 class RScene : public Rule {
 public:
+#ifdef GREEDY_OBJECTS
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
@@ -92,6 +93,21 @@ public:
             }
         }
     }
+#else
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
+        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+        {
+           // cout << "An object!!" << endl;
+            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
+            {
+                identifiedScenes.push_back(dummyTypeCheck);
+            }
+        }
+    }
+    
+#endif
 };
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {

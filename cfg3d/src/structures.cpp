@@ -2836,7 +2836,7 @@ class DoubleRule : public Rule
         //int count=0;
         while (nt != NULL)
         {
-            if (typeid (*nt) == typeid (RHS_Type2))
+            if ( nt->isOfSubClass<RHS_Type2>())
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
                 addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
@@ -2859,7 +2859,7 @@ class DoubleRule : public Rule
         //int count=0;
         while (nt != NULL)
         {
-            if (typeid (*nt) == typeid (RHS_Type1))
+            if ( nt->isOfSubClass<RHS_Type1>())
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
                 addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
@@ -2873,11 +2873,11 @@ class DoubleRule : public Rule
 
     void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
-        if (typeid (*extractedSym) == typeid (RHS_Type1))
+        if (extractedSym->isOfSubClass<RHS_Type1>())
         {
             combineAndPushForParam1(extractedSym, pqueue, terminals, iterationNo);
         }
-        else if (typeid (*extractedSym) == typeid (RHS_Type2))
+        else if ( extractedSym->isOfSubClass<RHS_Type2>())
         {
             combineAndPushForParam2(extractedSym, pqueue, terminals, iterationNo);
         }
@@ -3221,7 +3221,7 @@ public:
             vector<Symbol*> RHS2Expanded;
             RHS1->expandIntermediates(RHS1Expanded);
             RHS2->expandIntermediates(RHS2Expanded);
-            assert(RHS2Expanded.size() == 1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
+            assert(RHS2Expanded.size() == 1); // from rule design pattern so far ... compex objects are in left
 
             int numNodes = RHS1Expanded.size();
             if (modelsForLHS.size() == 0)//only called the 1st time this rule is used
