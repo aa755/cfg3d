@@ -11,7 +11,7 @@
 #include "Monitor_generatedDataStructures.cpp"
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
-
+#define FILTER_LABELS
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
 public:
@@ -90,7 +90,7 @@ void outputOnBothStreams(string str)
     cerr<<str<<endl;
 }
 
-void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
+void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapFile=NULL) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
     vector<Scene*> identifiedScenes;
@@ -104,13 +104,33 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
     SymbolPriorityQueue pq(maxSegIndex);
 
     vector<Terminal *> terminals;
-
+#ifdef FILTER_LABELS
+    assert(labelMapFile!=NULL);
+    LabelSelector labSel;
+    labSel.addAcceptedLabel(1);//Wall
+    labSel.addAcceptedLabel(2);//Floor
+    labSel.addAcceptedLabel(7);//Monitor
+    labSel.addAcceptedLabel(6);//CPUFront
+    labSel.addAcceptedLabel(36);//CPUSide
+    labSel.addAcceptedLabel(34);//Monitor
+    map<int,int> labelmap;
+    readLabelMap(labelMapFile,labelmap);
+#endif
     Terminal * temp;
     for (int i = 1; i <= maxSegIndex; i++) {
         temp = new Terminal(i-1); // index is segment Number -1 
         temp->setNeighbors( neighbors[i],maxSegIndex);
         terminals.push_back(temp);
-        pq.pushTerminal(temp);
+        
+        
+        {
+#ifdef FILTER_LABELS        
+        if(labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
+#endif
+                pq.pushTerminal(temp);
+        }
+        
+        
     }
 
     NUMPointsToBeParsed=0;
@@ -122,7 +142,16 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex) {
         if(segIndex>0 && segIndex<=maxSegIndex)
         {
             terminals.at(segIndex-1)->addPointIndex(i);
-            NUMPointsToBeParsed++;
+            
+            
+            {
+#ifdef FILTER_LABELS        
+        if(labSel.acceptLabel(segIndex)) // get labelmap fro gt files
+#endif
+              NUMPointsToBeParsed++;
+            }
+            
+            
         }
     }
     
@@ -249,9 +278,9 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
     assert(isinf(infinity()));
     
-    if(argc!=3)
+    if(argc!=3&&argc!=4)
     {
-        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMap> "<<endl;
+        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> [gtLabelfile]"<<endl;
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
     fileName = string(argv[1]);
@@ -265,7 +294,12 @@ int main(int argc, char** argv) {
     map<int, set<int> > neighbors;
     int maxSegIndex= parseNbrMap(argv[2],neighbors);
     cout<<"Scene has "<<scene.size()<<" points."<<endl;
-    runParse(neighbors, maxSegIndex);
+    
+    char *gtLableFileName=NULL;
+    if(argc==4)
+        gtLableFileName=argv[3];
+    
+    runParse(neighbors, maxSegIndex,gtLableFileName);
 
     return 0;
     

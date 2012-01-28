@@ -3310,7 +3310,19 @@ public:
     set<int> targetLabels;
     LabelSelector(int label)
     {
-        targetLabels.insert(label);//Wall
+        targetLabels.insert(label);
+    }
+
+    LabelSelector(){}
+
+    void addAcceptedLabel(int label)
+    {
+        targetLabels.insert(label);        
+    }
+    
+    LabelSelector(set<int> targetLabels)
+    {
+        this->targetLabels=targetLabels;
     }
 
     bool acceptLabel(int label)
@@ -3319,4 +3331,28 @@ public:
     }
 };
 
+void readLabelMap(char * filename , map<int,int> & label_mapping)
+{
+    std::ifstream labelFile;
+    labelFile.open(filename);
+    int segNo, label;
+        if(labelFile.is_open())
+    {
+        while(labelFile.good())
+        {
+            label=-1;
+            labelFile>>segNo>>label;
+            if(label==-1)
+                break;
+            cout<<"adding seg "<<segNo<<" with label:"<<label<<endl;
+            label_mapping[segNo]=label;
+        }
+    }
+    else
+    {
+        cout<<"could not open label file...exiting\n";
+        exit(-1);
+    }
+    
+}
 #endif

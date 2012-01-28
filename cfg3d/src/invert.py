@@ -49,7 +49,8 @@ def invert(fileName, mappingFileName):
                 if mappingDict.has_key(head):
                     writeFile.write(''.join([elem,' ',mappingDict[head],'\n']))
                 else:
-                    sys.exit(''.join(['No corresponding labelIndex in labelToLabelIndexFile: ',head]))
+                    sys.stderr.write(''.join([head,':No corresponding labelIndex in labelToLabelIndexFile: \n']))
+		    break
 
 def main():
     if len(sys.argv) == 3:
