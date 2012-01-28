@@ -11,7 +11,8 @@
 #include "Monitor_generatedDataStructures.cpp"
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
-#define FILTER_LABELS
+//#define FILTER_LABELS
+#define GREEDY_OBJECTS
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
 public:
@@ -75,13 +76,32 @@ public:
         }
     }
 };
+    vector<VisualObject*> identifiedScenes;
+    
+class RScene : public Rule {
+public:
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
+        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+        {
+           // cout << "An object!!" << endl;
+            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
+            {
+                identifiedScenes.push_back(dummyTypeCheck);
+            }
+        }
+    }
+};
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     
     // planes
     rules.push_back(RulePtr(new RPlaneSeg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-    
+#ifdef GREEDY_OBJECTS
+    rules.push_back(RulePtr(new RScene()));
+#endif
 }
 
 void outputOnBothStreams(string str)
@@ -93,7 +113,6 @@ void outputOnBothStreams(string str)
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapFile=NULL) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
-    vector<Scene*> identifiedScenes;
     CPUAppendLearningRules(rules);
     MonitorAppendLearningRules(rules);
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
@@ -191,10 +210,17 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     long count = 0;
     long rulecount = 0;
     bool alreadyExtracted=false;
+    Scene::COST_THERSHOLD=infinity();
+    
+#ifdef GREEDY_OBJECTS
+    Scene::COST_THERSHOLD=2000;
+#endif
+    
+    
     while (true) {
         min = pq.pop(alreadyExtracted);
 
-        if (min == NULL || min->getCost() > COST_THRESHOLD)
+        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD)
         {
             //outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
 
@@ -228,15 +254,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
         {
             cout << "Goal reached!!" << endl;
             cerr << "Goal reached!! with cost:"<<min->getCost()<< endl;
-            // We will print stuff after the threshold terminating condition.
-//            min->printData();
-            // If no overlap,
-            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) {
-                identifiedScenes.push_back(dummyTypeCheck);
-            }
-//            return;
-            continue;
+            min->printData();
+            return;
         }
+        
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal();
             min->printData();

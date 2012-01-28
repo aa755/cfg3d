@@ -8,7 +8,7 @@
 #ifndef RULES_WALL_H
 #define	RULES_WALL_H
 #include "structures.cpp"
-class Wall : public Scene , PlanarPrimitive{};
+class Wall : public VisualObject , PlanarPrimitive{};
 
 template<>
 void SingleRule<Wall, Plane> ::computeAdditionalFeats(Plane* input)

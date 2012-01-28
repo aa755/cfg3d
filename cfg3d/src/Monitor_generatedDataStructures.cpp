@@ -1,5 +1,5 @@
 #include "helper.cpp"
-class monitor : public Scene, PlanarPrimitive{};
+class monitor : public VisualObject, PlanarPrimitive{};
 
 template<> 
     double SingleRule<monitor, Plane>::getCostScaleFactor()

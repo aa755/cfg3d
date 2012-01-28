@@ -3,7 +3,7 @@
 
 //options
 #define MAX_SEG_INDEX 35
-#define COST_THRESHOLD 2000
+//#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 //#define DISABLE_HALLUCINATION
@@ -258,6 +258,13 @@ protected:
     
 public:
 
+    template<typename SuperClass>
+    bool isOfSubClass()
+    {
+        SuperClass* dummyTypeCheck=dynamic_cast<SuperClass*>(this);
+        return (dummyTypeCheck!=NULL);
+    }
+    
     virtual ~Symbol(){};
     static float _getPolygonArea(const vector<cv::Point2f>& cv2D)
     {
@@ -1561,40 +1568,12 @@ public:
 
 };
 
-class Scene : virtual public NonTerminal
+class VisualObject : virtual public NonTerminal
 {
-    static std::ofstream graphvizFile;
-    static std::ofstream NTmembershipFile;
-    static std::ofstream labelmapFile;
-
-    // the printData below should be used only for the Goal NT type
 public:
-
-    static void printAllScenes(vector<Scene*> & identifiedScenes)
+    bool doesNotOverlapWithScenes(vector<VisualObject*> & identifiedScenes)
     {
-        string treeFileName = fileName + ".dot";
-        string membersipFileName = fileName + "_membership.txt";
-        string labelmapFileName = fileName + "_labelmap.txt";
-
-        NTmembershipFile.open(membersipFileName.data(), ios::out);
-        labelmapFile.open(labelmapFileName.data(), ios::out);
-        graphvizFile.open(treeFileName.data(), ios::out);
-        graphvizFile << "digraph g{\n"; // Move to postparse printer
-        vector<Scene*>::iterator it;
-        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
-        {
-            (*it)->printData();
-        }
-        graphvizFile << "}\n"; // Move to postparse printer
-        graphvizFile.close(); // Move to postparse printer
-        NTmembershipFile.close();
-        labelmapFile.close();
-        pcl::io::savePCDFile<PointT > ("hallucinated.pcd", scene, true);
-    }
-
-    bool doesNotOverlapWithScenes(vector<Scene*> & identifiedScenes)
-    {
-        vector<Scene*>::iterator it;
+        vector<VisualObject*>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             if (!isSpanExclusive(*it))
@@ -1604,15 +1583,56 @@ public:
         }
         return true;
     }
+    
+};
+
+class Scene : virtual public NonTerminal
+{
+    static std::ofstream graphvizFile;
+    static std::ofstream NTmembershipFile;
+    static std::ofstream labelmapFile;
+
+    
+    // the printData below should be used only for the Goal NT type
+public:
+
+    static double COST_THERSHOLD;
+    static void printAllScenes(vector<VisualObject*> & identifiedScenes)
+    {
+        string treeFileName = fileName + ".dot";
+        string membersipFileName = fileName + "_membership.txt";
+        string labelmapFileName = fileName + "_labelmap.txt";
+
+        NTmembershipFile.open(membersipFileName.data(), ios::out);
+        labelmapFile.open(labelmapFileName.data(), ios::out);
+        graphvizFile.open(treeFileName.data(), ios::out);
+        graphvizFile << "digraph g{\n"; // Move to postparse printer
+        vector<VisualObject*>::iterator it;
+        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
+        {
+            printData(*it);
+        }
+        graphvizFile << "}\n"; // Move to postparse printer
+        graphvizFile.close(); // Move to postparse printer
+        NTmembershipFile.close();
+        labelmapFile.close();
+        pcl::io::savePCDFile<PointT > ("hallucinated.pcd", scene, true);
+    }
+
 
     void printData()
+    {
+        printData(this);
+    }
+    
+    static void printData(NonTerminal * root)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut = scene;
 
 
         stack<NonTerminal*> parseTreeNodes;
-        parseTreeNodes.push(this);
+        parseTreeNodes.push(root);
 
         scene.width = 1;
         scene.height = scene.size();
@@ -1645,7 +1665,7 @@ public:
 
     }
 
-    void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal *node)
+    static void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal *node)
     {
      //   if (node == this) // will always cover full scene
        //     return;
@@ -1678,6 +1698,7 @@ public:
 std::ofstream Scene::graphvizFile;
 std::ofstream Scene::NTmembershipFile;
 std::ofstream Scene::labelmapFile;
+double Scene::COST_THERSHOLD;
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
     //start with MSBs
@@ -2270,6 +2291,12 @@ protected:
     vector<float> features;
     ofstream featureFile;
 public:
+    /**
+     * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
+     * @param pqueue : the priority queue
+     * @param terminals : set of all terminals
+     */
+    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
     
     vector<ProbabilityDistribution*> g;
     
@@ -2345,12 +2372,6 @@ public:
         featureFile<<endl;
     }
     
-    /**
-     * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
-     * @param pqueue : the priority queue
-     * @param terminals : set of all terminals
-     */
-    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
 
     virtual bool addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check

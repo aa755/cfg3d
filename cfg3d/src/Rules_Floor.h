@@ -8,7 +8,7 @@
 #ifndef RULES_FLOOR_H
 #define	RULES_FLOOR_H
 
-class Floor : public Scene, PlanarPrimitive{};
+class Floor : public VisualObject, PlanarPrimitive{};
 template<>
 void SingleRule<Floor, Plane> ::computeFeaturesSpecializable(Plane* input)
 {
