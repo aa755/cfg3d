@@ -11,8 +11,8 @@
 #include "Monitor_generatedDataStructures.cpp"
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
-//#define FILTER_LABELS
-#define GREEDY_OBJECTS
+#define FILTER_LABELS
+//#define GREEDY_OBJECTS
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
 public:
@@ -78,37 +78,73 @@ public:
 };
     vector<VisualObject*> identifiedScenes;
     
+class RGreedyScene : public Rule {
+public:
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
+        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+        {
+           // cout << "An object!!" << endl;
+            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
+            {
+                identifiedScenes.push_back(dummyTypeCheck);
+            }
+        }
+    }
+};
+
+class RVisualObjects : public Rule {
+public:
+    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    {
+        if (extractedSym->isOfSubClass<VisualObject>()) // if min is of type Scene(Goal)
+        {
+            VisualObjects * LHS= new VisualObjects();
+                LHS->addChild(extractedSym);
+                LHS->computeSpannedTerminals();
+                LHS->setAdditionalCost(0);
+                addToPqueueIfNotDuplicate(LHS,pqueue);
+                
+            
+        }
+    }
+};
 class RScene : public Rule {
 public:
-#ifdef GREEDY_OBJECTS
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
-        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
-        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+        if (extractedSym->isOfSubClass<VisualObjects>()) // if min is of type Scene(Goal)
         {
-           // cout << "An object!!" << endl;
-            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
-            {
-                identifiedScenes.push_back(dummyTypeCheck);
-            }
+            Scene * LHS= new Scene();
+                LHS->addChild(extractedSym);
+                LHS->computeSpannedTerminals();
+                assert(extractedSym->getNumPoints()!=0);
+                LHS->setAdditionalCost(10*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                addToPqueueIfNotDuplicate(LHS,pqueue);
+                
+            
         }
     }
-#else
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
-    {
-        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
-        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
-        {
-           // cout << "An object!!" << endl;
-            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
-            {
-                identifiedScenes.push_back(dummyTypeCheck);
-            }
-        }
-    }
-    
-#endif
 };
+
+template<>
+bool DoubleRule<VisualObjects,Scene,VisualObject>::isLearned()
+{
+    return false;
+}
+
+template<>
+VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2, vector<Terminal*> & terminals)
+{
+            VisualObjects* LHS= new VisualObjects();
+                LHS->addChild(RHS1);
+                LHS->addChild(RHS2);
+                LHS->computeSpannedTerminals();
+                LHS->setAdditionalCost(0);
+                //LHS->setAdditionalCost(NUMPointsToBeParsed-RHS1->getNumPoints()-RHS2->getNumPoints());
+                return LHS;
+}
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     
@@ -116,7 +152,11 @@ void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RPlaneSeg()));
     rules.push_back(RulePtr(new RPlane_PlaneSeg()));
 #ifdef GREEDY_OBJECTS
+    rules.push_back(RulePtr(new RGreedyScene()));
+#else
+    rules.push_back(RulePtr(new RVisualObjects()));
     rules.push_back(RulePtr(new RScene()));
+    
 #endif
 }
 

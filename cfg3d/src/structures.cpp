@@ -1586,6 +1586,8 @@ public:
     
 };
 
+class VisualObjects : public NonTerminal{};
+
 class Scene : virtual public NonTerminal
 {
     static std::ofstream graphvizFile;
@@ -1597,7 +1599,8 @@ class Scene : virtual public NonTerminal
 public:
 
     static double COST_THERSHOLD;
-    static void printAllScenes(vector<VisualObject*> & identifiedScenes)
+    
+    static void initFiles()
     {
         string treeFileName = fileName + ".dot";
         string membersipFileName = fileName + "_membership.txt";
@@ -1607,22 +1610,36 @@ public:
         labelmapFile.open(labelmapFileName.data(), ios::out);
         graphvizFile.open(treeFileName.data(), ios::out);
         graphvizFile << "digraph g{\n"; // Move to postparse printer
-        vector<VisualObject*>::iterator it;
-        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
-        {
-            printData(*it);
-        }
+        
+    }
+    
+    static void closeFiles()
+    {
         graphvizFile << "}\n"; // Move to postparse printer
         graphvizFile.close(); // Move to postparse printer
         NTmembershipFile.close();
         labelmapFile.close();
         pcl::io::savePCDFile<PointT > ("hallucinated.pcd", scene, true);
+        
+    }
+    
+    static void printAllScenes(vector<VisualObject*> & identifiedScenes)
+    {
+        initFiles();
+        vector<VisualObject*>::iterator it;
+        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
+        {
+            printData(*it);
+        }
+        closeFiles();
     }
 
 
     void printData()
     {
+        initFiles();
         printData(this);
+        closeFiles();
     }
     
     static void printData(NonTerminal * root)
@@ -3111,15 +3128,26 @@ public:
      */
     
     const static int NUM_FEATS_PER_PAIR=26;
+    
+    bool isLearned()
+    {
+        return true;
+    }
+    
     DoubleRule(bool learning=false)
     {
-        string filename=string(string("rule_")+typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type1).name())+"_"+string(typeid(RHS_Type2).name());
-        if(learning)
+        if (isLearned())
         {
-            // LHS__RHS1_RHS2
-                featureFile.open(filename.data(),ios::app); // append to file
-        } else {
-            readDistribution(filename);
+            string filename = string(string("rule_") + typeid (LHS_Type).name()) + "__" + string(typeid (RHS_Type1).name()) + "_" + string(typeid (RHS_Type2).name());
+            if (learning)
+            {
+                // LHS__RHS1_RHS2
+                featureFile.open(filename.data(), ios::app); // append to file
+            }
+            else
+            {
+                readDistribution(filename);
+            }
         }
     }
 
@@ -3376,4 +3404,5 @@ void readLabelMap(char * filename , map<int,int> & label_mapping)
     }
     
 }
+
 #endif
