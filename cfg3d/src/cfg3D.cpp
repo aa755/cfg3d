@@ -120,7 +120,7 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-                LHS->setAdditionalCost(10*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                LHS->setAdditionalCost(5000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 
             
@@ -129,7 +129,7 @@ public:
 };
 
 template<>
-bool DoubleRule<VisualObjects,Scene,VisualObject>::isLearned()
+bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
 {
     return false;
 }
@@ -155,6 +155,7 @@ void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     rules.push_back(RulePtr(new RGreedyScene()));
 #else
     rules.push_back(RulePtr(new RVisualObjects()));
+    rules.push_back(RulePtr(new DoubleRule<VisualObjects, VisualObjects, VisualObject>()));
     rules.push_back(RulePtr(new RScene()));
     
 #endif
@@ -179,6 +180,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     SymbolPriorityQueue pq(maxSegIndex);
 
     vector<Terminal *> terminals;
+    NUMTerminalsToBeParsed=0;
 #ifdef FILTER_LABELS
     assert(labelMapFile!=NULL);
     LabelSelector labSel;
@@ -202,7 +204,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
 #ifdef FILTER_LABELS        
         if(labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
 #endif
+                {
                 pq.pushTerminal(temp);
+                NUMTerminalsToBeParsed++;
+                }
         }
         
         

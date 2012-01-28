@@ -198,6 +198,7 @@ PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
 }
 
 int NUMPointsToBeParsed;
+int NUMTerminalsToBeParsed;
 OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
