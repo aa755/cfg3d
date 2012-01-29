@@ -19,10 +19,10 @@
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
 #include "extract_planes.cpp"
-#define FILTER_SEGMENTS_SEGMENTATION
+//#define FILTER_SEGMENTS_SEGMENTATION
 typedef pcl::PointXYZRGBCamSL PointOutT;
-typedef pcl::PointXYZRGBCamSL PointInT;
-//typedef pcl::PointXYZRGB PointInT;
+//typedef pcl::PointXYZRGBCamSL PointInT;
+typedef pcl::PointXYZRGB PointInT;
 
 int** intArrPointer;
 
@@ -584,8 +584,8 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         pcl::PointXYZ p1Centroid;
         basePlane.getCentroid(p1Centroid);
         
-//        distanceThreshold = .0025;
-        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
+        distanceThreshold = .0025;
+//        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
     } else {
         otherTerminal = terminal1;
         basePlane = terminal2Plane;
@@ -593,8 +593,8 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         pcl::PointXYZ p2Centroid;
         basePlane.getCentroid(p2Centroid);
         
-//        distanceThreshold = .0025;
-        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
+        distanceThreshold = .0025;
+//        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
     }
     
      boost::shared_ptr <std::vector<int> > terminal1BoostPtr = terminal1.getPointIndicesBoostPtr();
@@ -738,7 +738,7 @@ int main(int argc, char** argv)
     vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
     cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
     pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
-    assert(cameraOrigin.z!=0);
+    //assert(cameraOrigin.z!=0);
     vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);

@@ -3,9 +3,15 @@ function points = trimesh2pc(p1, p2, p3, face_color)
 
 a = p2 - p3;
 b = p1 - p2;
+side1 = norm(p1-p2);
+side2 = norm(p2-p3);
+side3 = norm(p3-p1);
+s = side1 + side2 + side3;
+area = sqrt(s*(s-side1)*(s-side2)*(s-side3));
 h = norm(cross(a,b)) / norm(a);
 
 UNIT = 0.003;
+% UNIT = 0.001;
 numpts = int32(h/UNIT);
 side1 = [linspace(p1(1), p2(1), numpts);
         linspace(p1(2), p2(2), numpts);
@@ -24,7 +30,6 @@ end
 
 size_points = size(points);
 points = [points repmat(face_color, [size_points(1) ,1])];
-
 
 % 
 %     function shaked_pt = shakept(origin, victim_pt)
