@@ -18,9 +18,9 @@ void CPUAppendLearningRules(vector<RulePtr>& learningRules) {
     learningRules.push_back(RulePtr(new DoubleRule<CPUFront_CPUTop, CPUFront, CPUTop>()));
     learningRules.push_back(RulePtr(new SingleRule<CPURSide, Plane>()));
     learningRules.push_back(RulePtr(new DoubleRule<CPUFront_CPUTop_CPURSide, CPUFront_CPUTop, CPURSide>()));
-    learningRules.push_back(RulePtr(new SingleRule<CPUBack, Plane>()));
+    //learningRules.push_back(RulePtr(new SingleRule<CPUBack, Plane>()));
   //  learningRules.push_back(RulePtr(new DoubleRule<CPUFront_CPUTop_CPURSide_CPUBack, CPUFront_CPUTop_CPURSide, CPUBack>()));
-    learningRules.push_back(RulePtr(new SingleRule<CPULSide, Plane>()));
+//    learningRules.push_back(RulePtr(new SingleRule<CPULSide, Plane>()));
     //learningRules.push_back(RulePtr(new DoubleRule<CPU, CPUFront_CPUTop_CPURSide_CPUBack, CPULSide>()));
 
     learningRules.push_back(RulePtr(new DoubleRule<CPUFront_CPURSide, CPUFront, CPURSide>()));

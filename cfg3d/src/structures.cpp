@@ -56,7 +56,7 @@ class NTSetComparison {
 public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
-
+string rulePath;
 /**
  * does in-place set intersection ...O(n) amortized... result is in set_1
  * @param set_1
@@ -165,16 +165,23 @@ public:
         return lp;
     }
     
+    virtual double getRange()
+    {
+        double range= max-min;
+        return range;
+        assert(range>0);
+    }
+    
     virtual double getMaxCutoff()
     {
         assert(sigma>=0);
-        return std::max(max,mean+3*sigma);
+        return std::max(max+getRange()/4,mean+3*sigma);
     }
 
     virtual double getMinCutoff()
     {
         assert(sigma>=0);
-        return std::min(min,mean-3*sigma);
+        return std::min(min-getRange()/4,mean-3*sigma);
     }
     
 };
@@ -2395,7 +2402,8 @@ public:
       //  newNT->computeSetMembership(); // required for duplicate check
         if(newNT==NULL)
             return false;
-        if (!pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
+            
+        if(isinf(newNT->getCost()) || !pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
         {
             delete newNT;
             return false;
@@ -2702,6 +2710,7 @@ class SingleRule : public Rule
         }
     }
 
+    bool learning;
 public:
     double getCostScaleFactor()
     {
@@ -2711,12 +2720,13 @@ public:
     
     SingleRule(bool learning=false)
     {
+        this->learning=learning;
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
         if(learning)
         {
                 featureFile.open(filename.data(),ios::app); // append to file
         }else {
-            readDistribution(filename);
+            readDistribution(rulePath+"/"+filename);
         }
     }
     
@@ -3147,7 +3157,7 @@ public:
             }
             else
             {
-                readDistribution(filename);
+                readDistribution(rulePath+"/"+filename);
             }
         }
     }

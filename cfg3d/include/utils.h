@@ -14,6 +14,7 @@
 #include <vector>
 #include <boost//lexical_cast.hpp>
 #include <iostream>
+#include <stdio.h>
 using namespace std;
 
 struct null_deleter
@@ -141,6 +142,24 @@ void getTokens(string str, vector<float>& out) {
         }
 }
 
+/**
+ * executes a command and returns it's stdout output
+ * copied from : http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c
+ * @param cmd
+ * @return 
+ */
+std::string exec(const char* cmd) {
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return "ERROR";
+    char buffer[128];
+    std::string result = "";
+    while(!feof(pipe)) {
+        if(fgets(buffer, 128, pipe) != NULL)
+                result += buffer;
+    }
+    pclose(pipe);
+    return result;
+}
 //        
 //    template<typename PT>
 //    PT pointFromVector(const Eigen::Vector3d & d)

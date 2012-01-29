@@ -381,6 +381,9 @@ int main(int argc, char** argv) {
     if(argc==4)
         gtLableFileName=argv[3];
     
+    string command="rospack find cfg3d";
+    rulePath=exec(command.data());
+    rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
     runParse(neighbors, maxSegIndex,gtLableFileName);
 
     return 0;
