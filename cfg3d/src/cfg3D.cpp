@@ -120,7 +120,7 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-                LHS->setAdditionalCost(5000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
+                LHS->setAdditionalCost(9000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 
             

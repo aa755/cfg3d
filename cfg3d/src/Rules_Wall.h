@@ -23,7 +23,7 @@ void SingleRule<Wall, Plane> ::computeAdditionalFeats(Plane* input)
 template<> 
     double SingleRule<Wall, Plane>::getCostScaleFactor()
     {
-        return 300.0;
+        return 100.0;
     }
 
 

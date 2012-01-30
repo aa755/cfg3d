@@ -11,7 +11,6 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
-#include "utils.h"
 #include <opencv/cv.h>
 // #include <opencv2/imgproc/imgproc.hpp>
 // #include <opencv2/highgui/highgui.hpp>
@@ -34,6 +33,7 @@
 #define TABLE_HEIGHT .73
 #define HIGH_COST 100
 #include <stack>
+#include "utils.h"
 #include "point_struct.h"
 #include "color.cpp"
 #include "pcl/features/feature.h"
@@ -266,6 +266,11 @@ protected:
     
 public:
 
+    virtual Eigen::Vector3d getPlaneNormal() const
+    {
+        assert(1==2);
+    }
+    
     template<typename SuperClass>
     bool isOfSubClass()
     {
@@ -974,6 +979,7 @@ public:
 };
 
 class HallucinatedTerminal : public Terminal {
+    Eigen::Vector3d normal;
 public: 
     HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
     {
@@ -994,6 +1000,11 @@ public:
         assert(points.size()>=3);
         featuresComputed=false;
         computeFeatures();
+    }
+    
+    Eigen::Vector3d getPlaneNormal()
+    {
+        return normal;
     }
     
     void setPoint(PointT & p, float x, float y, float z)
@@ -1079,6 +1090,11 @@ public:
         scene.width=1;
         scene.height=scene.size();
 //        cerr<<"added points hal\n";
+    }
+
+    void setNormal(Eigen::Vector3d normal)
+    {
+        this->normal = normal;
     }    
 };
 
@@ -1856,11 +1872,13 @@ public:
         planeParamsComputed = true;
     }
     
+    static const int NORMAL_Z_INDEX=8;
     virtual void appendAdditionalFeatures(vector<float> & features)
     {
         //assert(featuresComputed);
         features.push_back(getLength());
         features.push_back(getWidth());
+        assert(NORMAL_Z_INDEX==(int)features.size()); features.push_back(getZNormal());
     }
     
     bool checkSize(NonTerminal * candidate)
@@ -2325,6 +2343,11 @@ public:
     
     vector<ProbabilityDistribution*> g;
     
+    ProbabilityDistribution * getNormalZDist()
+    {
+        return g.at(Plane::NORMAL_Z_INDEX);
+    }
+    
     void readDistribution(string filename) {
         ifstream inputStream;
         filename.append(".out");
@@ -2461,6 +2484,11 @@ public:
         type2Hal=true;
     }
     
+    T getPlaneDPInfo()
+    {
+        return EVdots12[0];
+    }
+    
     void pushToVector(vector<T> & infos)
     {
         for(int i=0;i<NUM_FEATS;i++)
@@ -2568,6 +2596,10 @@ public:
             {
                 sum += models.all[i]->minusLogProb(feats.all[i]);
             }
+            
+            int normalDPIndex=NUM_OCCLUSION_FEATS;
+            sum += models.all[normalDPIndex]->minusLogProb(feats.all[normalDPIndex]);
+            
             sum+=UNKNOWN_FEATURE_LOG_PROB*(NUM_FEATS-NUM_OCCLUSION_FEATS+NUM_OCCLUSION_FEATS_ASYMMETRIC);
 
         }
@@ -2624,7 +2656,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
 
-    if(plane1!=NULL) //TODO:CHANGE TO PLANE PRIM
+    if(plane1!=NULL) 
     {
         for (int i = 0; i < 3; i++)
             distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getPlaneChild()->getEigenVector(i))));
@@ -2633,16 +2665,19 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     }   
 
     
-    if(plane2!=NULL) //TODO:CHANGE TO PLANE PRIM
+    if(plane2!=NULL) 
     {
         for (int i = 0; i < 3; i++)
             distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getPlaneChild()->getEigenVector(i))));
         type2Hal=false;
     }
 
-    // set the remaining values for safety
         if(type1Hal||type2Hal)
+        {
+            assert(false);
+            EVdots12[0]=(rhs1->getPlaneNormal().dot(rhs2->getPlaneNormal()));            
             return;
+        }
 
         assert(plane1 != NULL && plane2 != NULL);
         for (int i = 0; i < 3; i++)
@@ -3020,7 +3055,43 @@ class DoubleRule : public Rule
         vector<HallucinatedTerminal> halTermsForHeatmap;
 #endif
 //        PairInfo<float> feats;
+       SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
 
+    namespace bg = boost::geometry;
+    typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
+    typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
+    
+    double minNormalCost=infinity();
+    spherical minAngles;
+       
+       ProbabilityDistribution * dist=ruleCPUFront.getNormalZDist();
+       //estimate normal
+        for(double elev = 0.0; elev <= 90.0; elev += 22.5)
+        {
+            for (double azimuth = 0.0; azimuth <= 180.0; azimuth += 10.0)
+            {
+                double cost=0;
+                Eigen::Vector3d halNormal=getDirection(azimuth,elev);
+                int count=0;
+                cost+=dist->minusLogProb(fabs(halNormal(2))); // z component of normal
+                for (vector<Symbol*>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
+                {
+                    Eigen::Vector3d otherNormal=(*it)->getPlaneNormal();
+                    double dotP=fabs(otherNormal.dot(halNormal));
+                    cost+=modelsForLHS.at(count).getPlaneDPInfo()->minusLogProb(dotP);
+                    count++;
+                }
+                if(minNormalCost>cost)
+                {
+                    minNormalCost=cost;
+                    minAngles=spherical(azimuth,elev);
+                }
+            }
+        }
+       
+       Eigen::Vector3d optimalNormal=getDirection(minAngles.get<0>(),minAngles.get<1>());
+       
+       
         // sample each point in the cylinder. density: points separated by 2 cm
         cout<<overallMinCZ<<","<<overallMaxCZ<<","<<maxRange<<endl;
         double cost = 0;
@@ -3038,6 +3109,7 @@ class DoubleRule : public Rule
                 {
                     halLoc.angle = 2.0 * i * boost::math::constants::pi<double>() / numAngles;
                     HallucinatedTerminal halTerm(halLoc.getCentroid(centroidxy));
+                    halTerm.setNormal(optimalNormal);
                 //    cerr<<"centroid:\n"<<halTerm.getCentroidVector()<<endl;
                //     cerr<<halLoc.getCentroid(centroidxy)<<endl;
                //     cerr<<halTerm.getCentroidVector()<<endl;
@@ -3076,6 +3148,7 @@ class DoubleRule : public Rule
 #endif        
      //   cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
+        finalHal->setNormal(optimalNormal);
         finalHal->setNeighbors(Terminal::totalNumTerminals);
         finalHal->declareOptimal();
 
@@ -3089,7 +3162,6 @@ class DoubleRule : public Rule
 //        plane->returnPlaneParams();
             vector<Terminal*> dummy;
             
-       SingleRule<HalType, Plane> ruleCPUFront(false); // not for learning
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
        double additionalCost=1000+std::max(3-numNodes,0)*500;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
@@ -3107,6 +3179,7 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
+        
         if(/*occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) &&*/ addToPqueueIfNotDuplicate(lhs,pqueue))
 //        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
         {

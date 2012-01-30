@@ -15,6 +15,8 @@
 #include <boost//lexical_cast.hpp>
 #include <iostream>
 #include <stdio.h>
+#include <boost/geometry/geometry.hpp>
+#include <boost/geometry/algorithms/transform.hpp>
 using namespace std;
 
 struct null_deleter
@@ -160,6 +162,19 @@ std::string exec(const char* cmd) {
     pclose(pipe);
     return result;
 }
+
+Eigen::Vector3d getDirection(double azimuth, double elev) {
+    namespace bg = boost::geometry;
+    typedef bg::point<double, 3, bg::cs::cartesian> cartesian;
+    typedef bg::point<double, 2, bg::cs::spherical<bg::degree> > spherical;
+
+    cartesian pc;
+    spherical ps(azimuth, elev);
+
+    bg::transform<spherical, cartesian > (ps, pc);
+    return Eigen::Vector3d(pc.get < 0 > (), pc.get < 1 > (), pc.get < 2 > ());
+}
+
 //        
 //    template<typename PT>
 //    PT pointFromVector(const Eigen::Vector3d & d)
