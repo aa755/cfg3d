@@ -1002,7 +1002,23 @@ public:
         computeFeatures();
     }
     
-    Eigen::Vector3d getPlaneNormal()
+//    bool isPlaneAlmostInvisible()
+//    {
+//        Eigen::Vector4d or4d= scene.sensor_origin_;
+//        Eigen::Vector3d origin;
+//        for(int i=0;i<3;i++)
+//        {
+//            origin(i)=or4d(i);
+//        }
+//        Eigen::Vector3d centv(centroid.x,centroid.y,centroid.z);
+//        Eigen::Vector3d ray=centv-origin;
+//        ray.normalize();
+//        assert(fabs(ray.norm()-1)<0.001);
+//        assert(fabs(normal.norm()-1)<0.001);
+//        return(fabs(ray.dot(normal))<0.25);
+//    }
+    
+    virtual Eigen::Vector3d getPlaneNormal() const
     {
         return normal;
     }
@@ -1061,16 +1077,23 @@ public:
     {
         Eigen::Vector3d centroid=getCentroidVector();
         int start=scene.size();
-        int numPoints=7;
-        scene.points.resize(start+numPoints);
-        
-        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
-        setPoint(scene.points.at(start+1),centroid(0)+0.01,centroid(1),centroid(2));
-        setPoint(scene.points.at(start+2),centroid(0)-0.01,centroid(1),centroid(2));
-        setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.01,centroid(2));
-        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.01,centroid(2));
-        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.01);
-        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
+        int numPointsh=20;
+        scene.points.resize(start+numPointsh);
+
+        for(int i=0;i<numPointsh;i++)
+        {
+            double rad=i*0.005;
+            Eigen::Vector3d point=centroid+rad*normal;
+            setPoint(scene.points.at(start+i),point(0),point(1),point(2));
+        }
+        scene.points.at(start).rgb=ColorRGB(1.0,0,0).getFloatRep();
+//        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+//        setPoint(scene.points.at(start+1),centroid(0)+0.01,centroid(1),centroid(2));
+//        setPoint(scene.points.at(start+2),centroid(0)-0.01,centroid(1),centroid(2));
+//        setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.01,centroid(2));
+//        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.01,centroid(2));
+//        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.01);
+//        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
         scene.width=1;
         scene.height=scene.size();
         cerr<<"Added points hal\n";
@@ -1643,7 +1666,8 @@ public:
         graphvizFile.close(); // Move to postparse printer
         NTmembershipFile.close();
         labelmapFile.close();
-        pcl::io::savePCDFile<PointT > ("hallucinated.pcd", scene, true);
+        string halPCDFileName = fileName + "_hallucinated.pcd";
+        pcl::io::savePCDFile<PointT > (halPCDFileName, scene, true);
         
     }
     
@@ -2039,7 +2063,7 @@ public:
 
 class PlanarPrimitive : virtual public NonTerminal {
 public:
-    const Plane * getPlaneChild() 
+    const Plane * getPlaneChild() const
     {
         assert(children.size()==1);
         Plane * ret=dynamic_cast<Plane *>(children.at(0));
@@ -2051,6 +2075,10 @@ public:
 //        assert(typeid(*child)==typeid(Plane));
 //        NonTerminal::addChild(child);
 //    }
+    virtual Eigen::Vector3d getPlaneNormal() const
+    {
+        return getPlaneChild()->getPlaneNormal();
+    }
 };
 
     bool Symbol::isPlanarPrimitive()
@@ -2059,7 +2087,7 @@ public:
         return (temp!=NULL);
     }
     
-
+    
 bool isVerticalEnough(Plane* plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
@@ -2674,7 +2702,6 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 
         if(type1Hal||type2Hal)
         {
-            assert(false);
             EVdots12[0]=(rhs1->getPlaneNormal().dot(rhs2->getPlaneNormal()));            
             return;
         }
@@ -3179,7 +3206,7 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        
+        //bool occluded=occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) || 
         if(/*occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) &&*/ addToPqueueIfNotDuplicate(lhs,pqueue))
 //        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
         {

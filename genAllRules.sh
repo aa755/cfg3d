@@ -1,3 +1,5 @@
+set -e
+
 rulefolder=~/cfgProject/cfg3d/rules
 cd $rulefolder
 rm  *
@@ -9,7 +11,7 @@ cp rule_* $rulefolder/
 
 cd /home/aa755/cfgProject/data/gold/realData/monitorTripod/final
 ./genMonitorFeats.sh
-#/home/aa755/cfgProject/data/gold/realData/monitorTripod/final/genMonitorFeats.sh
+/home/aa755/cfgProject/data/gold/realData/monitorTripod/final/genMonitorFeats.sh
 cp rule_* $rulefolder/
 
 
