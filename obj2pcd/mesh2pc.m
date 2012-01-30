@@ -48,16 +48,18 @@ if DEBUG
     p3 = [0 0 1];
     points = trimesh2pc(p1, p2, p3, 0.0);
 end
-
+disp('l');
 colors = hsv(num_positions);
-    function shaked_pt = shakept(origins, victim_pt)
-        df = origins - repmat(victim_pt, [num_positions,1]);
-        [closest_dist, closest_index] = min(sqrt(sum(df.^2,2)));
-        origin = origins(closest_index,1:3);
-        dev = normrnd(0, (closest_dist^2) * 0.0025);
-        shaked_pt = (victim_pt - origin) / closest_dist * (closest_dist + dev) + origin;
-        plot3(shaked_pt(1),shaked_pt(2),shaked_pt(3),'Color',colors(closest_index,:),'Marker','.','MarkerSize',4);
-    end
+
+%     function shaked_pt = shakept(origins, victim_pt)
+%         df = origins - repmat(victim_pt, [num_positions,1]);
+%         [closest_dist, closest_index] = min(sqrt(sum(df.^2,2)));
+%         origin = origins(closest_index,1:3);
+%         dev = normrnd(0, (closest_dist^2) * 0.0025);
+%         shaked_pt = (victim_pt - origin) / closest_dist * (closest_dist + dev) + origin;
+%         plot3(shaked_pt(1),shaked_pt(2),shaked_pt(3),'Color',colors(closest_index,:),'Marker','.','MarkerSize',4);
+%     end
+
 
 origins = zeros(num_positions, 3);
 scene_center = mean(points);
@@ -67,24 +69,28 @@ for i=1:num_positions
     z = height;
     origins(i, 1:3) = [x y z];
 end
-plot3(origins(:,1),origins(:,2),origins(:,3),'+');
-    
-if with_noise
-    points_size = size(points);
-    shaked_points = zeros(points_size);
-    for i=1:points_size(1)
-        shaked_points(i,1:3) = shakept(origins, points(i,1:3));
-    end
-    points(:,1:3) = shaked_points(:,1:3);
-else
-    
-    plot3(points(:,1),points(:,2),points(:,3),'.');
-end
-
-h = gcf;
+% plot3(origins(:,1),origins(:,2),origins(:,3),'+');
+disp('3');
+%%%%%%%%
+% if with_noise
+%     points_size = size(points);
+%     shaked_points = zeros(points_size);
+%     disp('4');
+%     disp(points_size(1));
+%     for i=1:points_size(1)
+%         shaked_points(i,1:3) = shakept(origins, points(i,1:3));
+%     end
+%     points(:,1:3) = shaked_points(:,1:3);
+% else    
+%     plot3(points(:,1),points(:,2),points(:,3),'.');
+% end
+sizes = size(points);
+numpoints = sizes(1);
+points = points + .01*randn(numpoints,4);
+disp('5');
 pcdwrite(sprintf('%s.pcd',filename), points);
 csvwrite(sprintf('%s.csv',filename), points);
-saveas(h, sprintf('%s.fig',filename));
-saveas(h, sprintf('%s.png',filename));
+% saveas(h, sprintf('%s.fig',filename));
+% saveas(h, sprintf('%s.png',filename));
 
 end
