@@ -1002,21 +1002,21 @@ public:
         computeFeatures();
     }
     
-//    bool isPlaneAlmostInvisible()
-//    {
-//        Eigen::Vector4d or4d= scene.sensor_origin_;
-//        Eigen::Vector3d origin;
-//        for(int i=0;i<3;i++)
-//        {
-//            origin(i)=or4d(i);
-//        }
-//        Eigen::Vector3d centv(centroid.x,centroid.y,centroid.z);
-//        Eigen::Vector3d ray=centv-origin;
-//        ray.normalize();
-//        assert(fabs(ray.norm()-1)<0.001);
-//        assert(fabs(normal.norm()-1)<0.001);
-//        return(fabs(ray.dot(normal))<0.25);
-//    }
+    bool isPlaneAlmostInvisible()
+    {
+        Eigen::Vector4f or4d= scene.sensor_origin_;
+        Eigen::Vector3d origin;
+        for(int i=0;i<3;i++)
+        {
+            origin(i)=or4d(i);
+        }
+        Eigen::Vector3d centv(centroid.x,centroid.y,centroid.z);
+        Eigen::Vector3d ray=centv-origin;
+        ray.normalize();
+        assert(fabs(ray.norm()-1)<0.001);
+        assert(fabs(normal.norm()-1)<0.001);
+        return(fabs(ray.dot(normal))<0.25);
+    }
     
     virtual Eigen::Vector3d getPlaneNormal() const
     {
@@ -3206,9 +3206,11 @@ class DoubleRule : public Rule
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        //bool occluded=occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) || 
-        if(/*occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) &&*/ addToPqueueIfNotDuplicate(lhs,pqueue))
-//        if(occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy)) && addToPqueueIfNotDuplicate(lhs,pqueue))
+        bool occluded = occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy));
+        bool almostInvisible = finalHal->isPlaneAlmostInvisible();
+        bool hallucinable= true;occluded || almostInvisible;
+        cerr<<finalHal->getName()<<"(hallucinated):"<<occluded<<almostInvisible<<endl;
+        if(hallucinable && addToPqueueIfNotDuplicate(lhs,pqueue))
         {
              //   cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;
         }
