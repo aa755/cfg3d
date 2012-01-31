@@ -344,16 +344,20 @@ public:
     virtual void appendFeatures(vector<float> & features)
     {
         assert(featuresComputed);
-      //  features.push_back(centroid.z);
-     //   features.push_back(minxyz.z);
+        ColorRGB avgColorO(avgColor);
+        
+        // the color feats go first
+        features.push_back(avgColorO.H);
+        features.push_back(avgColorO.S);
+        features.push_back(avgColorO.V);
+
+        assert(features.size()==3); //for safetly. if this fails, change the script which edits color values
+        
+        // remaining non-color feats
         features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
         
         
-        ColorRGB avgColorO(avgColor);
-        features.push_back(avgColorO.H);
-        features.push_back(avgColorO.S);
-        features.push_back(avgColorO.V);
         
         // horizontal convex hull area
         features.push_back(horzArea);
@@ -2475,7 +2479,7 @@ class PairInfo
 {
     const static int NUM_OCCLUSION_FEATS = 9;
     const static int NUM_OCCLUSION_FEATS_ASYMMETRIC = 3;
-    const static int NUM_FEATS = 26;
+    const static int NUM_FEATS = 23;
     const static double UNKNOWN_FEATURE_LOG_PROB=5.0;
 public:
 
@@ -2497,7 +2501,7 @@ public:
             T z1Min_2Min;
             T z1Max_2Max;
             T minDist;
-            T colorDiffHSV[3];
+           // T colorDiffHSV[3];
         };
     };
 
@@ -2723,7 +2727,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 
     minDist=(rhs1->getMinDistance(rhs2));
 
-    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
+//    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
 
     //assert((int) features.size() == beginSize + NUM_FEATS_PER_PAIR);
     //get horizontal area ratio
