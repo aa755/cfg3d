@@ -112,6 +112,7 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
             vector<string> segmentLabelPair = addToSegNumToLabelFromString(line);
             string segNumString = segmentLabelPair.at(0);
             segNumToLabel[atoi(segNumString.c_str()) - 1] = segmentLabelPair.at(1);
+//            cerr<<"adding entry:"<<segmentLabelPair.at(0)<<segmentLabelPair.at(1)<<endl;
 //            string segNumString = segmentLabelPair.at(1);
 //            segNumToLabel[atoi(segNumString.c_str())] = segmentLabelPair.at(0);
             // If file is given in reverse order of label->segmentNumber

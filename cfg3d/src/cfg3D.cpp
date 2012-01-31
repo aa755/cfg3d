@@ -9,6 +9,7 @@
 #include "wallDistance.h"
 #include "CPU_generatedDataStructures.cpp"
 #include "Monitor_generatedDataStructures.cpp"
+#include "Printer_generatedDataStructures.cpp"
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
 #define FILTER_LABELS
@@ -174,6 +175,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     MonitorAppendLearningRules(rules);
     rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
     rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
+    printerAppendLearningRules(rules);
 
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
@@ -190,6 +192,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     labSel.addAcceptedLabel(6);//CPUFront
     labSel.addAcceptedLabel(36);//CPUSide
     labSel.addAcceptedLabel(34);//Monitor
+    labSel.addAcceptedLabel(22);//printerFront
+    labSel.addAcceptedLabel(112);//printerSide/Side
+    labSel.addAcceptedLabel(117);//printerTop/side
     map<int,int> labelmap;
     readLabelMap(labelMapFile,labelmap);
 #endif
