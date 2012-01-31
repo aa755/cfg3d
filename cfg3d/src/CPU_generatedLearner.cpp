@@ -18,17 +18,17 @@ void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {
     nodesCreatedSoFar.pop();
     nodesCreatedSoFar.push(ruleCPUFront_CPUTop.applyRuleLearning(secondToLastCPUFront, lastCPUTop, temp));
 
-    SingleRule<CPURSide, Plane> ruleCPURSide(true);
+    SingleRule<CPUSide, Plane> ruleCPURSide(true);
     nodesCreatedSoFar.push(ruleCPURSide.applyRuleLearning(labelToPlanes.at("CPURSide"), temp));
 
-    DoubleRule<CPUFront_CPUTop_CPURSide, CPUFront_CPUTop, CPURSide> ruleCPUFront_CPUTop_CPURSide(true);;
+    DoubleRule<CPUFront_CPUTop_CPURSide, CPUFront_CPUTop, CPUSide> ruleCPUFront_CPUTop_CPURSide(true);;
     CPUFront_CPUTop* secondToLastCPUFront_CPUTop = dynamic_cast<CPUFront_CPUTop*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
-    CPURSide* lastCPURSide = dynamic_cast<CPURSide*>(nodesCreatedSoFar.front());
+    CPUSide* lastCPURSide = dynamic_cast<CPUSide*>(nodesCreatedSoFar.front());
     nodesCreatedSoFar.pop();
     nodesCreatedSoFar.push(ruleCPUFront_CPUTop_CPURSide.applyRuleLearning(secondToLastCPUFront_CPUTop, lastCPURSide, temp));
 
-    DoubleRule<CPUFront_CPURSide, CPUFront, CPURSide> ruleCPUFront_CPURSide(true);
+    DoubleRule<CPUFront_CPURSide, CPUFront, CPUSide> ruleCPUFront_CPURSide(true);
     CPUFront_CPURSide * fs = ruleCPUFront_CPURSide.applyRuleLearning(secondToLastCPUFront, lastCPURSide, temp);
     DoubleRule<CPUFront_CPURSide_CPUTop, CPUFront_CPURSide, CPUTop> ruleCPUFront_CPURSide_CPUTop(true);
     ruleCPUFront_CPURSide_CPUTop.applyRuleLearning(fs, lastCPUTop, temp);
@@ -42,7 +42,8 @@ void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {
 //    nodesCreatedSoFar.pop();
 //    nodesCreatedSoFar.push(ruleCPUFront_CPUTop_CPURSide_CPUBack.applyRuleLearning(secondToLastCPUFront_CPUTop_CPURSide, lastCPUBack, temp));
 //
-//    SingleRule<CPULSide, Plane> ruleCPULSide(true);
+    SingleRule<CPUSide, Plane> ruleCPULSide(true);
+    ruleCPULSide.applyRuleLearning(labelToPlanes.at("CPULSide"), temp);
 //    nodesCreatedSoFar.push(ruleCPULSide.applyRuleLearning(labelToPlanes.at("CPULSide"), temp));
 //
 //    DoubleRule<CPU, CPUFront_CPUTop_CPURSide_CPUBack, CPULSide> ruleCPU(true);;

@@ -503,6 +503,7 @@ void reconfig(cfg3d::labelerConfig & config, uint32_t level)
     pcl::toROSMsg(cloud_colored_orig, cloud_blob_filtered_orig);
     color_handler_orig.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (cloud_blob_filtered_orig));
     viewer.addPointCloud(cloud_colored_orig, color_handler_orig, "orig");
+    viewer.addCoordinateSystem();
 
 }
 
