@@ -175,13 +175,13 @@ public:
     virtual double getMaxCutoff()
     {
         assert(sigma>=0);
-        return std::max(max+getRange()/4,mean+3*sigma);
+        return std::max(max+getRange()/4,mean+6*sigma);
     }
 
     virtual double getMinCutoff()
     {
         assert(sigma>=0);
-        return std::min(min-getRange()/4,mean-3*sigma);
+        return std::min(min-getRange()/4,mean-6*sigma);
     }
     
 };
@@ -1015,7 +1015,7 @@ public:
         ray.normalize();
         assert(fabs(ray.norm()-1)<0.001);
         assert(fabs(normal.norm()-1)<0.001);
-        return(fabs(ray.dot(normal))<0.25);
+        return(fabs(ray.dot(normal))<0.20);
     }
     
     virtual Eigen::Vector3d getPlaneNormal() const
@@ -3208,7 +3208,7 @@ class DoubleRule : public Rule
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
         bool occluded = occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy));
         bool almostInvisible = finalHal->isPlaneAlmostInvisible();
-        bool hallucinable= true;occluded || almostInvisible;
+        bool hallucinable= occluded || almostInvisible;
         cerr<<finalHal->getName()<<"(hallucinated):"<<occluded<<almostInvisible<<endl;
         if(hallucinable && addToPqueueIfNotDuplicate(lhs,pqueue))
         {
