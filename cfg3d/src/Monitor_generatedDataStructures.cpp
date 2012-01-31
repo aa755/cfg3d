@@ -4,7 +4,7 @@ class monitor : public VisualObject, PlanarPrimitive{};
 template<> 
     double SingleRule<monitor, Plane>::getCostScaleFactor()
     {
-        return 200.0;
+        return 300.0;
     }
 
 void MonitorAppendLearningRules(vector<RulePtr>& learningRules) {
