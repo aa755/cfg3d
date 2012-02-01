@@ -1,8 +1,10 @@
-set -e
 
 rulefolder=~/cfgProject/cfg3d/rules
 cd $rulefolder
 rm  rule_*
+
+set -e
+
 cd /home/aa755/cfgProject/data/gold/realData/CPU/gold/featureLearning
 ./genCPUFeats.sh
 #/home/aa755/cfgProject/data/gold/realData/CPU/gold/featureLearning/genCPUFeats.sh
@@ -37,7 +39,7 @@ echo "0.05,0.1,0.0000,0.700" >> rule_4Wall__5Plane.out
 
 for file in `ls rule_*printer*__5Plane.out`
 do
-#    ./removeColorFeats.sh $file > temp
-#    cat printer.color > $file
-#    cat temp >> $file
+    ./removeColorFeats.sh $file > temp
+    cat printer.color > $file
+    cat temp >> $file
 done
