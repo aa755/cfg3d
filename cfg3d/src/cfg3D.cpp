@@ -12,7 +12,7 @@
 #include "Printer_generatedDataStructures.cpp"
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
-#define FILTER_LABELS
+//#define FILTER_LABELS
 //#define GREEDY_OBJECTS
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
@@ -111,6 +111,7 @@ public:
         }
     }
 };
+
 class RScene : public Rule {
 public:
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
@@ -121,7 +122,7 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-                LHS->setAdditionalCost(9000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
+                LHS->setAdditionalCost(500*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 
             
@@ -193,8 +194,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     labSel.addAcceptedLabel(36);//CPUSide
     labSel.addAcceptedLabel(34);//Monitor
     labSel.addAcceptedLabel(22);//printerFront
-    labSel.addAcceptedLabel(112);//printerSide/Side
-    labSel.addAcceptedLabel(117);//printerTop/side
+    labSel.addAcceptedLabel(112);//printerSide
+    labSel.addAcceptedLabel(117);//printerTop
     map<int,int> labelmap;
     readLabelMap(labelMapFile,labelmap);
 #endif
@@ -246,7 +247,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
         terminals.at(i)->computeFeatures();
     }
 
-    getSegmentDistanceToBoundaryOptimized(scene,terminals);
+    getSegmentDistanceToBoundaryOptimized(scene,terminals,occlusionChecker->maxDist);
+    
+    occlusionChecker->setmaxDistReady();
     
     segMinDistances.setZero(terminals.size(),terminals.size());
     

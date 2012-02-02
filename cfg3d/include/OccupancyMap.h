@@ -14,7 +14,8 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <vector>
 #include "utils.h"
-
+//#include "wallDistance.h"
+#include "wallDistance.h"
 using namespace std;
 
 template <typename PointOutT>
@@ -29,9 +30,29 @@ protected:
     static const float nearThresh=0.05;
     static const float nearOccThresh=2.0;
     static const float step = 0.005;
-
+    bool maxDistReady;
 public:
+    double maxDist[360];
 
+    void setmaxDistReady()
+    {
+        maxDistReady=true;
+    }
+    
+    bool isWithinBoundary(const pcl::PointXYZ pt)
+    {
+        assert(maxDistReady);
+                 pair<int,double>angDist= get2DAngleDegreesAndDistance<pcl::PointXYZ>(pt,cloudSeg->sensor_origin_);
+                int angle=angDist.first;
+                double dist=maxDist[angle]-angDist.second;
+                
+                if(dist<0)
+                    cerr<<"outside boundary"<<endl;
+                
+                return (dist>=0);
+       
+    }
+    
     pcl::PointXYZ convertFromVector(Eigen::Vector4f p)
     {
         return pcl::PointXYZ(p(0), p(1), p(2));
@@ -56,6 +77,7 @@ public:
 
     OccupancyMap(pcl::PointCloud<PointOutT> & cloud, float resolution_ = 0.02) : tree(resolution_)
     {
+        maxDistReady=false;
         cloudSeg=& cloud;
         resolution = resolution_;
         convertToXYZ(cloud, xyzcloud);
@@ -109,8 +131,17 @@ public:
         
     }
     
+/**
+ * things outside boundary are not considered occluded.
+ * because we assume, every object is fully inside the boundary
+ * @param pt
+ * @return 
+ */
     bool isOccluded(const pcl::PointXYZ pt)
     {
+        if(!isWithinBoundary(pt))
+            return false;
+        
         octomap::OcTreeROS::NodeType * treeNode;
         treeNode = tree.search(pt);
 

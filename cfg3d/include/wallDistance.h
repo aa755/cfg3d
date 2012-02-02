@@ -80,7 +80,8 @@ public:
   }
 };
 
-pair<int,double> get2DAngleDegreesAndDistance(const PointT & point,Eigen::Vector4f origin)
+template <typename PointType>
+pair<int,double> get2DAngleDegreesAndDistance(const PointType & point,Eigen::Vector4f origin)
 {
     Point2DGeo point2D(point.x,point.y);
 //    VectorG origin=camera.getOrigin();
@@ -121,33 +122,6 @@ void getMaxRanges(double * maxDist, const pcl::PointCloud<PointT> &cloud)
 //    
 //}
 
-void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vector<Terminal *> & terminals)
-{
-    //assuming the camera is in the centre of the room and Z is aligned vertical
-    
-    //bin points based on azimuthal angle 
-//    vector<int> directionBins[360];
-    double maxDist[360];
-    getMaxRanges(maxDist,cloud);
-    
-    for(int i=0;i<(int)terminals.size();i++)
-    {
-        double distBoundary=0;
-        double dist;
-        Terminal* segment= terminals.at(i);
-        for(int j=0;j<(int)segment->getNumPoints();j++)
-        {
-                pair<int,double>angDist= get2DAngleDegreesAndDistance(segment->getPoint(cloud,j),cloud.sensor_origin_);
-                int angle=angDist.first;
-                dist=maxDist[angle]-angDist.second;
-                assert(dist>=0);
-                distBoundary+=dist;
-                segment->getPoint(cloud,j).distance=dist;
-        }
-        segment->setDistanceToBoundary(distBoundary/(segment->getNumPoints()-1));
-    }
-    
-}
 
 //void add_distance_features(pcl::PointCloud<PointT> &cloud, map< int,vector<float> >&features,std::vector<pcl::PointCloud<PointT> > & segment_clouds){
 //    bool outputDistancePCDSegmentWise=false;

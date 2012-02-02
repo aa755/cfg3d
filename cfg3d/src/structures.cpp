@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 35
+#define MAX_SEG_INDEX 30
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -32,7 +32,7 @@
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .73
 #define HIGH_COST 100
-#include <stack>
+#include <stack> 
 #include "utils.h"
 #include "point_struct.h"
 #include "color.cpp"
@@ -3521,5 +3521,32 @@ void readLabelMap(char * filename , map<int,int> & label_mapping)
     }
     
 }
+void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vector<Terminal *> & terminals, double *maxDist)
+{
+    //assuming the camera is in the centre of the room and Z is aligned vertical
+    
+    //bin points based on azimuthal angle 
+//    vector<int> directionBins[360];
+    getMaxRanges(maxDist,cloud);
+    
+    for(int i=0;i<(int)terminals.size();i++)
+    {
+        double distBoundary=0;
+        double dist;
+        Terminal* segment= terminals.at(i);
+        for(int j=0;j<(int)segment->getNumPoints();j++)
+        {
+                pair<int,double>angDist= get2DAngleDegreesAndDistance(segment->getPoint(cloud,j),cloud.sensor_origin_);
+                int angle=angDist.first;
+                dist=maxDist[angle]-angDist.second;
+                assert(dist>=0);
+                distBoundary+=dist;
+                segment->getPoint(cloud,j).distance=dist;
+        }
+        segment->setDistanceToBoundary(distBoundary/(segment->getNumPoints()-1));
+    }
+    
+}
+
 
 #endif
