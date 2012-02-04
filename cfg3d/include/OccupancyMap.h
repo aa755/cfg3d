@@ -46,8 +46,8 @@ public:
                 int angle=angDist.first;
                 double dist=maxDist[angle]-angDist.second;
                 
-                if(dist<0)
-                    cerr<<"outside boundary"<<endl;
+//                if(dist<0)
+//                    cerr<<"outside boundary"<<endl;
                 
                 return (dist>=0);
        

@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 30
+#define MAX_SEG_INDEX 34
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -3213,7 +3213,7 @@ class DoubleRule : public Rule
         bool occluded = occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy));
         bool almostInvisible = finalHal->isPlaneAlmostInvisible();
         bool hallucinable= occluded || almostInvisible;
-        cerr<<finalHal->getName()<<"(hallucinated):"<<occluded<<almostInvisible<<endl;
+      //  cerr<<finalHal->getName()<<"(hallucinated):"<<occluded<<almostInvisible<<endl;
         if(hallucinable && addToPqueueIfNotDuplicate(lhs,pqueue))
         {
              //   cerr<<typeid(LHS_Type).name()<<"hallucinated with cost"<<minCost<<endl;

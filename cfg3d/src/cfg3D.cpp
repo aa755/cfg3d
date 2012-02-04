@@ -13,7 +13,7 @@
 #include "Rules_Floor.h"
 #include "Rules_Wall.h"
 //#define FILTER_LABELS
-//#define GREEDY_OBJECTS
+#define GREEDY_OBJECTS
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
 public:
@@ -122,7 +122,7 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-                LHS->setAdditionalCost(500*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
+                LHS->setAdditionalCost(1000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 
             
@@ -173,10 +173,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
     CPUAppendLearningRules(rules);
-    MonitorAppendLearningRules(rules);
-    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
-    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
-    printerAppendLearningRules(rules);
+//    MonitorAppendLearningRules(rules);
+//    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
+//    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
+//    printerAppendLearningRules(rules);
 
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
 
@@ -282,7 +282,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     Scene::COST_THERSHOLD=infinity();
     
 #ifdef GREEDY_OBJECTS
-    Scene::COST_THERSHOLD=2000;
+    Scene::COST_THERSHOLD=3000;
 #endif
     
     
