@@ -282,7 +282,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     Scene::COST_THERSHOLD=infinity();
     
 #ifdef GREEDY_OBJECTS
-    Scene::COST_THERSHOLD=500;
+    Scene::COST_THERSHOLD=700;
 #endif
     
     

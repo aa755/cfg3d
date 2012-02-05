@@ -1754,7 +1754,7 @@ public:
     bool doesNotOverlapWithScenes(vector<VisualObject*> & identifiedScenes)
     {
         vector<VisualObject*>::iterator it;
-        if(isOfSubClass<NonTerminalIntermediate>()&&cost>40)
+        if(isOfSubClass<NonTerminalIntermediate>()&&cost>80)
             return false;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
