@@ -3194,7 +3194,7 @@ class DoubleRule : public Rule
             vector<Terminal*> dummy;
             
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
-       double additionalCost=1000+std::max(3-numNodes,0)*500;
+       double additionalCost=800+std::max(3-numNodes,0)*400;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
