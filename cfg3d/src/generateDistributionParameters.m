@@ -38,7 +38,7 @@ function [] = writeModels(outputFileName,matrix)
     if(rankm<numFeats)
         covar=covar+0.001*eye(numFeats);
     end
-    outmat=[covar;meanv;minv;maxv];   
+    outmat=[meanv;minv;maxv;inv(covar)];   
     
     %colMin = min(matrix(:,i));
     %colMax = max(matrix(:,i));

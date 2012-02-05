@@ -100,6 +100,107 @@ double infinity() {
     return numeric_limits<double>::infinity();
 }
 
+class MultiVariateProbabilityDistribution {
+public:
+    virtual VectorXd minusLogProb(double x)=0;
+//    virtual VectorXd getMean()=0;
+//    virtual VectorXd getVar()=0;
+//    virtual double getMaxCutoff()=0;
+//    virtual double getMinCutoff()=0;
+    
+//    bool isInRange(double x)
+//    {
+//        return (getMinCutoff()<=x && x<=getMaxCutoff());
+//    }
+};
+
+class MultiVarGaussian : public MultiVariateProbabilityDistribution
+{
+    VectorXd mean;
+    VectorXd minv;
+    VectorXd maxv;
+    MatrixXd sigmaInv;
+public:
+    double minusLogProb(VectorXd x)
+    {
+        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
+        assert(value.rows()==1);
+        assert(value.cols()==1);
+        double lp=value(0,0);
+ //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
+        assert(lp>=0);
+        return lp;
+    }
+
+    MultiVarGaussian(string filename)
+    {
+        std::ifstream file;
+        file.open(filename.data(), std::ios::in);
+        std::string line;
+        string separator=",";
+        boost::char_separator<char> sep(separator.data());
+        int numFeats=0;
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                numFeats++;
+            }
+            cerr<<filename<<","<<numFeats<<endl;
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                mean(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }
+        
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                minv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }
+        
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                maxv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }   
+        sigmaInv.resize(numFeats,numFeats);
+        for (int r = 0; r < numFeats; r++)
+        {
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            int c = 0;
+
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                sigmaInv(r, c) = boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c == numFeats);
+        }
+
+
+    }
+    
+    
+};
+
 class ProbabilityDistribution {
 public:
     virtual double minusLogProb(double x)=0;
