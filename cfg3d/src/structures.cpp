@@ -1726,7 +1726,7 @@ public:
 
 int NonTerminal::id_counter = 0;
 
-class NonTerminalIntermediate : public NonTerminal
+class NonTerminalIntermediate : virtual public NonTerminal
 {
 public:
     virtual void appendFeatures(vector<float> & features)
@@ -1754,12 +1754,14 @@ public:
     bool doesNotOverlapWithScenes(vector<VisualObject*> & identifiedScenes)
     {
         vector<VisualObject*>::iterator it;
-        
+        if(isOfSubClass<NonTerminalIntermediate>()&&cost>40)
+            return false;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             if (!isSpanExclusive(*it))
             {
-                
+                if((*it)->isSpanContainedIn(this))
+                    ((*it))=this;
                 return false;
             }
         }

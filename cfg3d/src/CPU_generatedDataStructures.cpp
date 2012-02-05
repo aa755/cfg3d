@@ -1,9 +1,9 @@
 #include "helper.cpp"
 class CPU : public VisualObject{};
-class CPUFront_CPUTop : public NonTerminalIntermediate{};
+class CPUFront_CPUTop : public NonTerminalIntermediate,VisualObject{};
 class CPUFront_CPUTop_CPURSide : public VisualObject{};
 class CPUFront_CPUTop_CPURSide_CPUBack : public NonTerminalIntermediate{};
-class CPUFront_CPURSide : public NonTerminalIntermediate{};
+class CPUFront_CPURSide : public NonTerminalIntermediate,VisualObject{};
 class CPUFront_CPURSide_CPUTop : public VisualObject{};
 class CPUFront_CPURSide_CPUTop_CPUBack : public NonTerminalIntermediate{};
 class CPUBack : public PlanarPrimitive{};

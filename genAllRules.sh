@@ -24,14 +24,16 @@ cd /home/aa755/cfgProject/data/localBackup/allPCDs/wallPCDs
 cp rule_* $rulefolder/
 
 
-cd /home/aa755/cfgProject/data/gold/Sketchups/
+#cd /home/aa755/cfgProject/data/gold/Sketchups/
 #/home/aa755/cfgProject/data/gold/Sketchups/genPrinterFeats.sh
-./genPrinterFeats.sh
-cp rule_* $rulefolder/
+#./genPrinterFeats.sh
+#cp rule_* $rulefolder/
+
 
 #get the distributions 
 cd $rulefolder
 nohup matlab -nodesktop -nosplash -r genAllRulesDistScript
+rm nohup.out
 # manual rules
 echo "0.9305,0.2428,0.6000,1.00" > rule_5Floor__5Plane.out
 echo "0.0021,0.0663,-0.100,0.1" >> rule_5Floor__5Plane.out
