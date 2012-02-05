@@ -2495,6 +2495,10 @@ public:
     
     MultiVariateProbabilityDistribution * pdist;
     
+    Rule()
+    {
+        pdist=NULL;
+    }
     ProbabilityDistribution * getNormalZDist()
     {
         assert(false); // not in use
@@ -2591,7 +2595,8 @@ public:
     
     ~Rule()
     {
-        delete pdist;
+        if(pdist!=NULL)
+                delete pdist;
         for(int i=0;i<(int)g.size();i++)
             delete g.at(i);
     }
