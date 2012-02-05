@@ -6,7 +6,7 @@
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
-//#define DISABLE_HALLUCINATION
+#define DISABLE_HALLUCINATION
 
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
@@ -101,8 +101,24 @@ double infinity() {
 }
 
 class MultiVariateProbabilityDistribution {
+protected:
+    int numFeats;
 public:
-    virtual VectorXd minusLogProb(double x)=0;
+    virtual double minusLogProb(VectorXd & x)=0;
+
+    double minusLogProb(vector<float> & x) {
+        VectorXd feats(x.size());
+        for(int i=0;i<(int)x.size();i++)
+        {
+            feats(i)=x.at(i);
+        }
+        return minusLogProb(feats);
+    }
+
+    int getNumFeats() const
+    {
+        return numFeats;
+    }
 //    virtual VectorXd getMean()=0;
 //    virtual VectorXd getVar()=0;
 //    virtual double getMaxCutoff()=0;
@@ -121,8 +137,9 @@ class MultiVarGaussian : public MultiVariateProbabilityDistribution
     VectorXd maxv;
     MatrixXd sigmaInv;
 public:
-    double minusLogProb(VectorXd x)
+    double minusLogProb(VectorXd & x)
     {
+        assert(x.rows()==numFeats);
         MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
         assert(value.rows()==1);
         assert(value.cols()==1);
@@ -139,7 +156,7 @@ public:
         std::string line;
         string separator=",";
         boost::char_separator<char> sep(separator.data());
-        int numFeats=0;
+        numFeats=0;
         {        
             getline(file, line);
             boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
@@ -2474,14 +2491,23 @@ public:
      */
     virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
     
-    vector<ProbabilityDistribution*> g;
+    vector<ProbabilityDistribution*> g; // not used
+    
+    MultiVariateProbabilityDistribution * pdist;
     
     ProbabilityDistribution * getNormalZDist()
     {
+        assert(false); // not in use
         return g.at(Plane::NORMAL_Z_INDEX);
     }
     
     void readDistribution(string filename) {
+        ifstream inputStream;
+        filename.append(".model");
+        pdist=new MultiVarGaussian(filename);
+    }
+    
+    void readDistributionInd(string filename) {
         ifstream inputStream;
         filename.append(".out");
         inputStream.open(filename.data());
@@ -2525,15 +2551,8 @@ public:
      * @param x
      * @return 
      */
-    double getMinusLogProbability(vector<float> x) {
-        double sum = 0;
-        int counter = 0;
-        assert(g.size()==x.size());
-        BOOST_FOREACH(ProbabilityDistribution *p, g) {
-            sum = sum + p->minusLogProb(x.at(counter));
-            counter = counter + 1;
-        }
-        return sum;
+    double getMinusLogProbability(vector<float> & x) {
+        return pdist->minusLogProb(x);
     }
     
     const vector<float> & getFeatures() const
@@ -2568,6 +2587,13 @@ public:
         {
             return true;
         }
+    }
+    
+    ~Rule()
+    {
+        delete pdist;
+        for(int i=0;i<(int)g.size();i++)
+            delete g.at(i);
     }
 };
 /**
@@ -3039,7 +3065,9 @@ class DoubleRule : public Rule
             nt = finder.nextEligibleNT();
         }
         
+#ifndef DISABLE_HALLUCINATION        
           tryToHallucinate<RHS_Type1,RHS_Type2>(RHS_extracted,pqueue,terminals,iterationNo,true);
+#endif
 
     }
 
@@ -3062,7 +3090,9 @@ class DoubleRule : public Rule
             nt = finder.nextEligibleNT();
         }
         
+#ifndef DISABLE_HALLUCINATION        
         tryToHallucinate<RHS_Type2,RHS_Type1>(RHS_extracted,pqueue,terminals,iterationNo,false);
+#endif
     }
 
 
@@ -3082,9 +3112,6 @@ class DoubleRule : public Rule
     typename boost::enable_if<boost::is_base_of<PlanarPrimitive, HalType>, void>::type
     tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-#ifdef DISABLE_HALLUCINATION        
-        return;
-#endif
         vector<Symbol*> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
@@ -3445,8 +3472,7 @@ public:
         
         // below to be replaced by generic learned rules
         
-        bool temporary=true;
-        if(!temporary)
+#ifdef DISABLE_HALLUCINATION
         {
             appendAllFeatures(LHS, RHS1, RHS2, terminals);
             if (setCost(LHS, RHS1, RHS2, terminals))
@@ -3459,7 +3485,7 @@ public:
                return NULL;
             }
         }
-        else
+#else
         {
             features.clear();
 
@@ -3499,6 +3525,7 @@ public:
             
 
         }
+#endif
         return LHS;
         
     }
