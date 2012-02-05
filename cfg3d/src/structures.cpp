@@ -164,6 +164,7 @@ public:
             {
                 numFeats++;
             }
+            mean.resize(numFeats);
             cerr<<filename<<","<<numFeats<<endl;
             int c=0;
             BOOST_FOREACH(std::string t, tokens1)
@@ -177,6 +178,7 @@ public:
         {        
             getline(file, line);
             boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            minv.resize(numFeats);
             int c=0;
             BOOST_FOREACH(std::string t, tokens1)
             {
@@ -189,6 +191,7 @@ public:
         {        
             getline(file, line);
             boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            maxv.resize(numFeats);
             int c=0;
             BOOST_FOREACH(std::string t, tokens1)
             {
@@ -1341,6 +1344,14 @@ public:
     bool isSpanExclusive(NonTerminal * nt) {
         return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
+    /**
+     * either non-interse
+     * @param nt
+     * @return 
+     */
+    bool isSpanContainedIn(NonTerminal * nt) {
+        return (spanned_terminals.is_proper_subset_of(nt->spanned_terminals));
+    }
     
     virtual Symbol * grandChildIfHallucinated()
     {
@@ -1743,10 +1754,12 @@ public:
     bool doesNotOverlapWithScenes(vector<VisualObject*> & identifiedScenes)
     {
         vector<VisualObject*>::iterator it;
+        
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             if (!isSpanExclusive(*it))
             {
+                
                 return false;
             }
         }
