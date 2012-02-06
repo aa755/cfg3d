@@ -7,11 +7,12 @@
 
 #include "ParseTreeLablerForm.h"
 #include "utils.h"
+#include "qt4/QtCore/qstring.h"
 
 //#include "structures.cpp"
 using namespace boost;
 
-ParseTreeLablerForm::ParseTreeLablerForm()
+ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer")
 {
     widget.setupUi(this);
 }
@@ -19,6 +20,19 @@ ParseTreeLablerForm::ParseTreeLablerForm()
 ParseTreeLablerForm::~ParseTreeLablerForm()
 {
 }
+string getCppString(QString str)
+{
+    return string(str.toUtf8().constData());
+}
+void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
+ {
+     //get the text of the selected item
+     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+     QString selectedText = index.data(Qt::DisplayRole).toString();
+     //find out the hierarchy level of the selected item
+     string name=getCppString(selectedText);
+     
+ }
 
 void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 {
@@ -56,8 +70,14 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
     
 }
 
-pcl_visualization::PCLVisualizer viewer("3D Viewer");
+void ParseTreeLablerForm::updatePCDVis()
+{
+    pcl::toROSMsg(cloud_colored, colored_cloud_blob);
 
+    color_handler.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (colored_cloud_blob));
+
+    viewer.addPointCloud(cloud_colored, color_handler, "colored");    
+}
 
 void ParseTreeLablerForm::init(int argc, char** argv)
 {
@@ -112,9 +132,13 @@ void ParseTreeLablerForm::init(int argc, char** argv)
         exit (-1);
     }
     
+    //viewer.createViewPort(0.0, 0.0, 1.0, 1.0);
+    cloud_colored=cloud_orig;
+    updatePCDVis();
+    
      QItemSelectionModel *selectionModel= widget.treeView->selectionModel();
-//     connect(selectionModel, SIGNAL(selectionChanged (const QItemSelection &, const QItemSelection &)),
-//             this, SLOT(selectionChangedSlot(const QItemSelection &, const QItemSelection &)));
+     connect(selectionModel, SIGNAL(selectionChanged (const QItemSelection &, const QItemSelection &)),
+             this, SLOT(selectionChangedSlot(const QItemSelection &, const QItemSelection &)));
 
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
@@ -153,7 +177,7 @@ main(int argc, char** argv) {
     
     //ROS_INFO ("Press q to quit.");
     while (!isDone) {
-        viewer.spinOnce();
+        PTlabler.viewer.spinOnce();
         QCoreApplication::sendPostedEvents();
         QCoreApplication::processEvents();
     }

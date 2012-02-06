@@ -45,6 +45,9 @@ typedef pcl::PointXYZRGBCamSL PointT;
 class ParseTreeLablerForm : public QDialog {
     Q_OBJECT
     
+public slots:
+    void selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/);
+    
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
     ParseTreeLablerForm();
@@ -57,11 +60,18 @@ public:
     std::vector<int> segmentIndices;
     std::vector<std::string> labels;
 pcl::PointCloud<PointT> cloud_orig;
+pcl::PointCloud<PointT> cloud_colored;
 pcl::PCDWriter writer;
+
+pcl_visualization::PCLVisualizer viewer;
+pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_handler;
+sensor_msgs::PointCloud2 colored_cloud_blob;
     
     void setUpTree(char * labelMapFile);
     
     void init(int argc, char** argv);
+    
+    void updatePCDVis();
 
 };
 
