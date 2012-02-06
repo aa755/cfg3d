@@ -24,15 +24,6 @@ string getCppString(QString str)
 {
     return string(str.toUtf8().constData());
 }
-void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
- {
-     //get the text of the selected item
-     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
-     QString selectedText = index.data(Qt::DisplayRole).toString();
-     //find out the hierarchy level of the selected item
-     string name=getCppString(selectedText);
-     
- }
 
 void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 {
@@ -72,12 +63,58 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 
 void ParseTreeLablerForm::updatePCDVis()
 {
+    viewer.removePointCloud("colored");    
+    
     pcl::toROSMsg(cloud_colored, colored_cloud_blob);
 
     color_handler.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (colored_cloud_blob));
 
     viewer.addPointCloud(cloud_colored, color_handler, "colored");    
 }
+
+void ParseTreeLablerForm::colorSegs(const set<int> & segs, bool fresh) {
+    ROS_INFO("applying filter");
+    if(fresh)
+    {
+        cloud_colored=cloud_orig;
+    }
+
+
+
+    ColorRGB green(0,1,0);
+//    ColorRGB red(1,0,0);
+        for(set<int>::iterator it=segs.begin();it!=segs.end();it++)
+            cout<<*it<<",";
+        cout<<endl;
+    
+    for (size_t i = 0; i < cloud_colored.points.size(); i++) {
+        PointT & pt= cloud_colored.points[i];
+        if(segs.find(pt.segment)!=segs.end())
+        {
+            pt.rgb = green.getFloatRep();
+        }
+    }
+}
+void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
+ {
+     //get the text of the selected item
+     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+     QString selectedText = index.data(Qt::DisplayRole).toString();
+     //find out the hierarchy level of the selected item
+     string name=getCppString(selectedText);
+     if(name.substr(0,4)=="seg_")
+     {
+         int end=name.find("_",4);
+         cout<<"selseg:"<<name.substr(4,end-3)<<endl;
+         int segment=lexical_cast<int>(name.substr(4,end-4));
+         cout<<"selseg:"<<segment<<endl;
+         set<int> segList;
+         segList.insert(segment);
+         colorSegs(segList,true);
+         updatePCDVis();
+     }
+     
+ }
 
 void ParseTreeLablerForm::init(int argc, char** argv)
 {

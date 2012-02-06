@@ -72,6 +72,7 @@ sensor_msgs::PointCloud2 colored_cloud_blob;
     void init(int argc, char** argv);
     
     void updatePCDVis();
+    void colorSegs(const set<int>& segs, bool fresh=false);
 
 };
 
