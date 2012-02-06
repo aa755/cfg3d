@@ -18,12 +18,12 @@ set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 #ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
-set(qt_srcs    src/labler.cpp)
-set(qt_hdrs      src/labler.h)
+set(qt_srcs    src/ParseTreeLablerForm.cpp)
+set(qt_hdrs    src/ParseTreeLablerForm.h)
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
 
-QT4_WRAP_UI(uis_h src/labler.ui)
+QT4_WRAP_UI(uis_h src/ParseTreeLablerForm.ui)
 # include this for ui_h
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
@@ -47,8 +47,8 @@ gencfg()
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(parse src/cfg3D.cpp)
-rosbuild_add_executable(qtt src/main.cpp  ${uis_h} ${qt_srcs} ${qt_moc_srcs})
-target_link_libraries(qtt ${QT_LIBRARIES})
+rosbuild_add_executable(ParseTreeLabler src/ParseTreeLabler.cpp  ${uis_h} ${qt_srcs} ${qt_moc_srcs})
+target_link_libraries(ParseTreeLabler ${QT_LIBRARIES})
 
 rosbuild_add_executable(makeGraph src/makeGraph.cpp)
 rosbuild_add_executable(visualizeNighbors src/labelVisualizer.cpp)
