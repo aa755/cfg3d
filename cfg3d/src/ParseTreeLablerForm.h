@@ -11,6 +11,7 @@
 #include "ui_ParseTreeLablerForm.h"
  #include <QStandardItemModel>
  #include <QItemSelectionModel>
+#include "PTNodeTableModel.h"
 #include <iostream>
 #include <boost/thread.hpp>
 
@@ -47,6 +48,7 @@ class ParseTreeLablerForm : public QDialog {
     
 public slots:
     void selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/);
+    void addNodeButtonClicked();
     
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
@@ -66,6 +68,7 @@ pcl::PCDWriter writer;
 pcl_visualization::PCLVisualizer viewer;
 pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_handler;
 sensor_msgs::PointCloud2 colored_cloud_blob;
+PTNodeTableModel * nodeTableModel;
     
     void setUpTree(char * labelMapFile);
     
@@ -73,6 +76,8 @@ sensor_msgs::PointCloud2 colored_cloud_blob;
     
     void updatePCDVis();
     void colorSegs(const set<int>& segs, bool fresh=false);
+    
+    
 
 };
 

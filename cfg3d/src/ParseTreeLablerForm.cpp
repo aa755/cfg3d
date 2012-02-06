@@ -8,6 +8,7 @@
 #include "ParseTreeLablerForm.h"
 #include "utils.h"
 #include "qt4/QtCore/qstring.h"
+#include "PTNodeTableModel.h"
 
 //#include "structures.cpp"
 using namespace boost;
@@ -116,6 +117,18 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
      
  }
 
+void ParseTreeLablerForm::addNodeButtonClicked()
+{
+    cout<<"button handler called"<<endl;
+     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+     QString selectedText = index.data(Qt::DisplayRole).toString();
+     //find out the hierarchy level of the selected item
+     string name=getCppString(selectedText);
+     nodeTableModel->nodesToMerge.push_back(name);
+     nodeTableModel->refresh();
+    
+}
+
 void ParseTreeLablerForm::init(int argc, char** argv)
 {
     if(argc!=5 && argc!=6)
@@ -162,6 +175,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 
     setUpTree(argv[3]);
 
+    nodeTableModel=new PTNodeTableModel(0);
+    widget.tableView->setModel(nodeTableModel);
 
     // read from file
     if ( pcl::io::loadPCDFile<PointT > (argv[1], cloud_orig) == -1) {
@@ -177,6 +192,9 @@ void ParseTreeLablerForm::init(int argc, char** argv)
      connect(selectionModel, SIGNAL(selectionChanged (const QItemSelection &, const QItemSelection &)),
              this, SLOT(selectionChangedSlot(const QItemSelection &, const QItemSelection &)));
 
+     connect(widget.addButton, SIGNAL(clicked ()),
+             this, SLOT(addNodeButtonClicked()));
+     
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
    // pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));

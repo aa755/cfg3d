@@ -18,10 +18,11 @@ set( QT_USE_QTXML TRUE )
 include(${QT_USE_FILE})
 #ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
-set(qt_srcs    src/ParseTreeLablerForm.cpp)
-set(qt_hdrs    src/ParseTreeLablerForm.h)
+set(qt_srcs    src/ParseTreeLablerForm.cpp src/PTNodeTableModel.cpp)
+set(qt_hdrs    src/ParseTreeLablerForm.h src/PTNodeTableModel.h)
 qt4_automoc(${qt_srcs})
 QT4_WRAP_CPP(qt_moc_srcs ${qt_hdrs})
+
 
 QT4_WRAP_UI(uis_h src/ParseTreeLablerForm.ui)
 # include this for ui_h
