@@ -10,8 +10,8 @@
 #include<string>
 #include<vector>
 using namespace std;
-
 #include <QAbstractTableModel>
+class ParseTreeLablerForm;
 
  class PTNodeTableModel : public QAbstractTableModel
  {
@@ -21,8 +21,9 @@ using namespace std;
      int rowCount(const QModelIndex &parent = QModelIndex()) const ;
      int columnCount(const QModelIndex &parent = QModelIndex()) const;
      QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-     
+     void combineAll(ParseTreeLablerForm* form);
      void addItem(string node /* = 0 */);
+     void clearAll();
  protected:
      vector<string> nodesToMerge;
  };

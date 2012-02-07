@@ -42,6 +42,7 @@
 #include <cfg3d/labelerConfig.h>
 #include "color.cpp"
 typedef pcl::PointXYZRGBCamSL PointT;
+using namespace boost;
 
 class ParseTreeLablerForm : public QDialog {
     Q_OBJECT
@@ -71,6 +72,7 @@ pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_h
 sensor_msgs::PointCloud2 colored_cloud_blob;
 PTNodeTableModel * nodeTableModel;
 map<string,QStandardItem *> nameToTreeNode;
+map<string,int> typeCounts;
     
     void setUpTree(char * labelMapFile);
     

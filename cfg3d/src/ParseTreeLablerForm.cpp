@@ -11,7 +11,6 @@
 #include "PTNodeTableModel.h"
 
 //#include "structures.cpp"
-using namespace boost;
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer")
 {
@@ -133,7 +132,7 @@ void ParseTreeLablerForm::addNodeButtonClicked()
 
 void ParseTreeLablerForm::combineButtonClicked()
 {
-    
+    nodeTableModel->combineAll(this);
 }
 
 void ParseTreeLablerForm::init(int argc, char** argv)
@@ -202,6 +201,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 
      connect(widget.addButton, SIGNAL(clicked ()),
              this, SLOT(addNodeButtonClicked()));
+     connect(widget.combineButton, SIGNAL(clicked ()),
+             this, SLOT(combineButtonClicked()));
      
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
