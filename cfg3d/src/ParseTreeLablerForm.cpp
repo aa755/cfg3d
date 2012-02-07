@@ -48,7 +48,10 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
             int segNum=lexical_cast<int>(toks.at(1));
             label_mapping_orig[segNum] = toks.at(0);
             segsWithLabel.insert(segNum);
-            QStandardItem *item = new QStandardItem(QString("seg_")+QString("%1").arg(segNum)+QString(("_"+toks.at(0)).data())); 
+            string name="seg_"+lexical_cast<string>(segNum)+"_"+toks.at(0);
+            QStandardItem *item = new QStandardItem(name.data()); 
+            nameToTreeNode[name]=item;
+            
             cout<<item->text().toUtf8().constData()<<endl;
             rootNode->appendRow(item);
         }
@@ -124,8 +127,12 @@ void ParseTreeLablerForm::addNodeButtonClicked()
      QString selectedText = index.data(Qt::DisplayRole).toString();
      //find out the hierarchy level of the selected item
      string name=getCppString(selectedText);
-     nodeTableModel->nodesToMerge.push_back(name);
-     nodeTableModel->refresh();
+     
+     nodeTableModel->addItem(name);
+}
+
+void ParseTreeLablerForm::combineButtonClicked()
+{
     
 }
 
@@ -162,6 +169,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
             if (line.size() == 0)
                 break;
             cout << "adding typename " << line  << endl;
+            widget.comboBox->addItem(QString(line.data()));
             count++;
             labels.push_back(line);
         }

@@ -49,6 +49,7 @@ class ParseTreeLablerForm : public QDialog {
 public slots:
     void selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/);
     void addNodeButtonClicked();
+    void combineButtonClicked();
     
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
@@ -69,6 +70,7 @@ pcl_visualization::PCLVisualizer viewer;
 pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_handler;
 sensor_msgs::PointCloud2 colored_cloud_blob;
 PTNodeTableModel * nodeTableModel;
+map<string,QStandardItem *> nameToTreeNode;
     
     void setUpTree(char * labelMapFile);
     
