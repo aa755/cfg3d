@@ -7,7 +7,7 @@
 
 #include "PTNodeTableModel.h"
 #include "ParseTreeLablerForm.h"
-
+ #include <QMessageBox>
  
  PTNodeTableModel::PTNodeTableModel(QObject *parent)
      :QAbstractTableModel(parent)
@@ -60,8 +60,16 @@ void PTNodeTableModel::combineAll(ParseTreeLablerForm* form)
     {
         QStandardItem * node=form->nameToTreeNode[*it];
         assert(node!=NULL);
+        if(node->parent()!=0)
+        {
+              QMessageBox::warning(form, tr("Parse Tree Labaler"),
+                                tr("One of the nodes already had a parent and hence cannot be combined. "
+                                   "Please clear the nodes and add nodes which have no parent"),
+                                QMessageBox::Ok,QMessageBox::Ok);            
+              return;
+        }
+        form->rootNode->takeRow(node->row()); // remove this node from it's current parent ... which should be root node
         newItem->appendRow(node);
-        form->rootNode->removeRow(node->row()); // remove this node from it's current parent ... which should be root node
         
     }
     form->nameToTreeNode[newNodeName]=newItem;
