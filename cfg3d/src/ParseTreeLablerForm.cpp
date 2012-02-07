@@ -135,6 +135,11 @@ void ParseTreeLablerForm::combineButtonClicked()
     nodeTableModel->combineAll(this);
 }
 
+void ParseTreeLablerForm::clearButtonClicked()
+{
+    nodeTableModel->clearAll();
+}
+
 void ParseTreeLablerForm::init(int argc, char** argv)
 {
     if(argc!=5 && argc!=6)
@@ -203,6 +208,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(addNodeButtonClicked()));
      connect(widget.combineButton, SIGNAL(clicked ()),
              this, SLOT(combineButtonClicked()));
+     connect(widget.clearButton, SIGNAL(clicked ()),
+             this, SLOT(clearButtonClicked()));
      
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);

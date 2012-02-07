@@ -51,6 +51,7 @@ public slots:
     void selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/);
     void addNodeButtonClicked();
     void combineButtonClicked();
+    void clearButtonClicked();
     
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
