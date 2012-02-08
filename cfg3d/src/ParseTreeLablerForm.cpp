@@ -9,7 +9,7 @@
 #include "utils.h"
 #include "qt4/QtCore/qstring.h"
 #include "PTNodeTableModel.h"
-
+#include <queue>
 //#include "structures.cpp"
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer")
@@ -61,6 +61,44 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
         cout << "could not open the gt LabelMap file you specified ..exiting\n";
         exit(-1);
     }
+    
+}
+
+void ParseTreeLablerForm::readTree(char * treeFile)
+{
+    
+}
+
+void ParseTreeLablerForm::writeTree(char * treeFile)
+{
+    cerr<<"writing the parse tree"<<endl;
+    rootNode = standardModel->invisibleRootItem();
+    ofstream ofile;
+    ofile.open(treeFile,ios::out);
+    ofile<<"digraph g{\n";
+    queue<QStandardItem *> bfsQueue;
+    bfsQueue.push(rootNode);
+    while(!bfsQueue.empty())
+    {
+        QStandardItem *curNode=bfsQueue.front();
+        int numChildren=curNode->rowCount();
+        string parName="";
+        if(curNode!=rootNode)
+        {
+            parName=getCppString(curNode->text())+" -> ";
+        }
+        cout<<parName<<endl;
+        for(int i=0;i<numChildren;i++)
+        {
+            QStandardItem *child=curNode->child(i,0);
+            ofile<<parName<<getCppString(child->text())<<" ;"<<endl;
+            cout<<getCppString(child->text())<<endl;
+            bfsQueue.push(child);
+        }
+        bfsQueue.pop();
+    }
+    ofile<<"}";
+    ofile.close();
     
 }
 
@@ -138,6 +176,12 @@ void ParseTreeLablerForm::combineButtonClicked()
 void ParseTreeLablerForm::clearButtonClicked()
 {
     nodeTableModel->clearAll();
+    cerr<<"clear button called"<<endl;
+}
+
+void ParseTreeLablerForm::windowClosing()
+{
+    writeTree(parseTreeFileName);    
 }
 
 void ParseTreeLablerForm::init(int argc, char** argv)
@@ -185,6 +229,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
     fileI.close();
 
 
+    parseTreeFileName=argv[3];
     setUpTree(argv[3]);
 
     nodeTableModel=new PTNodeTableModel(0);
@@ -210,6 +255,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(combineButtonClicked()));
      connect(widget.clearButton, SIGNAL(clicked ()),
              this, SLOT(clearButtonClicked()));
+     connect(this, SIGNAL(finished (int)),
+             this, SLOT(windowClosing()));
      
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);

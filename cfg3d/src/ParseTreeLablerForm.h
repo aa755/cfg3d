@@ -52,6 +52,7 @@ public slots:
     void addNodeButtonClicked();
     void combineButtonClicked();
     void clearButtonClicked();
+    void windowClosing();
     
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
@@ -74,8 +75,11 @@ sensor_msgs::PointCloud2 colored_cloud_blob;
 PTNodeTableModel * nodeTableModel;
 map<string,QStandardItem *> nameToTreeNode;
 map<string,int> typeCounts;
-    
+char *parseTreeFileName;
+
     void setUpTree(char * labelMapFile);
+    void readTree(char * treeFile);
+    void writeTree(char * treeFile);
     
     void init(int argc, char** argv);
     
