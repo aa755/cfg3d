@@ -12,7 +12,7 @@
 #include <queue>
 //#include "structures.cpp"
 
-ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer")
+ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
 {
     widget.setupUi(this);
 }
@@ -64,6 +64,11 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
     
 }
 
+float ParseTreeLablerForm::randColor()
+{
+    return labelColors[randSix(rng)]->getFloatRep();
+}
+
 void ParseTreeLablerForm::readTree(char * treeFile)
 {
     std::ifstream fileI;
@@ -86,7 +91,7 @@ void ParseTreeLablerForm::readTree(char * treeFile)
 
             
             vector<string> toks;
-            getTokens(line, toks," ->;");
+            getTokens(line, toks,"\t ->;");
 //            for(vector<string>::iterator it=toks.begin();it!=toks.end();it++)
 //            {
 //                if((*it).size()!=0)
@@ -173,8 +178,8 @@ void ParseTreeLablerForm::updatePCDVis()
     viewer.addPointCloud(cloud_colored, color_handler, "colored");    
 }
 
-void ParseTreeLablerForm::colorSegs(const set<int> & segs, bool fresh) {
-    ROS_INFO("applying filter");
+void ParseTreeLablerForm::colorSegs(map<int,float> & seg2color, bool fresh) {
+    ROS_INFO("color segs");
     if(fresh)
     {
         cloud_colored=cloud_orig;
@@ -184,15 +189,15 @@ void ParseTreeLablerForm::colorSegs(const set<int> & segs, bool fresh) {
 
     ColorRGB green(0,1,0);
 //    ColorRGB red(1,0,0);
-        for(set<int>::iterator it=segs.begin();it!=segs.end();it++)
-            cout<<*it<<",";
-        cout<<endl;
+//        for(set<int>::iterator it=segs.begin();it!=segs.end();it++)
+//            cout<<*it<<",";
+//        cout<<endl;
     
     for (size_t i = 0; i < cloud_colored.points.size(); i++) {
         PointT & pt= cloud_colored.points[i];
-        if(segs.find(pt.segment)!=segs.end())
+        if(seg2color.find(pt.segment)!=seg2color.end())
         {
-            pt.rgb = green.getFloatRep();
+            pt.rgb = seg2color[pt.segment];
         }
     }
 }
@@ -201,19 +206,56 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
      //get the text of the selected item
      const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
      QString selectedText = index.data(Qt::DisplayRole).toString();
-     //find out the hierarchy level of the selected item
      string name=getCppString(selectedText);
-     if(name.substr(0,4)=="seg_")
-     {
-         int end=name.find("_",4);
-         cout<<"selseg:"<<name.substr(4,end-3)<<endl;
-         int segment=lexical_cast<int>(name.substr(4,end-4));
-         cout<<"selseg:"<<segment<<endl;
-         set<int> segList;
-         segList.insert(segment);
-         colorSegs(segList,true);
+    queue<QStandardItem *> bfsQueue;
+    bfsQueue.push(nameToTreeNode[name]);
+//boost::random::uniform_int_distribution<> randSix(0,5);
+                                    // distribution that maps to 1..6
+                                    // see random number distributions
+    segNumToColor.clear();
+    while(!bfsQueue.empty())
+    {
+        QStandardItem *curNode=bfsQueue.front();
+        bfsQueue.pop();
+        int numChildren=curNode->rowCount();
+        string parName=getCppString(curNode->text());
+            cout<<"selseg:"<<parName.substr(0,10)<<endl;
+            cout<<"selseg:"<<"Terminal__"<<endl;
+        
+        if(parName.substr(0,10)=="Terminal__")
+        {
+            int end=parName.find("_",10);
+            cout<<"selseg:"<<parName.substr(10,end-10)<<endl;
+            int segment=lexical_cast<int>(parName.substr(10,end-10));
+            
+            segNumToColor[segment]=randColor();
+            continue;
+        }
+        cout<<parName<<endl;
+        
+        for(int i=0;i<numChildren;i++)
+        {
+            QStandardItem *child=curNode->child(i,0);
+            cout<<"child:"<<getCppString(child->text())<<endl;
+            bfsQueue.push(child);
+        }
+        
+    }
+         colorSegs(segNumToColor,true);
          updatePCDVis();
-     }
+     
+     //find out the hierarchy level of the selected item
+//     if(name.substr(0,4)=="seg_")
+//     {
+//         int end=name.find("_",4);
+//         cout<<"selseg:"<<name.substr(4,end-3)<<endl;
+//         int segment=lexical_cast<int>(name.substr(4,end-4));
+//         cout<<"selseg:"<<segment<<endl;
+//         set<int> segList;
+//         segList.insert(segment);
+//         colorSegs(segList,true);
+//         updatePCDVis();
+//     }
      
  }
 

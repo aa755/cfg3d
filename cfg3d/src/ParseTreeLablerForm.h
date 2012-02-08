@@ -41,6 +41,11 @@
 #include <dynamic_reconfigure/server.h>
 #include <cfg3d/labelerConfig.h>
 #include "color.cpp"
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/variate_generator.hpp>
+#include <boost/generator_iterator.hpp>
+#include <boost/random/mersenne_twister.hpp>
+
 typedef pcl::PointXYZRGBCamSL PointT;
 using namespace boost;
 
@@ -76,6 +81,10 @@ PTNodeTableModel * nodeTableModel;
 map<string,QStandardItem *> nameToTreeNode;
 map<string,int> typeCounts;
 char *parseTreeFileName;
+ boost::uniform_int<> randSix;
+     map<int,float> segNumToColor;
+    boost::mt19937 rng;
+
 
     void setUpTree(char * labelMapFile);
     void readTree(char * treeFile);
@@ -84,8 +93,8 @@ char *parseTreeFileName;
     void init(int argc, char** argv);
     
     void updatePCDVis();
-    void colorSegs(const set<int>& segs, bool fresh=false);
-    
+    void colorSegs(map<int,float> & seg2color, bool fresh=false);
+    float randColor();
     
 
 };

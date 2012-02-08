@@ -118,29 +118,29 @@
     </rect>
    </property>
    <property name="text">
-    <string>Show Nbrs-&gt;</string>
+    <string>Show Nbrs</string>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton_2">
    <property name="geometry">
     <rect>
-     <x>470</x>
+     <x>460</x>
      <y>470</y>
-     <width>98</width>
+     <width>131</width>
      <height>27</height>
     </rect>
    </property>
    <property name="text">
-    <string>Randomize</string>
+    <string>RandomizeColors</string>
    </property>
   </widget>
-  <widget class="QTableView" name="tableView_2">
+  <widget class="QTableView" name="colorTable">
    <property name="geometry">
     <rect>
      <x>600</x>
-     <y>360</y>
+     <y>390</y>
      <width>241</width>
-     <height>181</height>
+     <height>161</height>
     </rect>
    </property>
   </widget>
@@ -155,6 +155,19 @@
    </property>
    <property name="text">
     <string>Delete</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>680</x>
+     <y>370</y>
+     <width>67</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>colorMap</string>
    </property>
   </widget>
  </widget>
