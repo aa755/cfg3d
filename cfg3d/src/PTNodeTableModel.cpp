@@ -54,7 +54,7 @@ void PTNodeTableModel::clearAll()
 void PTNodeTableModel::combineAll(ParseTreeLablerForm* form)
 {
     string newNodeType=string(form->widget.comboBox->currentText().toUtf8().constData());
-    string newNodeName=newNodeType+"__"+lexical_cast<string>(++form->typeCounts[newNodeType]);
+    string newNodeName=newNodeType+"__"+lexical_cast<string>(++form->typeMaxId[newNodeType]);
     QStandardItem *newItem = new QStandardItem(newNodeName.data()); 
     for(vector<string>::iterator it=nodesToMerge.begin();it!=nodesToMerge.end();it++)
     {

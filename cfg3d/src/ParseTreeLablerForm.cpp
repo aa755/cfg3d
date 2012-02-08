@@ -26,10 +26,11 @@ string getCppString(QString str)
 }
 class Node
 {
+public:
     string type;
     int id;
     string memo;
-public:
+    
     Node(string fullname)
     {
         int typeEnd=fullname.find("__");
@@ -43,7 +44,31 @@ public:
         memo=fullname.substr(idEnd);
         cout<<type<<"-"<<id<<"-"<<memo<<endl;
     }
+    
+    bool updateTypeCounts(map<string,int>& typeMaxId)
+    {
+        if(typeMaxId.find(type)==typeMaxId.end())
+        {
+            typeMaxId[type]=id;
+            return true; // new type
+        }
+        else if(typeMaxId[type]<id)
+            typeMaxId[type]=id;
+        
+        return false;
+        
+    }
 };
+
+void ParseTreeLablerForm::updateTypeCounts(string fullname)
+{
+                Node nd(fullname);
+                if(nd.updateTypeCounts(typeMaxId))
+                {
+                        widget.comboBox->addItem(QString(nd.type.data()));
+                        cerr<<"WARN:new types added from parsetree"<<endl;
+                }
+}
 
 void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 {
@@ -122,7 +147,7 @@ void ParseTreeLablerForm::readTree(char * treeFile)
             {
                 //orphan
                 string name = toks.at(0);
-                Node nd(name);
+                updateTypeCounts(name);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
 
@@ -133,7 +158,7 @@ void ParseTreeLablerForm::readTree(char * treeFile)
             {
                 // with a parent
                 string name = toks.at(1);
-                Node nd(name);
+                updateTypeCounts(name);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
                 QStandardItem *parent = nameToTreeNode[toks.at(0)];
@@ -351,8 +376,6 @@ void ParseTreeLablerForm::init(int argc, char** argv)
     char *labelFileC=argv[4];
     fileI.open(labelFileC);
 
-            labels.clear();
-            labels.push_back("n");
     if (fileI.is_open()) {
         int count = 1;
         while (fileI.good()) {
@@ -362,7 +385,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
             cout << "adding typename " << line  << endl;
             widget.comboBox->addItem(QString(line.data()));
             count++;
-            labels.push_back(line);
+            typeMaxId[line]=0;
         }
     } else {
         cout << "could not open typenames file...exiting\n";

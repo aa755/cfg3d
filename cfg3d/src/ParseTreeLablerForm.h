@@ -69,7 +69,6 @@ public:
     std::map<int,string> label_mapping_orig;
     ColorRGB *labelColors[NUM_CLASSES_TO_SHOW];
     std::vector<int> segmentIndices;
-    std::vector<std::string> labels;
 pcl::PointCloud<PointT> cloud_orig;
 pcl::PointCloud<PointT> cloud_colored;
 pcl::PCDWriter writer;
@@ -79,11 +78,12 @@ pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_h
 sensor_msgs::PointCloud2 colored_cloud_blob;
 PTNodeTableModel * nodeTableModel;
 map<string,QStandardItem *> nameToTreeNode;
-map<string,int> typeCounts;
+map<string,int> typeMaxId;
 char *parseTreeFileName;
  boost::uniform_int<> randSix;
      map<int,float> segNumToColor;
     boost::mt19937 rng;
+    void updateTypeCounts(string fullname);
 
 
     void setUpTree(char * labelMapFile);
