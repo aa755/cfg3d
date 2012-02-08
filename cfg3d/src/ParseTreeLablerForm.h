@@ -80,6 +80,7 @@ PTNodeTableModel * nodeTableModel;
 map<string,QStandardItem *> nameToTreeNode;
 map<string,int> typeMaxId;
 char *parseTreeFileName;
+char* typeListFile;
  boost::uniform_int<> randSix;
      map<int,float> segNumToColor;
     boost::mt19937 rng;

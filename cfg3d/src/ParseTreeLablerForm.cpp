@@ -349,7 +349,16 @@ void ParseTreeLablerForm::clearButtonClicked()
 
 void ParseTreeLablerForm::windowClosing()
 {
-    writeTree(parseTreeFileName);   
+    writeTree(parseTreeFileName);
+    
+    ofstream ofile;
+    ofile.open(typeListFile,ios::out);
+    for(map<string,int>::iterator it=typeMaxId.begin();it!=typeMaxId.end();it++)
+    {
+        ofile<<it->first<<endl;
+    }
+    ofile.close();
+    exit(0);
 }
 
 void ParseTreeLablerForm::init(int argc, char** argv)
@@ -373,8 +382,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 
     std::ifstream fileI;
     std::string line;
-    char *labelFileC=argv[4];
-    fileI.open(labelFileC);
+    typeListFile=argv[4];
+    fileI.open(typeListFile);
 
     if (fileI.is_open()) {
         int count = 1;
@@ -426,6 +435,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
      connect(this, SIGNAL(finished (int)),
              this, SLOT(windowClosing()));
      
+     widget.comboBox->setEditable(true);
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
    // pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));

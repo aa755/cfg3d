@@ -56,6 +56,15 @@ void PTNodeTableModel::combineAll(ParseTreeLablerForm* form)
     string newNodeType=string(form->widget.comboBox->currentText().toUtf8().constData());
     string newNodeName=newNodeType+"__"+lexical_cast<string>(++form->typeMaxId[newNodeType]);
     QStandardItem *newItem = new QStandardItem(newNodeName.data()); 
+    if(nodesToMerge.size()==0)
+    {
+              QMessageBox::warning(form, tr("Parse Tree Labaler"),
+                                tr("No children to combine "
+                                   "Please add nodes"),
+                                QMessageBox::Ok,QMessageBox::Ok);            
+              return;
+        
+    }
     for(vector<string>::iterator it=nodesToMerge.begin();it!=nodesToMerge.end();it++)
     {
         QStandardItem * node=form->nameToTreeNode[*it];
