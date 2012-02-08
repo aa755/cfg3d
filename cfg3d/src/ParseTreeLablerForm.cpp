@@ -24,6 +24,26 @@ string getCppString(QString str)
 {
     return string(str.toUtf8().constData());
 }
+class Node
+{
+    string type;
+    int id;
+    string memo;
+public:
+    Node(string fullname)
+    {
+        int typeEnd=fullname.find("__");
+        type=fullname.substr(0,typeEnd);
+        int idEnd=fullname.find("__",typeEnd+2);
+        
+        if(idEnd==(int)string::npos)
+            idEnd=fullname.size();
+        cout<<"++"<<fullname.substr(typeEnd+2,idEnd)<<"++"<<endl;
+        id=lexical_cast<int>(fullname.substr(typeEnd+2,idEnd));
+        memo=fullname.substr(idEnd);
+        cout<<type<<"-"<<id<<"-"<<memo<<endl;
+    }
+};
 
 void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 {
@@ -102,6 +122,7 @@ void ParseTreeLablerForm::readTree(char * treeFile)
             {
                 //orphan
                 string name = toks.at(0);
+                Node nd(name);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
 
@@ -112,6 +133,7 @@ void ParseTreeLablerForm::readTree(char * treeFile)
             {
                 // with a parent
                 string name = toks.at(1);
+                Node nd(name);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
                 QStandardItem *parent = nameToTreeNode[toks.at(0)];
@@ -157,7 +179,7 @@ void ParseTreeLablerForm::writeTree(char * treeFile)
         {
             QStandardItem *child=curNode->child(i,0);
             ofile<<parName<<getCppString(child->text())<<" ;"<<endl;
-            cout<<getCppString(child->text())<<endl;
+          //  cout<<getCppString(child->text())<<endl;
             bfsQueue.push(child);
         }
         bfsQueue.pop();
