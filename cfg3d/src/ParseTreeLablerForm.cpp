@@ -201,49 +201,68 @@ void ParseTreeLablerForm::colorSegs(map<int,float> & seg2color, bool fresh) {
         }
     }
 }
+
 void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
- {
-     //get the text of the selected item
-     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
-     QString selectedText = index.data(Qt::DisplayRole).toString();
-     string name=getCppString(selectedText);
-    queue<QStandardItem *> bfsQueue;
-    bfsQueue.push(nameToTreeNode[name]);
-//boost::random::uniform_int_distribution<> randSix(0,5);
-                                    // distribution that maps to 1..6
-                                    // see random number distributions
-    segNumToColor.clear();
-    while(!bfsQueue.empty())
+{
+    //get the text of the selected item
+    const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+    QString selectedText = index.data(Qt::DisplayRole).toString();
+    string name = getCppString(selectedText);
+    QStandardItem *parNode = nameToTreeNode[name];
+    int numChildren = parNode->rowCount();
+        segNumToColor.clear();
+            if (name.substr(0, 10) == "Terminal__")
+            {
+                int end = name.find("_", 10);
+                cout << "selseg:" << name.substr(10, end - 10) << endl;
+                int segment = lexical_cast<int>(name.substr(10, end - 10));
+
+                segNumToColor[segment] = randColor();
+            }
+
+    for (int i = 0; i < numChildren; i++)
     {
-        QStandardItem *curNode=bfsQueue.front();
-        bfsQueue.pop();
-        int numChildren=curNode->rowCount();
-        string parName=getCppString(curNode->text());
-            cout<<"selseg:"<<parName.substr(0,10)<<endl;
-            cout<<"selseg:"<<"Terminal__"<<endl;
-        
-        if(parName.substr(0,10)=="Terminal__")
+        QStandardItem *child = parNode->child(i, 0);
+
+
+        queue<QStandardItem *> bfsQueue;
+        float color = randColor();
+        bfsQueue.push(child);
+        //boost::random::uniform_int_distribution<> randSix(0,5);
+        // distribution that maps to 1..6
+        // see random number distributions
+        while (!bfsQueue.empty())
         {
-            int end=parName.find("_",10);
-            cout<<"selseg:"<<parName.substr(10,end-10)<<endl;
-            int segment=lexical_cast<int>(parName.substr(10,end-10));
-            
-            segNumToColor[segment]=randColor();
-            continue;
+            QStandardItem *curNode = bfsQueue.front();
+            bfsQueue.pop();
+            int numChildren = curNode->rowCount();
+            string parName = getCppString(curNode->text());
+            cout << "selseg:" << parName.substr(0, 10) << endl;
+            cout << "selseg:" << "Terminal__" << endl;
+
+            if (parName.substr(0, 10) == "Terminal__")
+            {
+                int end = parName.find("_", 10);
+                cout << "selseg:" << parName.substr(10, end - 10) << endl;
+                int segment = lexical_cast<int>(parName.substr(10, end - 10));
+
+                segNumToColor[segment] = color;
+                continue;
+            }
+            cout << parName << endl;
+
+            for (int i = 0; i < numChildren; i++)
+            {
+                QStandardItem *child = curNode->child(i, 0);
+                cout << "child:" << getCppString(child->text()) << endl;
+                bfsQueue.push(child);
+            }
+
         }
-        cout<<parName<<endl;
-        
-        for(int i=0;i<numChildren;i++)
-        {
-            QStandardItem *child=curNode->child(i,0);
-            cout<<"child:"<<getCppString(child->text())<<endl;
-            bfsQueue.push(child);
-        }
-        
     }
-         colorSegs(segNumToColor,true);
-         updatePCDVis();
-     
+    colorSegs(segNumToColor, true);
+    updatePCDVis();
+    
      //find out the hierarchy level of the selected item
 //     if(name.substr(0,4)=="seg_")
 //     {
