@@ -66,7 +66,67 @@ void ParseTreeLablerForm::setUpTree(char * labelMapFile)
 
 void ParseTreeLablerForm::readTree(char * treeFile)
 {
+    std::ifstream fileI;
+    std::string line;
+    standardModel = new QStandardItemModel ;
+    rootNode = standardModel->invisibleRootItem();
+
+    set<int> segsWithLabel;
+    fileI.open(treeFile);
+    getline(fileI, line);
+    assert(line.substr(0,7)=="digraph");
     
+    if (fileI.is_open())
+    {
+        while (fileI.good())
+        {
+            getline(fileI, line); 
+            if (line.at(0) == '}')
+                break;
+
+            
+            vector<string> toks;
+            getTokens(line, toks," ->;");
+//            for(vector<string>::iterator it=toks.begin();it!=toks.end();it++)
+//            {
+//                if((*it).size()!=0)
+//                        cout<<*it<<",,";
+//            }
+//            cout<<endl;
+            if (toks.size() == 1)
+            {
+                //orphan
+                string name = toks.at(0);
+                QStandardItem *item = new QStandardItem(name.data());
+                nameToTreeNode[name] = item;
+
+                rootNode->appendRow(item);
+
+            }
+            else if (toks.size() == 2)
+            {
+                // with a parent
+                string name = toks.at(1);
+                QStandardItem *item = new QStandardItem(name.data());
+                nameToTreeNode[name] = item;
+                QStandardItem *parent = nameToTreeNode[toks.at(0)];
+                assert(parent != NULL);
+                parent->appendRow(item);
+
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+            widget.treeView->setModel(standardModel);
+        
+    }
+    else
+    {
+        cout << "could not open the gt LabelMap file you specified ..exiting\n";
+        exit(-1);
+    }
 }
 
 void ParseTreeLablerForm::writeTree(char * treeFile)
@@ -181,7 +241,7 @@ void ParseTreeLablerForm::clearButtonClicked()
 
 void ParseTreeLablerForm::windowClosing()
 {
-    writeTree(parseTreeFileName);    
+    writeTree(parseTreeFileName);   
 }
 
 void ParseTreeLablerForm::init(int argc, char** argv)
@@ -230,7 +290,9 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 
 
     parseTreeFileName=argv[3];
-    setUpTree(argv[3]);
+  //  setUpTree(argv[3]);
+    readTree(argv[3]);
+//    exit(-1);
 
     nodeTableModel=new PTNodeTableModel(0);
     widget.tableView->setModel(nodeTableModel);

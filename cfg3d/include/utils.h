@@ -113,8 +113,8 @@ vector<string> splitLineAsStringVector(string str) {
         return out;
 }
 
-void getTokens(string str, vector<string>& out) {
-        boost::char_separator<char> sep(",");
+void getTokens(string str, vector<string>& out,string delim=",") {
+        boost::char_separator<char> sep(delim.data());
         boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
         
         out.clear();
@@ -127,8 +127,8 @@ void getTokens(string str, vector<string>& out) {
 
 
 
-void getTokens(string str, vector<float>& out) {
-        boost::char_separator<char> sep(",");
+void getTokens(string str, vector<float>& out,string delim=",") {
+        boost::char_separator<char> sep(delim.data());
         boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
         
         out.clear();
