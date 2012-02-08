@@ -55,6 +55,7 @@ class ParseTreeLablerForm : public QDialog {
 public slots:
     void selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/);
     void addNodeButtonClicked();
+    void deleteNodeButtonClicked();
     void combineButtonClicked();
     void clearButtonClicked();
     void windowClosing();

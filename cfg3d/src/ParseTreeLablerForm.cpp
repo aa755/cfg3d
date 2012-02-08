@@ -327,13 +327,37 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
 
 void ParseTreeLablerForm::addNodeButtonClicked()
 {
-    cout<<"button handler called"<<endl;
      const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
      QString selectedText = index.data(Qt::DisplayRole).toString();
      //find out the hierarchy level of the selected item
      string name=getCppString(selectedText);
      
      nodeTableModel->addItem(name);
+}
+
+void ParseTreeLablerForm::deleteNodeButtonClicked()
+{
+    cout<<"delete button handler called"<<endl;
+     const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+     QString selectedText = index.data(Qt::DisplayRole).toString();
+     //find out the hierarchy level of the selected item
+     string name=getCppString(selectedText);
+     
+     QStandardItem * node=nameToTreeNode[name];
+     
+     while(node->rowCount()>0)
+     {
+         QStandardItem * child=node->child(0,0);
+         node->takeRow(0);
+         rootNode->appendRow(child);
+     }
+     QStandardItem * parent=node->parent();
+     if(parent==0)
+         parent=rootNode;
+//     int row=node->row();
+     parent->removeRow(node->row());
+     nameToTreeNode.erase(name);
+     
 }
 
 void ParseTreeLablerForm::combineButtonClicked()
@@ -434,6 +458,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(clearButtonClicked()));
      connect(this, SIGNAL(finished (int)),
              this, SLOT(windowClosing()));
+     connect(widget.deleteButton, SIGNAL(clicked ()),
+             this, SLOT(deleteNodeButtonClicked()));
      
      widget.comboBox->setEditable(true);
     // Convert to the templated message type
