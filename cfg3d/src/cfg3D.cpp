@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     map<int, set<int> > neighbors;
-    int maxSegIndex= parseNbrMap(argv[2],neighbors);
+    int maxSegIndex= parseNbrMap(argv[2],neighbors,MAX_SEG_INDEX);
     cout<<"Scene has "<<scene.size()<<" points."<<endl;
     
     char *gtLableFileName=NULL;

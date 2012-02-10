@@ -125,6 +125,54 @@ void getTokens(string str, vector<string>& out,string delim=",") {
         }
 }
 
+/**
+ * 
+ * @param file
+ * @param neighbors
+ * @return : max segment index
+ */
+int parseNbrMap(char * file,map<int, set<int> > & neighbors, int maxSegIndex) {
+        std::ifstream labelFile;
+    std::string line;
+    labelFile.open(file);
+
+    vector<int> nbrs;
+    
+    int max=0;
+    if (labelFile.is_open()) {
+        while (labelFile.good()) {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0)
+                break;
+            
+            getTokens(line, nbrs);
+            int segIndex=nbrs.at(0);
+            
+            if(segIndex>maxSegIndex)
+                continue;
+            
+            set<int> temp;
+            neighbors[segIndex]=temp;
+            if(max<segIndex)
+                max=segIndex;
+            for(size_t i=1;i<nbrs.size();i++)
+            {
+
+                if(nbrs.at(i)>maxSegIndex)
+                        continue;
+                
+                neighbors[segIndex].insert(nbrs.at(i));
+                cout<<"Adding "<<nbrs.at(i)<<" as a neighbors of "<<segIndex<<endl;
+            }
+        }
+    } else {
+        cout << "Could not open label file ... exiting\n";
+        exit(-1);
+    }
+
+    return max;
+
+}
 
 
 void getTokens(string str, vector<float>& out,string delim=",") {

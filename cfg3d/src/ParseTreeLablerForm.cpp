@@ -424,10 +424,11 @@ void ParseTreeLablerForm::init(int argc, char** argv)
         cout << "could not open typenames file...exiting\n";
         exit(-1);
     }
-
+                        
     fileI.close();
 
 
+    parseNbrMap()
     parseTreeFileName=argv[3];
   //  setUpTree(argv[3]);
     readTree(argv[3]);

@@ -85,6 +85,9 @@ char* typeListFile;
  boost::uniform_int<> randSix;
      map<int,float> segNumToColor;
     boost::mt19937 rng;
+    map<int,set<int> > nbrMap;
+    
+    
     void updateTypeCounts(string fullname);
 
 
