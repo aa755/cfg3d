@@ -35,12 +35,13 @@ public:
     {
         int typeEnd=fullname.find("__");
         type=fullname.substr(0,typeEnd);
-        int idEnd=fullname.find("__",typeEnd+2);
+        int idEnd=fullname.find("__",typeEnd+1);
         
         if(idEnd==(int)string::npos)
             idEnd=fullname.size();
-        cout<<"++"<<fullname.substr(typeEnd+2,idEnd)<<"++"<<endl;
-        id=lexical_cast<int>(fullname.substr(typeEnd+2,idEnd));
+        string ids=fullname.substr(typeEnd+2,idEnd-typeEnd-2);
+        cout<<"++"<<ids<<"++"<<endl;
+        id=lexical_cast<int>(ids);
         memo=fullname.substr(idEnd);
         cout<<type<<"-"<<id<<"-"<<memo<<endl;
     }
