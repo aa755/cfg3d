@@ -259,13 +259,10 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
     QStandardItem *parNode = nameToTreeNode[name];
     int numChildren = parNode->rowCount();
         segNumToColor.clear();
-            if (name.substr(0, 10) == "Terminal__")
+        Node nd(name);
+            if (nd.type == "Terminal")
             {
-                int end = name.find("_", 10);
-                cout << "selseg:" << name.substr(10, end - 10) << endl;
-                int segment = lexical_cast<int>(name.substr(10, end - 10));
-
-                segNumToColor[segment] = randColor();
+                segNumToColor[nd.id] = randColor();
             }
 
     for (int i = 0; i < numChildren; i++)
@@ -285,24 +282,24 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
             bfsQueue.pop();
             int numChildren = curNode->rowCount();
             string parName = getCppString(curNode->text());
-            cout << "selseg:" << parName.substr(0, 10) << endl;
-            cout << "selseg:" << "Terminal__" << endl;
+            //cout << "selseg:" << parName.substr(0, 10) << endl;
+            //cout << "selseg:" << "Terminal__" << endl;
+            
+            Node ndp(parName);
 
-            if (parName.substr(0, 10) == "Terminal__")
+            if (ndp.type == "Terminal")
             {
-                int end = parName.find("_", 10);
-                cout << "selseg:" << parName.substr(10, end - 10) << endl;
-                int segment = lexical_cast<int>(parName.substr(10, end - 10));
 
-                segNumToColor[segment] = color;
+                segNumToColor[ndp.id] = color;
                 continue;
             }
-            cout << parName << endl;
+            
+            //cout << parName << endl;
 
             for (int i = 0; i < numChildren; i++)
             {
                 QStandardItem *child = curNode->child(i, 0);
-                cout << "child:" << getCppString(child->text()) << endl;
+              //  cout << "child:" << getCppString(child->text()) << endl;
                 bfsQueue.push(child);
             }
 
@@ -311,18 +308,6 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
     colorSegs(segNumToColor, true);
     updatePCDVis();
     
-     //find out the hierarchy level of the selected item
-//     if(name.substr(0,4)=="seg_")
-//     {
-//         int end=name.find("_",4);
-//         cout<<"selseg:"<<name.substr(4,end-3)<<endl;
-//         int segment=lexical_cast<int>(name.substr(4,end-4));
-//         cout<<"selseg:"<<segment<<endl;
-//         set<int> segList;
-//         segList.insert(segment);
-//         colorSegs(segList,true);
-//         updatePCDVis();
-//     }
      
  }
 
