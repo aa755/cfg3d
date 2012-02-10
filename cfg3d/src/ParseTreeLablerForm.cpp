@@ -325,6 +325,34 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
      
  }
 
+void ParseTreeLablerForm::showNbrButtonClicked()
+{
+    //get the text of the selected item
+    const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+    QString selectedText = index.data(Qt::DisplayRole).toString();
+    string name = getCppString(selectedText);
+        segNumToColor.clear();
+        Node nd(name);
+            if (nd.type == "Terminal")
+            {
+                set<int> & nbrs =nbrMap[nd.id];
+                for(set<int>::iterator it= nbrs.begin(); it!=nbrs.end(); it++)
+                        segNumToColor[*it] = randColor();
+                colorSegs(segNumToColor,true);
+                updatePCDVis();
+            }
+            else
+            {
+              QMessageBox::warning(this, tr("Parse Tree Labaler"),
+                                tr("Neighbors can be shown only for a Terminal"
+                                   "Please select a Terminal in the tree explorer"),
+                                QMessageBox::Ok,QMessageBox::Ok);            
+              return;
+                
+            }
+
+ }
+
 void ParseTreeLablerForm::addNodeButtonClicked()
 {
      const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
@@ -389,7 +417,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 {
     if(argc!=5 && argc!=6)
     {
-        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <neighborMap> <labelmap> <typenames> [parseTree]"<<endl;
+        cerr<<"usage:"<<argv[0]<<" <segmented_PCD> <neighborMap> <inputTree> <typenames>"<<endl;
         exit(-1);
     }
         labelColors[0]= new ColorRGB(1,0,0);
@@ -428,7 +456,7 @@ void ParseTreeLablerForm::init(int argc, char** argv)
     fileI.close();
 
 
-    parseNbrMap()
+    parseNbrMap(argv[2],nbrMap,INT_MAX);
     parseTreeFileName=argv[3];
   //  setUpTree(argv[3]);
     readTree(argv[3]);
@@ -461,6 +489,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(windowClosing()));
      connect(widget.deleteButton, SIGNAL(clicked ()),
              this, SLOT(deleteNodeButtonClicked()));
+     connect(widget.showNbrButton, SIGNAL(clicked ()),
+             this, SLOT(showNbrButtonClicked()));
      
      widget.comboBox->setEditable(true);
     // Convert to the templated message type

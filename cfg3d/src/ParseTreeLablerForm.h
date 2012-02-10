@@ -45,6 +45,7 @@
 #include <boost/random/variate_generator.hpp>
 #include <boost/generator_iterator.hpp>
 #include <boost/random/mersenne_twister.hpp>
+ #include <QMessageBox>
 
 typedef pcl::PointXYZRGBCamSL PointT;
 using namespace boost;
@@ -57,9 +58,10 @@ public slots:
     void addNodeButtonClicked();
     void deleteNodeButtonClicked();
     void combineButtonClicked();
+    void showNbrButtonClicked();
     void clearButtonClicked();
     void windowClosing();
-    
+     
 public:
     const static int NUM_CLASSES_TO_SHOW=10;
     ParseTreeLablerForm();
