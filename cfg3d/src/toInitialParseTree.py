@@ -4,7 +4,7 @@ Created on Feb 7, 2012
 @author: lisherwin
 '''
 import sys
-
+ 
 def getFile(name):
     return open(name)
 def getFileAppend(name):
