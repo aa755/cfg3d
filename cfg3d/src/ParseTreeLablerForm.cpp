@@ -11,6 +11,7 @@
 #include "PTNodeTableModel.h"
 #include <queue>
 #include"segmentUtils.h"
+#include <algorithm>
 //#include "structures.cpp"
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
@@ -23,9 +24,16 @@ ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
 ParseTreeLablerForm::~ParseTreeLablerForm()
 {
 }
+
 string getCppString(QString str)
 {
     return string(str.toUtf8().constData());
+}
+
+template <typename T>
+double getValueOfType(QString str)
+{
+    return lexical_cast<T>(getCppString(str));
 }
 class Node
 {
@@ -270,6 +278,9 @@ void ParseTreeLablerForm::splitButtonClicked()
     Node nd(name);
     if (nd.type == "Terminal")
     {
+        double radT=getValueOfType<double>(widget.radEdit->text());
+        double angleT=getValueOfType<double>(widget.angleEdit->text());
+        int numNbr=getValueOfType<int>(widget.nbrEdit->text());
         int segId = nd.id;
         pcl::PointCloud<PointT> segCloud;
         segCloud.header = cloud_orig.header;
@@ -282,8 +293,8 @@ void ParseTreeLablerForm::splitButtonClicked()
                 originalIndices.push_back(i);
             }
         }
-        cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<endl;
-        segment(segCloud, clusters,0.01,0.4,30);
+        cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<"with params"<<radT<<","<<angleT<<","<<numNbr<<endl;
+        segment(segCloud, clusters,radT,angleT,numNbr);
         sort(clusters.begin(), clusters.end(), compareSegsDecreasing);
 
         cloud_undo=cloud_orig;
@@ -332,6 +343,7 @@ void ParseTreeLablerForm::undoSplitButtonClicked()
         rootNode->removeRow(nameToTreeNode[*it]->row());
         nameToTreeNode.erase(*it);
     }
+    undoNames.clear();
 }
 
 void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)

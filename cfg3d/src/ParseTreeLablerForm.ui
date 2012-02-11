@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>594</width>
+    <width>610</width>
     <height>564</height>
    </rect>
   </property>
@@ -111,7 +111,7 @@
   <widget class="QPushButton" name="showNbrButton">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>120</x>
      <y>530</y>
      <width>98</width>
      <height>27</height>
@@ -134,7 +134,7 @@
   <widget class="QPushButton" name="deleteButton">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>0</x>
      <y>530</y>
      <width>98</width>
      <height>27</height>
@@ -160,7 +160,7 @@
   <widget class="QPushButton" name="splitButton">
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>240</x>
      <y>530</y>
      <width>81</width>
      <height>27</height>
@@ -173,7 +173,7 @@
   <widget class="QPushButton" name="undoSplitButton">
    <property name="geometry">
     <rect>
-     <x>370</x>
+     <x>480</x>
      <y>530</y>
      <width>98</width>
      <height>27</height>
@@ -204,6 +204,84 @@
      <width>113</width>
      <height>27</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="radEdit">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>530</y>
+     <width>41</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>0.01</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="angleEdit">
+   <property name="geometry">
+    <rect>
+     <x>380</x>
+     <y>530</y>
+     <width>41</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>0.4</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="nbrEdit">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>530</y>
+     <width>41</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>40</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>340</x>
+     <y>510</y>
+     <width>31</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>rad</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_6">
+   <property name="geometry">
+    <rect>
+     <x>380</x>
+     <y>510</y>
+     <width>41</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>angle</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>510</y>
+     <width>31</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>nbrs</string>
    </property>
   </widget>
  </widget>
