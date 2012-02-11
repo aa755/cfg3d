@@ -60,6 +60,8 @@ public slots:
     void combineButtonClicked();
     void showNbrButtonClicked();
     void clearButtonClicked();
+    void splitButtonClicked();
+    void undoSplitButtonClicked();
     void windowClosing();
      
 public:
@@ -74,6 +76,9 @@ public:
     std::vector<int> segmentIndices;
 pcl::PointCloud<PointT> cloud_orig;
 pcl::PointCloud<PointT> cloud_colored;
+pcl::PointCloud<PointT> cloud_undo;
+bool undoAvl;
+vector<string> undoNames;
 pcl::PCDWriter writer;
 
 pcl_visualization::PCLVisualizer viewer;
@@ -84,11 +89,12 @@ map<string,QStandardItem *> nameToTreeNode;
 map<string,int> typeMaxId;
 char *parseTreeFileName;
 char* typeListFile;
+char* pcdFileName;
  boost::uniform_int<> randSix;
      map<int,float> segNumToColor;
     boost::mt19937 rng;
     map<int,set<int> > nbrMap;
-    
+    bool pcd_modified;
     
     void updateTypeCounts(string fullname);
 

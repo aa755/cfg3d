@@ -10,11 +10,14 @@
 #include "qt4/QtCore/qstring.h"
 #include "PTNodeTableModel.h"
 #include <queue>
+#include"segmentUtils.h"
 //#include "structures.cpp"
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
 {
     widget.setupUi(this);
+    undoAvl=false;
+    pcd_modified=false;
 }
 
 ParseTreeLablerForm::~ParseTreeLablerForm()
@@ -250,6 +253,76 @@ void ParseTreeLablerForm::colorSegs(map<int,float> & seg2color, bool fresh) {
     }
 }
 
+void ParseTreeLablerForm::splitButtonClicked()
+{
+    //get the text of the selected item
+    const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
+    QString selectedText = index.data(Qt::DisplayRole).toString();
+    string name = getCppString(selectedText);
+    std::vector<pcl::PointIndices> clusters;
+    Node nd(name);
+    if (nd.type == "Terminal")
+    {
+        int segId = nd.id;
+        pcl::PointCloud<PointT> segCloud;
+        segCloud.header = cloud_orig.header;
+        vector<int> originalIndices;
+        for (int i = 0; i < (int)cloud_orig.points.size(); i++)
+        {
+            if ((int)cloud_orig.points[i].segment == segId)
+            {
+                segCloud.points.push_back(cloud_orig.points[i]);
+                originalIndices.push_back(i);
+            }
+        }
+        cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<endl;
+        segment(segCloud, clusters,0.01,0.4,30);
+        sort(clusters.begin(), clusters.end(), compareSegsDecreasing);
+
+        cloud_undo=cloud_orig;
+        undoAvl = true;
+        
+        // the old segment now contains the largest segment after splitting
+        segNumToColor.clear();
+        segNumToColor[segId]=randColor();
+        cout<<clusters.size()<<" oversegments found"<<endl;
+        for (size_t i = 1; i < clusters.size(); i++)
+        {
+            cout<<"cluster "<<i<<"has "<<clusters[i].indices.size()<<" points\n";
+            int newSegId=(++typeMaxId["Terminal"]);
+            segNumToColor[newSegId]=randColor();
+            for (size_t j = 0; j < clusters[i].indices.size(); j++)
+            {
+                cloud_orig.points[originalIndices.at(clusters[i].indices[j])].segment = newSegId;
+            }
+            string name="Terminal__"+lexical_cast<string>(newSegId)+"__split";
+                QStandardItem *item = new QStandardItem(name.data());
+                nameToTreeNode[name] = item;
+                undoNames.push_back(name);
+                rootNode->appendRow(item);
+            
+        }
+    colorSegs(segNumToColor, true);
+    updatePCDVis();
+
+
+    }
+}
+
+void ParseTreeLablerForm::undoSplitButtonClicked()
+{
+    if(!undoAvl)
+        return;
+    undoAvl=false;
+    
+    cloud_orig=cloud_undo;
+    for(vector<string>::iterator it=undoNames.begin();it!=undoNames.end();it++)
+    {
+        rootNode->removeRow(nameToTreeNode[*it]->row());
+        nameToTreeNode.erase(*it);
+    }
+}
+
 void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
 {
     //get the text of the selected item
@@ -396,6 +469,7 @@ void ParseTreeLablerForm::windowClosing()
         ofile<<it->first<<endl;
     }
     ofile.close();
+    pcl::io::savePCDFile(pcdFileName,cloud_orig,true);
     exit(0);
 }
 
@@ -452,7 +526,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
     widget.tableView->setModel(nodeTableModel);
 
     // read from file
-    if ( pcl::io::loadPCDFile<PointT > (argv[1], cloud_orig) == -1) {
+    pcdFileName=argv[1];
+    if ( pcl::io::loadPCDFile<PointT > (pcdFileName, cloud_orig) == -1) {
         ROS_ERROR("Couldn't read file ");
         exit (-1);
     }
@@ -477,6 +552,10 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(deleteNodeButtonClicked()));
      connect(widget.showNbrButton, SIGNAL(clicked ()),
              this, SLOT(showNbrButtonClicked()));
+     connect(widget.splitButton, SIGNAL(clicked ()),
+             this, SLOT(splitButtonClicked()));
+     connect(widget.undoSplitButton, SIGNAL(clicked ()),
+             this, SLOT(undoSplitButtonClicked()));
      
      widget.comboBox->setEditable(true);
     // Convert to the templated message type

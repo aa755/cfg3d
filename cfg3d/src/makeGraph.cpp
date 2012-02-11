@@ -1,29 +1,4 @@
-#include "structures.cpp"
-#include "OccupancyMap.h"
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include<typeinfo>
-//#include "point_struct.h"
-#include "point_types.h"
-#include<pcl/features/normal_3d.h>
-#include<pcl/io/pcd_io.h>
-#include<pcl/io/io.h>
-#include <stdlib.h>
-#include <boost/lexical_cast.hpp>
-#include <pcl/segmentation/extract_clusters.h>
-#include <octomap/octomap.h>
-#include <octomap_ros/OctomapROS.h>
-#include <octomap_ros/conversions.h>
-#include <boost/dynamic_bitset.hpp>
-#include <boost/geometry/geometry.hpp>
-#include <boost/geometry/algorithms/transform.hpp>
-#include "extract_planes.cpp"
-//#define FILTER_SEGMENTS_SEGMENTATION
-typedef pcl::PointXYZRGBCamSL PointOutT;
-//typedef pcl::PointXYZRGBCamSL PointInT;
-typedef pcl::PointXYZRGB PointInT;
-
+#include "segmentUtils.h"
 int** intArrPointer;
 
 void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices, pcl::PointCloud<PointInT> & cloud_seg)
@@ -422,111 +397,7 @@ public:
     }
 };
 
-template<typename PointET>
-Eigen::Vector3f getPoint(PointET p)
-{
-    Eigen::Vector3f temp;
-    for(int i=0;i<3;i++)
-        temp(i)=p.data[i];
-    
-    return temp;
-}
 
-  template <typename PointT, typename Normal> 
-  void extractEuclideanClustersM( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
-      float tolerance, const boost::shared_ptr<pcl::KdTree<PointT> > &tree, \
-      std::vector<pcl::PointIndices> &clusters, double eps_angle, \
-      unsigned int min_pts_per_cluster = 1, \
-      unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ())
-  {
-    if (tree->getInputCloud ()->points.size () != cloud.points.size ())
-    {
-      ROS_ERROR ("[pcl::extractEuclideanClusters] Tree built for a different point cloud dataset (%zu) than the input cloud (%zu)!", tree->getInputCloud ()->points.size (), cloud.points.size ());
-      return;
-    }
-    if (cloud.points.size () != normals.points.size ())
-    {
-      ROS_ERROR ("[pcl::extractEuclideanClusters] Number of points in the input point cloud (%zu) different than normals (%zu)!", cloud.points.size (), normals.points.size ());
-      return;
-    }
-
-    Eigen::Vector3f origin;
-    for(int i=0;i<3;i++)
-        origin(i)=cloud.sensor_origin_(i);
-    
-    cout<<"origin:"<<endl;
-    cout<<origin<<endl;
-    // Create a bool vector of processed point indices, and initialize it to false
-    std::vector<bool> processed (cloud.points.size (), false);
-
-    std::vector<int> nn_indices;
-    std::vector<float> nn_distances;
-    // Process all points in the indices vector
-    for (size_t i = 0; i < cloud.points.size (); ++i)
-    {
-      if (processed[i])
-        continue;
-
-      std::vector<unsigned int> seed_queue;
-      int sq_idx = 0;
-      seed_queue.push_back (i);
-
-      processed[i] = true;
-
-      while (sq_idx < (int)seed_queue.size ())
-      {
-          Eigen::Vector3f pc=getPoint(cloud.points.at(seed_queue[sq_idx]));
-          Eigen::Vector3f dir=(pc-origin);
-                  
-          //cout<<"direction:"<<dir<<endl<<"dirnorm"<<dir.norm()<<endl;
-          float rad=sqr(dir.norm())*0.0025+tolerance;
-          //cout<<"rad:"<<rad<<endl;
-        // Search for sq_idx
-        if (!tree->radiusSearch (seed_queue[sq_idx],rad , nn_indices, nn_distances))
-        {
-          sq_idx++;
-          continue;
-        }
-
-        for (size_t j = 1; j < nn_indices.size (); ++j)             // nn_indices[0] should be sq_idx
-        {
-          if (processed[nn_indices[j]])                         // Has this point been processed before ?
-            continue;
-
-
-          
-         // processed[nn_indices[j]] = true;
-          // [-1;1]
-          double dot_p = normals.points[i].normal[0] * normals.points[nn_indices[j]].normal[0] +
-                         normals.points[i].normal[1] * normals.points[nn_indices[j]].normal[1] +
-                         normals.points[i].normal[2] * normals.points[nn_indices[j]].normal[2];
-          if ( fabs (acos (dot_p)) < eps_angle /* TODO: check color*/)
-          {
-            processed[nn_indices[j]] = true;
-            seed_queue.push_back (nn_indices[j]);
-          }
-        }
-
-        sq_idx++;
-      }
-
-      // If this queue is satisfactory, add to the clusters
-      if (seed_queue.size () >= min_pts_per_cluster && seed_queue.size () <= max_pts_per_cluster)
-      {
-        pcl::PointIndices r;
-        r.indices.resize (seed_queue.size ());
-        for (size_t j = 0; j < seed_queue.size (); ++j)
-          r.indices[j] = seed_queue[j];
-
-        sort (r.indices.begin (), r.indices.end ());
-        r.indices.erase (unique (r.indices.begin (), r.indices.end ()), r.indices.end ());
-
-        r.header = cloud.header;
-        clusters.push_back (r);   // We could avoid a copy by working directly in the vector
-      }
-    }
-  }
-  
 //  void extractRansacClusters(  pcl::PointCloud<PointInT> &cloud, std::vector<pcl::PointIndices> &segments)
 //  {
 //    Extractor p;
@@ -541,10 +412,6 @@ Eigen::Vector3f getPoint(PointET p)
 
 #define MIN_SEG_SIZE 10
 
-bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndices & seg2) 
-{
-    return (seg1.indices.size()> seg2.indices.size());
-}
 
 Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     vector<int> terminal2PointIndices = terminal2.getPointIndices();
