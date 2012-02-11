@@ -45,6 +45,7 @@
 #include <boost/random/variate_generator.hpp>
 #include <boost/generator_iterator.hpp>
 #include <boost/random/mersenne_twister.hpp>
+#include "ColorMapTableModel.h"
  #include <QMessageBox>
 
 typedef pcl::PointXYZRGBCamSL PointT;
@@ -85,6 +86,7 @@ pcl_visualization::PCLVisualizer viewer;
 pcl_visualization::PointCloudColorHandler<sensor_msgs::PointCloud2>::Ptr color_handler;
 sensor_msgs::PointCloud2 colored_cloud_blob;
 PTNodeTableModel * nodeTableModel;
+ColorMapTableModel * colorMapTableModel;
 map<string,QStandardItem *> nameToTreeNode;
 map<string,int> typeMaxId;
 char *parseTreeFileName;

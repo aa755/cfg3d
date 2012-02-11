@@ -305,6 +305,10 @@ void ParseTreeLablerForm::splitButtonClicked()
     colorSegs(segNumToColor, true);
     updatePCDVis();
 
+              QMessageBox::warning(this, tr("Parse Tree Labaler"),
+                                tr("IMPORTANT: undo operation should not be done after merging any newly created segments"
+                                   "It will cause inconsistency"),
+                                QMessageBox::Ok,QMessageBox::Ok);            
 
     }
 }
@@ -392,13 +396,21 @@ void ParseTreeLablerForm::showNbrButtonClicked()
     string name = getCppString(selectedText);
         segNumToColor.clear();
         Node nd(name);
+        colorMapTableModel->clearAll();
             if (nd.type == "Terminal")
             {
                 set<int> & nbrs =nbrMap[nd.id];
                 for(set<int>::iterator it= nbrs.begin(); it!=nbrs.end(); it++)
-                        segNumToColor[*it] = randColor();
+                {
+                    float colorS=randColor();
+                        segNumToColor[*it] =colorS;
+                        
+                        ColorRGB colorRGB(colorS);
+                        colorMapTableModel->addItem(string("Terminal__")+lexical_cast<string>(*it),QColor(colorRGB.r*255,colorRGB.g*255,colorRGB.b*255));
+                }
                 colorSegs(segNumToColor,true);
                 updatePCDVis();
+                
             }
             else
             {
@@ -523,8 +535,9 @@ void ParseTreeLablerForm::init(int argc, char** argv)
 //    exit(-1);
 
     nodeTableModel=new PTNodeTableModel(0);
+    colorMapTableModel=new ColorMapTableModel(0);
+    widget.colorTable->setModel(colorMapTableModel);
     widget.tableView->setModel(nodeTableModel);
-
     // read from file
     pcdFileName=argv[1];
     if ( pcl::io::loadPCDFile<PointT > (pcdFileName, cloud_orig) == -1) {
