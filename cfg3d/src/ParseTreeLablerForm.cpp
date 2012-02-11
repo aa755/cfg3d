@@ -43,10 +43,17 @@ public:
         if(idEnd==(int)string::npos)
             idEnd=fullname.size();
         string ids=fullname.substr(typeEnd+2,idEnd-typeEnd-2);
-        cout<<"++"<<ids<<"++"<<endl;
+        //cout<<"++"<<ids<<"++"<<endl;
         id=lexical_cast<int>(ids);
-        memo=fullname.substr(idEnd);
-        cout<<type<<"-"<<id<<"-"<<memo<<endl;
+        if(idEnd==(int)fullname.size())
+        {
+            memo="";
+        }
+        else
+        {
+          memo=fullname.substr(idEnd+2);
+        }
+        //cout<<type<<"-"<<id<<"-"<<memo<<endl;
     }
     
     bool updateTypeCounts(map<string,int>& typeMaxId)
@@ -433,6 +440,19 @@ void ParseTreeLablerForm::addNodeButtonClicked()
      QString selectedText = index.data(Qt::DisplayRole).toString();
      //find out the hierarchy level of the selected item
      string name=getCppString(selectedText);
+    Node nd(name);
+    cout<<"memo: "<<nd.memo<<endl;
+    if (nd.memo.size() != 0 && nd.type == "Terminal")
+    {
+        for (map<string, int>::iterator it = typeMaxId.begin(); it != typeMaxId.end(); it++)
+        {
+            if(it->first.find(nd.memo)!=string::npos)
+            {
+                widget.comboBox->setEditText(QString(it->first.data()));
+            }
+            
+        }
+    }
      
      nodeTableModel->addItem(name);
 }
@@ -574,6 +594,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(undoSplitButtonClicked()));
      
      widget.comboBox->setEditable(true);
+                    widget.comboBox->setDuplicatesEnabled(false);
+ 
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
    // pcl::PointCloud<PointT>::Ptr orig_cloud_ptr(new pcl::PointCloud<PointT > (cloud_orig));
