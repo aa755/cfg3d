@@ -4,7 +4,7 @@ Created on Feb 7, 2012
 @author: lisherwin
 '''
 import sys
- 
+
 def getFile(name):
     return open(name)
 def getFileAppend(name):
@@ -17,8 +17,10 @@ def parseLabelLine(line):
     seg = None
     label = None
     try:
-        seg = vect[0]
-        label = vect[1].lstrip(' ').rstrip('\n')
+        label = vect[0]
+        seg = vect[1:]
+        seg[-1] = seg[-1].rstrip('\n')
+        seg[0] = seg[0].lstrip(' ')
     except:
         print 'Unable to token split'
         raise
@@ -40,9 +42,10 @@ def handleInputs(labelMap, neighborMap, outputFileName):
     outputTreeFile.write('digraph {\n')
     
     for line in labelMapFile:
-        seg, label = parseLabelLine(line)
-        observedSegsInLabelMap.add(seg)
-        outputTreeFile.write(''.join(['\tTerminal__', seg, '__', label, ' ;\n']))
+        segs, label = parseLabelLine(line)
+        for seg in segs:
+            observedSegsInLabelMap.add(seg)
+            outputTreeFile.write(''.join(['\tTerminal__', seg, '__', label, ' ;\n']))
         
     segmentSet = set([])
     for line in neighborMapFile:
