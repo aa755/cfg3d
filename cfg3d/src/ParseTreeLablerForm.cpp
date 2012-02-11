@@ -341,14 +341,17 @@ void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelec
             {
                 segNumToColor[nd.id] = randColor();
             }
-
+        colorMapTableModel->clearAll();
     for (int i = 0; i < numChildren; i++)
     {
         QStandardItem *child = parNode->child(i, 0);
+                        
 
 
         queue<QStandardItem *> bfsQueue;
         float color = randColor();
+                        ColorRGB colorRGB(color);
+                        colorMapTableModel->addItem(getCppString(child->text()),QColor(colorRGB.r*255,colorRGB.g*255,colorRGB.b*255));
         bfsQueue.push(child);
         //boost::random::uniform_int_distribution<> randSix(0,5);
         // distribution that maps to 1..6
