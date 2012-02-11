@@ -54,8 +54,8 @@ void PTNodeTableModel::clearAll()
 void PTNodeTableModel::combineAll(ParseTreeLablerForm* form)
 {
     string newNodeType=string(form->widget.comboBox->currentText().toUtf8().constData());
-    string newNodeName=newNodeType+"__"+lexical_cast<string>(++form->typeMaxId[newNodeType]);
-    QStandardItem *newItem = new QStandardItem(newNodeName.data()); 
+    string memo=string(form->widget.memo->text().toUtf8().constData());
+    form->widget.memo->setText("");
     if(nodesToMerge.size()==0)
     {
               QMessageBox::warning(form, tr("Parse Tree Labaler"),
@@ -77,13 +77,27 @@ void PTNodeTableModel::combineAll(ParseTreeLablerForm* form)
                                 QMessageBox::Ok,QMessageBox::Ok);            
               return;
         }
+        
+    }
+    
+    string newNodeName=newNodeType+"__"+lexical_cast<string>(++form->typeMaxId[newNodeType]);
+    if(memo.size()!=0)
+    {
+        newNodeName=newNodeName+"__"+memo;
+    }
+    
+    QStandardItem *newItem = new QStandardItem(newNodeName.data()); 
+    
+    for(vector<string>::iterator it=nodesToMerge.begin();it!=nodesToMerge.end();it++)
+    {
+        QStandardItem * node=form->nameToTreeNode[*it];
         form->rootNode->takeRow(node->row()); // remove this node from it's current parent ... which should be root node
         newItem->appendRow(node);
         
     }
     form->nameToTreeNode[newNodeName]=newItem;
     form->rootNode->appendRow(newItem);
-    form->widget.treeView->expandAll();
+    //form->widget.treeView->expandAll();
     clearAll();
 //    form->standardModel->submit();
 }

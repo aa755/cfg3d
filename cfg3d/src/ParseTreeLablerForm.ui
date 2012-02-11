@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>574</width>
+    <width>594</width>
     <height>564</height>
    </rect>
   </property>
@@ -39,8 +39,8 @@
   <widget class="QComboBox" name="comboBox">
    <property name="geometry">
     <rect>
-     <x>380</x>
-     <y>260</y>
+     <x>320</x>
+     <y>250</y>
      <width>121</width>
      <height>27</height>
     </rect>
@@ -49,7 +49,7 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>380</x>
+     <x>320</x>
      <y>230</y>
      <width>131</width>
      <height>20</height>
@@ -124,9 +124,9 @@
   <widget class="QTableView" name="colorTable">
    <property name="geometry">
     <rect>
-     <x>330</x>
+     <x>300</x>
      <y>350</y>
-     <width>201</width>
+     <width>311</width>
      <height>161</height>
     </rect>
    </property>
@@ -181,6 +181,29 @@
    </property>
    <property name="text">
     <string>Undo Split</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_4">
+   <property name="geometry">
+    <rect>
+     <x>480</x>
+     <y>230</y>
+     <width>67</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>memo</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="memo">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>250</y>
+     <width>113</width>
+     <height>27</height>
+    </rect>
    </property>
   </widget>
  </widget>
