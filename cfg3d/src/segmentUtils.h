@@ -46,7 +46,7 @@ Eigen::Vector3f getPoint(PointET p)
   template <typename PointT, typename Normal> 
   void extractEuclideanClustersM( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
       float tolerance, const boost::shared_ptr<pcl::KdTree<PointT> > &tree, \
-      std::vector<pcl::PointIndices> &clusters, double eps_angle, \
+      std::vector<pcl::PointIndices> &clusters, double eps_angle, bool useColor=false, float colorT=0.3, \
       unsigned int min_pts_per_cluster = 1, \
       unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ())
   {
@@ -111,7 +111,17 @@ Eigen::Vector3f getPoint(PointET p)
           double dot_p = normals.points[i].normal[0] * normals.points[nn_indices[j]].normal[0] +
                          normals.points[i].normal[1] * normals.points[nn_indices[j]].normal[1] +
                          normals.points[i].normal[2] * normals.points[nn_indices[j]].normal[2];
-          if ( fabs (acos (dot_p)) < eps_angle /* TODO: check color*/)
+          bool colorAccept=true;
+          if(useColor)
+          {
+                ColorRGB c1(cloud.points[i].rgb);
+                ColorRGB c2(cloud.points[nn_indices[j]].rgb);
+                float cdistance=ColorRGB::distance(c1,c2);
+           //     cout<<"color dist"<<cdistance<<endl;
+                if(cdistance>1.73*colorT)
+                    colorAccept=false;
+          }
+          if ( fabs (acos (dot_p)) < eps_angle && colorAccept/* TODO: check color*/)
           {
             processed[nn_indices[j]] = true;
             seed_queue.push_back (nn_indices[j]);
@@ -139,7 +149,7 @@ Eigen::Vector3f getPoint(PointET p)
   }
   
 template <typename PointSegT>
-  void segment( pcl::PointCloud<PointSegT> &cloud,std::vector<pcl::PointIndices> &clusters, float radius=0.04, double angle=0.52, unsigned int numNbrForNormal=50, unsigned int min_pts_per_cluster = 1)
+  void segment( pcl::PointCloud<PointSegT> &cloud,std::vector<pcl::PointIndices> &clusters, float radius=0.04, double angle=0.52, unsigned int numNbrForNormal=50, bool useColor=false, float colorT=0.3, unsigned int min_pts_per_cluster = 1)
 {
     typename pcl::KdTree<PointSegT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointSegT, pcl::Normal> n3d_;
@@ -162,7 +172,7 @@ template <typename PointSegT>
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
     
-    pcl::extractEuclideanClusters<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100);
+    extractEuclideanClustersM<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,useColor,colorT,100);
     
 }
 

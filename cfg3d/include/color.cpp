@@ -69,6 +69,7 @@ class ColorRGB{
    }
    static float HSVdistance(ColorRGB c1,ColorRGB c2)
    {
+       assert(1==2);
        return min(abs(c1.H - c2.H), min(abs(c1.H + 360 - c2.H), abs(c2.H + 360 - c1.H))) ;
    }
 

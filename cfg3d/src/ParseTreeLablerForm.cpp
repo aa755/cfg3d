@@ -276,10 +276,12 @@ void ParseTreeLablerForm::splitButtonClicked()
     string name = getCppString(selectedText);
     std::vector<pcl::PointIndices> clusters;
     Node nd(name);
+    cout<<"in split seg"<<endl;
     if (nd.type == "Terminal")
     {
         double radT=getValueOfType<double>(widget.radEdit->text());
         double angleT=getValueOfType<double>(widget.angleEdit->text());
+        double colorT=getValueOfType<double>(widget.colorT->text());
         int numNbr=getValueOfType<int>(widget.nbrEdit->text());
         int segId = nd.id;
         pcl::PointCloud<PointT> segCloud;
@@ -294,7 +296,7 @@ void ParseTreeLablerForm::splitButtonClicked()
             }
         }
         cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<"with params"<<radT<<","<<angleT<<","<<numNbr<<endl;
-        segment(segCloud, clusters,radT,angleT,numNbr);
+        segment(segCloud, clusters,radT,angleT,numNbr,true,colorT);
         sort(clusters.begin(), clusters.end(), compareSegsDecreasing);
 
         cloud_undo=cloud_orig;
