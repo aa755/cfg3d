@@ -289,29 +289,40 @@ void ParseTreeLablerForm::splitButtonClicked()
         pcl::PointCloud<PointT> segCloud;
         segCloud.header = cloud_orig.header;
         vector<int> originalIndices;
+        undoAvl = true;
+        cloud_undo=cloud_orig;
         for (int i = 0; i < (int)cloud_orig.points.size(); i++)
         {
             if ((int)cloud_orig.points[i].segment == segId)
             {
                 segCloud.points.push_back(cloud_orig.points[i]);
+                cloud_orig.points[i].segment=0;
                 originalIndices.push_back(i);
             }
         }
         cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<"with params"<<radT<<","<<angleT<<","<<numNbr<<endl;
-        segment(segCloud, clusters,radT,angleT,numNbr,true,colorT);
+//        segment(segCloud, clusters,radT,angleT,numNbr,true,colorT);
+        SegmentPCDGraph<PointT> segmenter(angleT,radT,numNbr,colorT,100);
+        segmenter.segment(segCloud,clusters);
         sort(clusters.begin(), clusters.end(), compareSegsDecreasing);
 
-        cloud_undo=cloud_orig;
-        undoAvl = true;
         
         // the old segment now contains the largest segment after splitting
         segNumToColor.clear();
         segNumToColor[segId]=randColor();
         cout<<clusters.size()<<" oversegments found"<<endl;
-        for (size_t i = 1; i < clusters.size(); i++)
+        for (size_t i = 0; i < clusters.size(); i++)
         {
             cout<<"cluster "<<i<<"has "<<clusters[i].indices.size()<<" points\n";
-            int newSegId=(++typeMaxId["Terminal"]);
+            int newSegId;
+            if(i==0)
+            {
+                newSegId=segId;
+            }
+            else
+            {
+                newSegId=(++typeMaxId["Terminal"]);
+            }
             segNumToColor[newSegId]=randColor();
             for (size_t j = 0; j < clusters[i].indices.size(); j++)
             {

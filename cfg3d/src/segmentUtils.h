@@ -7,6 +7,7 @@
 
 #ifndef SEGMENTUTILS_H
 #define	SEGMENTUTILS_H
+#include <boost/shared_ptr.hpp>
 #include "structures.cpp"
 #include "OccupancyMap.h"
 #include <iostream>
@@ -30,6 +31,55 @@
 #include "extract_planes.cpp"
 #include "utils.h"
 #include "segment-graph.h"
+
+#include "pcl/io/pcd_io.h"
+#include "pcl/point_types.h"
+#include "pcl/filters/statistical_outlier_removal.h"
+#include <pcl/features/normal_3d.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <ros/ros.h>
+#include <string>
+#include <ros/ros.h>
+#include <algorithm>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+
+
+#include "pcl/kdtree/kdtree_flann.h"
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/io/io.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/filters/radius_outlier_removal.h>
+#include "pcl/io/pcd_io.h"
+#include "pcl/point_types.h"
+//#include "image.h"
+//#include "misc.h"
+//#include "filter.h>
+#include "segment-graph.h"
+#include "pcl/sample_consensus/method_types.h"
+#include "pcl/sample_consensus/model_types.h"
+#include "pcl/segmentation/sac_segmentation.h"
+#include "pcl/filters/voxel_grid.h"
+#include "pcl/filters/extract_indices.h"
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <time.h>
+
 //#define FILTER_SEGMENTS_SEGMENTATION
 typedef pcl::PointXYZRGBCamSL PointOutT;
 //typedef pcl::PointXYZRGBCamSL PointInT;
@@ -50,7 +100,6 @@ class SegmentPCD
 public:
     virtual void segment(pcl::PointCloud<Point> &cloud, std::vector<pcl::PointIndices> &clusters)=0;    
 };
-
   template <typename PointT, typename Normal> 
   void extractEuclideanClustersM( const pcl::PointCloud<PointT> &cloud, const pcl::PointCloud<Normal> &normals, \
       float tolerance, const boost::shared_ptr<pcl::KdTree<PointT> > &tree, \
@@ -155,20 +204,21 @@ public:
       }
     }
   }
+
   
-template <typename PointSegT>
-  void segment( pcl::PointCloud<PointSegT> &cloud,std::vector<pcl::PointIndices> &clusters, float radius=0.04, double angle=0.52, unsigned int numNbrForNormal=50, bool useColor=false, float colorT=0.3, unsigned int min_pts_per_cluster = 1)
+template <typename Point>
+void segment( pcl::PointCloud<Point> &cloud,std::vector<pcl::PointIndices> &clusters, float radius=0.04, double angle=0.52, unsigned int numNbrForNormal=50, bool useColor=false, float colorT=0.3, unsigned int min_pts_per_cluster = 1)
 {
-    typename pcl::KdTree<PointSegT>::Ptr normals_tree_, clusters_tree_;
-    pcl::NormalEstimation<PointSegT, pcl::Normal> n3d_;
-        typename pcl::PointCloud<PointSegT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointSegT> >(&cloud);
+    typename pcl::KdTree<Point>::Ptr normals_tree_, clusters_tree_;
+    pcl::NormalEstimation<Point, pcl::Normal> n3d_;
+        typename pcl::PointCloud<Point>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<Point> >(&cloud);
 
 
-    clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointSegT> > ();
+    clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> > ();
     initTree(0, clusters_tree_);
     clusters_tree_->setInputCloud(cloud_ptr);
 
-    normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointSegT> > ();
+    normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> > ();
     n3d_.setKSearch(numNbrForNormal);
     //    n3d_.setSearchMethod (normals_tree_);
     n3d_.setSearchMethod(clusters_tree_);
@@ -180,9 +230,9 @@ template <typename PointSegT>
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
     
-    extractEuclideanClustersM<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100,useColor,colorT);
+    extractEuclideanClustersM<Point, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100,useColor,colorT);
     cout<<"tolerance " << radius<<" angle "<<angle<<endl;
-//    pcl::extractEuclideanClusters<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100);
+//    pcl::extractEuclideanClusters<Point, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100);
     
 }
 
@@ -193,6 +243,7 @@ bool compareSegsDecreasing(const pcl::PointIndices & seg1,const pcl::PointIndice
 
 template <typename Point>
 class SegmentPCDGraph : public SegmentPCD<Point> {
+public:
 
     float sqrG(float y) {
         return y*y;
@@ -225,7 +276,7 @@ class SegmentPCDGraph : public SegmentPCD<Point> {
     int min_pts_per_cluster;
     float thresh;
 
-    SegmentPCDGraph(float thresh = 0.1, float radius = 0.02, unsigned int numNbrForNormal = 50, bool useColor = false, float colorWt = 0.3, unsigned int min_pts_per_cluster = 1) {
+    SegmentPCDGraph(float thresh = 0.1, float radius = 0.02, unsigned int numNbrForNormal = 50, float colorWt = 0.3, unsigned int min_pts_per_cluster = 1) {
         this->radius = radius;
         this->numNbrForNormal = numNbrForNormal;
         this->colorWt = colorWt;
@@ -244,10 +295,23 @@ class SegmentPCDGraph : public SegmentPCD<Point> {
     }
     //float radius=0.04, double angle=0.52, unsigned int numNbrForNormal=50, bool useColor=false, float colorT=0.3, unsigned int min_pts_per_cluster = 1;
 
+    void copy(pcl::PointCloud<Point> &cloud, pcl::PointCloud<pcl::PointXYZRGB> & cloundWnormal)
+    {
+        cloundWnormal.points.resize(cloud.size());
+        for(int i=0;i<(int)cloud.size();i++)
+        {
+            cloundWnormal.points[i].x=cloud.points[i].x;
+            cloundWnormal.points[i].y=cloud.points[i].y;
+            cloundWnormal.points[i].z=cloud.points[i].z;
+            cloundWnormal.points[i].rgb=cloud.points[i].rgb;
+            
+        }
+    }
+    
     void concatenate(pcl::PointCloud<Point> &cloud, pcl::PointCloud<pcl::Normal> &normals, pcl::PointCloud<pcl::PointXYZRGBNormal> & cloundWnormal)
     {
         cloundWnormal.points.resize(cloud.size());
-        for(int i=0;i<cloud.size();i++)
+        for(int i=0;i<(int)cloud.size();i++)
         {
             cloundWnormal.points[i].x=cloud.points[i].x;
             cloundWnormal.points[i].y=cloud.points[i].y;
@@ -263,22 +327,24 @@ class SegmentPCDGraph : public SegmentPCD<Point> {
     void segment(pcl::PointCloud<Point> &cloud, std::vector<pcl::PointIndices> &clusters) {
         std::cerr << "using thresh of: " << thresh << endl;
 
+        
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb(new pcl::PointCloud<pcl::PointXYZRGB > ());
+        copy(cloud,*cloud_rgb);
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB > ());
         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr final_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal > ());
 
 
-        pcl::PassThrough<Point> pass_;
+        pcl::PassThrough<pcl::PointXYZRGB> pass_;
         
-        pass_.setInputCloud(cloud);
+        pass_.setInputCloud(cloud_rgb);
         pass_.filter(*cloud_filtered);
 
         // Fill in the cloud data
-        typename pcl::PointCloud<Point>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointT> >(&cloud);
 
         // Create the filtering object
-        pcl::NormalEstimation<Point, pcl::Normal> n3d_;
-       typename pcl::KdTree<Point>::Ptr normals_tree_, clusters_tree_;
-        normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> > ();
+        pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n3d_;
+       typename pcl::KdTree<pcl::PointXYZRGB>::Ptr normals_tree_, clusters_tree_;
+        normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<pcl::PointXYZRGB> > ();
         //  clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<Point> > ();
         pcl::PointCloud<pcl::Normal> cloud_normals;
         // Normal estimation parameters
@@ -287,7 +353,7 @@ class SegmentPCDGraph : public SegmentPCD<Point> {
         n3d_.setInputCloud(cloud_filtered);
         n3d_.compute(cloud_normals);
         
-        concatenate(*cloud_filtered, cloud_normals, *final_cloud);
+        pcl::concatenateFields(*cloud_filtered, cloud_normals, *final_cloud);
 
 
         size_t numPoints = final_cloud->size();
