@@ -242,6 +242,8 @@ void ParseTreeLablerForm::updatePCDVis()
     color_handler.reset(new pcl_visualization::PointCloudColorHandlerRGBField<sensor_msgs::PointCloud2 > (colored_cloud_blob));
 
     viewer.addPointCloud(cloud_colored, color_handler, "colored");    
+    
+    viewer.addCoordinateSystem();
 }
 
 void ParseTreeLablerForm::colorSegs(map<int,float> & seg2color, bool fresh) {
@@ -315,7 +317,7 @@ void ParseTreeLablerForm::splitButtonClicked()
             {
                 cloud_orig.points[originalIndices.at(clusters[i].indices[j])].segment = newSegId;
             }
-            string name="Terminal__"+lexical_cast<string>(newSegId)+"__split";
+            string name="Terminal__"+lexical_cast<string>(newSegId)+"__split"+lexical_cast<string>(segId);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
                 undoNames.push_back(name);
