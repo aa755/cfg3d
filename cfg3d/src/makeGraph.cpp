@@ -562,8 +562,8 @@ int main(int argc, char** argv)
 
 
     int number_neighbours = 200;
-    float radius =  0.04;
-    float angle = 0.52;
+    float radius =  0.01;
+    float angle = 0.40;
     pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
     pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
     std::vector<pcl::PointIndices> clusters;
