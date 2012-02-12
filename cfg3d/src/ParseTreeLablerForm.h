@@ -64,6 +64,7 @@ public slots:
     void splitButtonClicked();
     void undoSplitButtonClicked();
     void windowClosing();
+    void addNodeFromTree(const QModelIndex & index);
      
 public:
     const static int NUM_CLASSES_TO_SHOW=10;

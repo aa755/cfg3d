@@ -162,7 +162,7 @@ template <typename PointSegT>
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
     
-    extractEuclideanClustersM<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100);
+    pcl::extractEuclideanClusters<PointSegT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,100);
     
 }
 

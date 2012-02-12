@@ -346,6 +346,28 @@ void ParseTreeLablerForm::undoSplitButtonClicked()
     undoNames.clear();
 }
 
+void ParseTreeLablerForm::addNodeFromTree(const QModelIndex & index)
+{
+         QString selectedText = index.data(Qt::DisplayRole).toString();
+     //find out the hierarchy level of the selected item
+     string name=getCppString(selectedText);
+    Node nd(name);
+    cout<<"memo: "<<nd.memo<<endl;
+    if (nd.memo.size() != 0 && nd.type == "Terminal")
+    {
+        for (map<string, int>::iterator it = typeMaxId.begin(); it != typeMaxId.end(); it++)
+        {
+            if(it->first.find(nd.memo)!=string::npos)
+            {
+                widget.comboBox->setEditText(QString(it->first.data()));
+            }
+            
+        }
+    }
+     
+     nodeTableModel->addItem(name);
+
+}
 void ParseTreeLablerForm::selectionChangedSlot(const QItemSelection & /*newSelection*/, const QItemSelection & /*oldSelection*/)
 {
     //get the text of the selected item
@@ -449,24 +471,7 @@ void ParseTreeLablerForm::showNbrButtonClicked()
 void ParseTreeLablerForm::addNodeButtonClicked()
 {
      const QModelIndex index = widget.treeView->selectionModel()->currentIndex();
-     QString selectedText = index.data(Qt::DisplayRole).toString();
-     //find out the hierarchy level of the selected item
-     string name=getCppString(selectedText);
-    Node nd(name);
-    cout<<"memo: "<<nd.memo<<endl;
-    if (nd.memo.size() != 0 && nd.type == "Terminal")
-    {
-        for (map<string, int>::iterator it = typeMaxId.begin(); it != typeMaxId.end(); it++)
-        {
-            if(it->first.find(nd.memo)!=string::npos)
-            {
-                widget.comboBox->setEditText(QString(it->first.data()));
-            }
-            
-        }
-    }
-     
-     nodeTableModel->addItem(name);
+     addNodeFromTree(index);
 }
 
 void ParseTreeLablerForm::deleteNodeButtonClicked()
@@ -604,6 +609,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(splitButtonClicked()));
      connect(widget.undoSplitButton, SIGNAL(clicked ()),
              this, SLOT(undoSplitButtonClicked()));
+     connect(widget.treeView, SIGNAL(doubleClicked(const QModelIndex &)),
+             this, SLOT(addNodeFromTree(const QModelIndex &)));
      
      widget.comboBox->setEditable(true);
                     widget.comboBox->setDuplicatesEnabled(false);
