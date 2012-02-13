@@ -216,7 +216,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>0.01</string>
+    <string>0.03</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="angleEdit">
@@ -229,7 +229,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>0.4</string>
+    <string>0.6</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="nbrEdit">
@@ -242,7 +242,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>40</string>
+    <string>60</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_5">
@@ -294,7 +294,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>0.4</string>
+    <string>0.3</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_8">
@@ -413,6 +413,19 @@
    </property>
    <property name="text">
     <string>SplitAbtPlane</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_13">
+   <property name="geometry">
+    <rect>
+     <x>350</x>
+     <y>560</y>
+     <width>67</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>thresh</string>
    </property>
   </widget>
  </widget>

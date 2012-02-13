@@ -301,7 +301,7 @@ void ParseTreeLablerForm::splitButtonClicked()
             }
         }
         cout<<"oversegmenting this seg whihch had "<<segCloud.size()<<"with params"<<radT<<","<<angleT<<","<<numNbr<<endl;
-//        segment(segCloud, clusters,radT,angleT,numNbr,true,colorT);
+    //    segment(segCloud, clusters,radT,angleT,numNbr,true,colorT);
         SegmentPCDGraph<PointT> segmenter(angleT,radT,numNbr,colorT,100);
         segmenter.segment(segCloud,clusters);
         sort(clusters.begin(), clusters.end(), compareSegsDecreasing);
