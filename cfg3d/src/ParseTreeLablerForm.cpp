@@ -328,6 +328,9 @@ void ParseTreeLablerForm::splitButtonClicked()
             {
                 cloud_orig.points[originalIndices.at(clusters[i].indices[j])].segment = newSegId;
             }
+            if(i==0)
+                continue;
+            
             string name="Terminal__"+lexical_cast<string>(newSegId)+"__split"+lexical_cast<string>(segId);
                 QStandardItem *item = new QStandardItem(name.data());
                 nameToTreeNode[name] = item;
