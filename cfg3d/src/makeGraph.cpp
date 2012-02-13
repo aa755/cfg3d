@@ -1,4 +1,6 @@
 #include "segmentUtils.h"
+//#define COMPUTE_NEIGHBORS
+//#define DISTANCE_BASED_PLANE_MERGE_THRESHOLD
 int** intArrPointer;
 
 void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices, pcl::PointCloud<PointInT> & cloud_seg)
@@ -452,7 +454,9 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         basePlane.getCentroid(p1Centroid);
         
         distanceThreshold = .0025;
-//        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
+#ifdef DISTANCE_BASED_PLANE_MERGE_THRESHOLD
+        distanceThreshold = pointPointDistance(cameraOrigin, p1Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p1Centroid)));
+#endif
     } else {
         otherTerminal = terminal1;
         basePlane = terminal2Plane;
@@ -461,7 +465,9 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
         basePlane.getCentroid(p2Centroid);
         
         distanceThreshold = .0025;
-//        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
+#ifdef DISTANCE_BASED_PLANE_MERGE_THRESHOLD
+        distanceThreshold = pointPointDistance(cameraOrigin, p2Centroid) * .0075 * fabs(basePlane.getPlaneNormal().dot(pointPointVector(cameraOrigin, p2Centroid)));
+#endif
     }
     
      boost::shared_ptr <std::vector<int> > terminal1BoostPtr = terminal1.getPointIndicesBoostPtr();
@@ -564,29 +570,29 @@ int main(int argc, char** argv)
     int number_neighbours = 200;
     float radius =  0.01;
     float angle = 0.40;
-    pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
-    pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
+    
     std::vector<pcl::PointIndices> clusters;
-
-
-    clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
-    initTree(0, clusters_tree_);
-    clusters_tree_->setInputCloud(cloud_ptr);
-
-    normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
-    n3d_.setKSearch(number_neighbours);
-    //    n3d_.setSearchMethod (normals_tree_);
-    n3d_.setSearchMethod(clusters_tree_);
-
-    pcl::PointCloud<pcl::Normal> cloud_normals;
-    n3d_.setInputCloud(cloud_ptr);
-    n3d_.compute(cloud_normals);
+    //enable for old seg
+//    pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
+//    pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
+//    clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
+//    initTree(0, clusters_tree_);
+//    clusters_tree_->setInputCloud(cloud_ptr);
+//    normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
+//    n3d_.setKSearch(number_neighbours);
+//    n3d_.setSearchMethod(clusters_tree_);
+//    pcl::PointCloud<pcl::Normal> cloud_normals;
+//    n3d_.setInputCloud(cloud_ptr);
+//    n3d_.compute(cloud_normals);
 
     //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
  //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
     
-    extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
+    //extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
    // extractRansacClusters(cloud, clusters);
+        SegmentPCDGraph<PointInT> segmenter(0.1,0.04,number_neighbours,0.1,300);
+        segmenter.segment(cloud,clusters);
+
     
     sort(clusters.begin(),clusters.end(),compareSegsDecreasing);
     
@@ -633,8 +639,9 @@ int main(int argc, char** argv)
    pcl::io::savePCDFile<PointOutT>(segmentedPCD, scene,true);
    std::cout << total << std::endl;
    
+#ifdef COMPUTE_NEIGHBORS
     OccupancyMapAdv occupancy(scene);
-        
+#endif        
     std::ofstream logFile;
     
     string neighborMap = toAppendToString.append("_nbr.txt");
@@ -650,8 +657,10 @@ int main(int argc, char** argv)
             set<int> ptNbrs;
             tIndex=clusters[i].indices[j];
 //            occupancy.getNeighborSegs(tIndex, ptNbrs, true );// consider occlusion
+#ifdef COMPUTE_NEIGHBORS
             occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
+#endif
         }
         
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
