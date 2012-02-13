@@ -281,6 +281,7 @@ void ParseTreeLablerForm::splitButtonClicked()
     cout<<"in split seg"<<endl;
     if (nd.type == "Terminal")
     {
+                        undoNames.clear();
         double radT=getValueOfType<double>(widget.radEdit->text());
         double angleT=getValueOfType<double>(widget.angleEdit->text());
         double colorT=getValueOfType<double>(widget.colorT->text());
