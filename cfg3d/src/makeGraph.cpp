@@ -1,6 +1,6 @@
 #include "segmentUtils.h"
 //#define COMPUTE_NEIGHBORS
-//#define DISTANCE_BASED_PLANE_MERGE_THRESHOLD
+#define DISTANCE_BASED_PLANE_MERGE_THRESHOLD
 int** intArrPointer;
 
 void getComplementPointSet(vector<int>& memberIndices, vector<int>& complementIndices, pcl::PointCloud<PointInT> & cloud_seg)

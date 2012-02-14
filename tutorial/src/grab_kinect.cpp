@@ -13,6 +13,7 @@
 #include <pcl/io/pcd_io.h>
 #include <iostream>
 #include <cmath>
+#include "04_seg_sample_2.cpp"
 
 using namespace std;
 
