@@ -12,6 +12,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
@@ -24,8 +25,10 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
 
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
         float sumx=0;
+        int count=0;
         for(int i=0;i<(int)cloud.size();i++)
         {
+            if(!isnan(cloud.points[i].x))
             sumx+=cloud.points[i].x;
         }
         cout<<sumx/cloud.size()<<endl;
