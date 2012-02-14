@@ -24,6 +24,7 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
     ROS_INFO("Received frame from kinect");
 
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
+                pcl::fromROSMsg(*point_cloud, cloud);
         float sumx=0;
         int count=0;
         for(int i=0;i<(int)cloud.size();i++)
