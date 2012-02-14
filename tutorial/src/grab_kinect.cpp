@@ -29,9 +29,12 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
         for(int i=0;i<(int)cloud.size();i++)
         {
             if(!isnan(cloud.points[i].x))
-            sumx+=cloud.points[i].x;
+		{
+            	sumx+=cloud.points[i].x;
+		count++;
+		}
         }
-        cout<<sumx/cloud.size()<<endl;
+        cout<<sumx/count<<","<<count<<endl;
         
         pcl::fromROSMsg(*point_cloud, cloud);
     
