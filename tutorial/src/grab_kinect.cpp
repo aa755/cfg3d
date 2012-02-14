@@ -11,18 +11,25 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
+#include <iostream>
+
+using namespace std;
 
 void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg, 
                                      const sensor_msgs::ImageConstPtr& depth_img_msg,   
                                      const sensor_msgs::CameraInfoConstPtr& cam_info,*/
         const sensor_msgs::PointCloud2ConstPtr& point_cloud) {
 
-    static int callback_counter_ = 0;
-    callback_counter_++;
     ROS_INFO("Received frame from kinect");
-        ROS_INFO("accepted it");
 
         pcl::PointCloud<pcl::PointXYZRGB> cloud;
+        float sumx=0;
+        for(int i=0;i<(int)cloud.size();i++)
+        {
+            sumx+=cloud.points[i].x;
+        }
+        cout<<sumx/cloud.size()<<endl;
+        
         pcl::fromROSMsg(*point_cloud, cloud);
     
 }
