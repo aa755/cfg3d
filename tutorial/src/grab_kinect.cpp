@@ -13,7 +13,7 @@
 #include <pcl/io/pcd_io.h>
 #include <iostream>
 #include <cmath>
-#include "04_seg_sample_2.cpp"
+#include "04_seg_sample_1.cpp"
 
 using namespace std;
 
@@ -24,21 +24,25 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
 
     ROS_INFO("Received frame from kinect");
 
-        pcl::PointCloud<pcl::PointXYZRGB> cloud;
-                pcl::fromROSMsg(*point_cloud, cloud);
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+        
+                pcl::fromROSMsg(*point_cloud, *cloud);
+                
+                sample1(cloud);
+                return;
         float sumx=0;
         int count=0;
-        for(int i=0;i<(int)cloud.size();i++)
+        for(int i=0;i<(int)cloud->size();i++)
         {
-            if(!isnan(cloud.points[i].z))
+            if(!isnan(cloud->points[i].z))
 		{
-            	sumx+=cloud.points[i].z;
+            	sumx+=cloud->points[i].z;
 		count++;
 		}
         }
         cout<<sumx/count<<","<<count<<endl;
         
-        pcl::fromROSMsg(*point_cloud, cloud);
+       // pcl::fromROSMsg(*point_cloud, cloud);
     
 }
 
