@@ -1,0 +1,17 @@
+<package>
+  <description brief="tutorial">
+
+     tutorial
+
+  </description>
+  <author>Abhishek Anand</author>
+  <license>BSD</license>
+  <depend package="roscpp"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/tutorial</url>
+
+</package>
+
+
