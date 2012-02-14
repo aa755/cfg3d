@@ -29,9 +29,9 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
         int count=0;
         for(int i=0;i<(int)cloud.size();i++)
         {
-            if(!isnan(cloud.points[i].x))
+            if(!isnan(cloud.points[i].z))
 		{
-            	sumx+=cloud.points[i].x;
+            	sumx+=cloud.points[i].z;
 		count++;
 		}
         }
