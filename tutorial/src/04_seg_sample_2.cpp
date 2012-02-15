@@ -15,7 +15,7 @@
 // includes for visualization
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/extract_indices.h>
-#include <color_handler_uniform.h>
+#include "color_handler_uniform.h"
 
 // let's make it easier on ourselves..
 using namespace std;
