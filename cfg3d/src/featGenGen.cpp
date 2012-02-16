@@ -23,6 +23,10 @@ class TreeNode
     
     
 public:
+    typedef pair<string,set<string> > RuleType;
+//    static map< RuleType , vector<string> > ruleOrdering;
+    static map< RuleType , int > ruleOrdering;
+    
     typedef  shared_ptr<TreeNode> Ptr;
     typedef  weak_ptr<TreeNode> WPtr;
     
@@ -167,15 +171,29 @@ public:
     }
 };
 
-
+map< TreeNode::RuleType , int > TreeNode::ruleOrdering;
 /*
  * 
  */
 int main(int argc, char** argv)
 {
-    TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);
-    root->setFlags();
-    root->print();
+    TreeNode::RuleType rul1,rul2;
+    rul1.first="Chair";
+    rul2.first="Chair";
+    rul1.second.insert("Base");
+    rul1.second.insert("Back");
+
+    rul2.second.insert("Back");
+//    rul2.second.insert("Base");
+    rul2.second.insert("rest");
+    
+    TreeNode::ruleOrdering[rul1]=1;
+    cout<<TreeNode::ruleOrdering[rul2]<<endl;
+
+    
+   // TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
+   // root->setFlags();
+   // root->print();
     return 0;
 }
 
