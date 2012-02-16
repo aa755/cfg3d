@@ -13,7 +13,6 @@
 #include <pcl/io/pcd_io.h>
 #include <iostream>
 #include <cmath>
-#include "04_seg_sample_1.cpp"
 
 using namespace std;
 
@@ -28,8 +27,6 @@ void processPointCloud(/*const sensor_msgs::ImageConstPtr& visual_img_msg,
         
                 pcl::fromROSMsg(*point_cloud, *cloud);
                 
-                sample1(cloud);
-                return;
         float sumx=0;
         int count=0;
         for(int i=0;i<(int)cloud->size();i++)

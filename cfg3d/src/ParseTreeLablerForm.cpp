@@ -35,49 +35,6 @@ double getValueOfType(QString str)
 {
     return lexical_cast<T>(getCppString(str));
 }
-class Node
-{
-public:
-    string type;
-    int id;
-    string memo;
-    
-    Node(string fullname)
-    {
-        int typeEnd=fullname.find("__");
-        type=fullname.substr(0,typeEnd);
-        int idEnd=fullname.find("__",typeEnd+1);
-        
-        if(idEnd==(int)string::npos)
-            idEnd=fullname.size();
-        string ids=fullname.substr(typeEnd+2,idEnd-typeEnd-2);
-        //cout<<"++"<<ids<<"++"<<endl;
-        id=lexical_cast<int>(ids);
-        if(idEnd==(int)fullname.size())
-        {
-            memo="";
-        }
-        else
-        {
-          memo=fullname.substr(idEnd+2);
-        }
-        //cout<<type<<"-"<<id<<"-"<<memo<<endl;
-    }
-    
-    bool updateTypeCounts(map<string,int>& typeMaxId)
-    {
-        if(typeMaxId.find(type)==typeMaxId.end())
-        {
-            typeMaxId[type]=id;
-            return true; // new type
-        }
-        else if(typeMaxId[type]<id)
-            typeMaxId[type]=id;
-        
-        return false;
-        
-    }
-};
 
 void ParseTreeLablerForm::updateTypeCounts(string fullname)
 {

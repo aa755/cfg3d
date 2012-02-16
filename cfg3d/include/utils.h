@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
+#include <boost/lexical_cast.hpp>
+
 using namespace std;
 
 struct null_deleter
@@ -222,6 +224,49 @@ Eigen::Vector3d getDirection(double azimuth, double elev) {
     bg::transform<spherical, cartesian > (ps, pc);
     return Eigen::Vector3d(pc.get < 0 > (), pc.get < 1 > (), pc.get < 2 > ());
 }
+class Node
+{
+public:
+    string type;
+    int id;
+    string memo;
+    
+    Node(string fullname)
+    {
+        int typeEnd=fullname.find("__");
+        type=fullname.substr(0,typeEnd);
+        int idEnd=fullname.find("__",typeEnd+1);
+        
+        if(idEnd==(int)string::npos)
+            idEnd=fullname.size();
+        string ids=fullname.substr(typeEnd+2,idEnd-typeEnd-2);
+        //cout<<"++"<<ids<<"++"<<endl;
+        id=boost::lexical_cast<int>(ids);
+        if(idEnd==(int)fullname.size())
+        {
+            memo="";
+        }
+        else
+        {
+          memo=fullname.substr(idEnd+2);
+        }
+        //cout<<type<<"-"<<id<<"-"<<memo<<endl;
+    }
+    
+    bool updateTypeCounts(map<string,int>& typeMaxId)
+    {
+        if(typeMaxId.find(type)==typeMaxId.end())
+        {
+            typeMaxId[type]=id;
+            return true; // new type
+        }
+        else if(typeMaxId[type]<id)
+            typeMaxId[type]=id;
+        
+        return false;
+        
+    }
+};
 
 //        
 //    template<typename PT>
