@@ -12,13 +12,14 @@
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 #include <vector>
-#include <boost//lexical_cast.hpp>
+#include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <stdio.h>
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
-#include <boost/lexical_cast.hpp>
-
+#include <set>
+#include "pcl/common/eigen.h"
+#include <fstream>
 using namespace std;
 
 struct null_deleter
@@ -230,6 +231,21 @@ public:
     string type;
     int id;
     string memo;
+
+    bool EndsWith(const string& a, const string& b) 
+    {
+        if (b.size() > a.size()) return false;
+        return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+    }
+    
+    bool isComplexType()
+    {
+        return EndsWith(type,"Complex");
+    }
+    bool isRootType()
+    {
+        return (type=="FloorComplex");
+    }
     
     Node(string fullname)
     {
