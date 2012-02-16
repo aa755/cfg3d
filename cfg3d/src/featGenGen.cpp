@@ -53,7 +53,13 @@ public:
     
     void print()
     {
-        cout<<name.type<<"__"<<name.id<<":"<<terminal<<primitivePart<<endl;
+        string type="";
+        if(terminal)
+            type=type+"Terminal,";
+        if(primitivePart)
+            type=type+"PrimitivePart,";
+        
+        cout<<name.type<<"__"<<name.id<<":"<<type<<endl;
         for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
         {
             (*it)->print();
