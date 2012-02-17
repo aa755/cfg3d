@@ -120,6 +120,53 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     }
 }
 
+map<int,Terminal*> numToTerminal;
+void initialize(pcl::PointCloud<PointT> scene) {
+    
+    for(unsigned int i = 0; i < scene.size(); i++)
+    {
+        int currentSegNum = scene.points[i].segment;
+
+        Terminal::totalNumTerminals=0;
+        if(currentSegNum > 0)
+        {
+            if(Terminal::totalNumTerminals<currentSegNum)
+                Terminal::totalNumTerminals=currentSegNum;
+            
+            
+            Terminal* terminalToAddTo = numToTerminal[currentSegNum];
+            if(terminalToAddTo==NULL)
+            {
+                terminalToAddTo=new Terminal(currentSegNum-1);
+                numToTerminal[currentSegNum]=terminalToAddTo;
+            }
+            terminalToAddTo->addPointIndex(i);            
+        }
+    
+    }
+    segMinDistances.setZero(terminals.size(),terminals.size());
+    
+    for(unsigned int i1=0;i1<terminals.size();i1++)
+    {
+            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
+            {
+                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
+                segMinDistances(i1,i2)=minDistance;
+                segMinDistances(i2,i1)=minDistance;
+            }
+    }
+  
+    for(map<int,Terminal*>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
+    {
+        Terminal *terminal=it->second;
+        terminal->computeFeatures();
+        terminal->setNeighbors(Terminal::totalNumTerminals);
+        terminal->declareOptimal();        
+    }
+    // Plane initialization.
+//    initializePlanes(maxSegNum);
+}
+
 void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
     
     // SegNumToLabel initialization.

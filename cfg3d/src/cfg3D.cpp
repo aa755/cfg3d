@@ -57,6 +57,18 @@ public:
         return LHS;
     }
 
+    NonTerminal* applyRuleLearning(Plane * RHS_plane, Terminal *RHS_seg) {
+        
+        Plane * LHS = new Plane();
+        LHS->addChild(RHS_plane);
+        LHS->addChild(RHS_seg);
+        LHS->computeSpannedTerminals();
+        LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->declareOptimal();
+        
+        return LHS;
+    }
+    
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         set<int>::iterator it;

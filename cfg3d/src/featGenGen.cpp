@@ -72,7 +72,7 @@ public:
         
     }
     
-    void setFlags()
+    void featGenGen()
     {
         if(children.size()==0)
         {
@@ -82,21 +82,29 @@ public:
         }
         else
         {
+                terminal=false;
             bool allterminal=true;
-//            bool noTerminal=false;
+            bool someTerminal=false;
             for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
             {
-                (*it)->setFlags();
+                (*it)->featGenGen();
                 allterminal=allterminal && (*it)->terminal;
-                //noTerminal= noTerminal || it->terminal;
+                someTerminal=someTerminal || (*it)->terminal;
             }
-            
+          
+            assert((!someTerminal) || allterminal); //someTerminal => allTerminal
             if(allterminal)
             {
-                terminal=false;
                 primitivePart=true;
                 object=false;
             }
+            else
+            {
+                primitivePart=false;
+                object=true;                
+            }
+            
+            
             
         }
             
@@ -228,7 +236,7 @@ int main(int argc, char** argv)
 {
 
     
- //   TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
+    TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
 //    root->setFlags();
 //    root->print();
     
