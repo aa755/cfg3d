@@ -73,6 +73,16 @@ public:
         
     }
     
+    string replace(string inp, char s, char d)
+    {
+        char data[inp.size()];
+        for(int i=0;i<(int)inp.size();i++)
+        {
+            if(data[i]==',')
+                data[i]='_';
+        }
+        return string(data);
+    }
 //    RPlane_PlaneSeg rulePPG;
 //    RPlaneSeg rulePG;
 //#include "helper.cpp"    
@@ -90,11 +100,18 @@ public:
                 terminal=false;
             bool allterminal=true;
             bool someTerminal=false;
+            map<string,Ptr> name2child;
+            RuleType rul;
+            rul.first=name.type;
+            vector<string>  typeOrder;
             for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
             {
                 (*it)->featGenGen(ofile);
                 allterminal=allterminal && (*it)->terminal;
                 someTerminal=someTerminal || (*it)->terminal;
+                name2child[(*it)->name.type]=(*it);
+                rul.second.insert((*it)->name.type);
+                typeOrder.push_back((*it)->name.type);
             }
           
             assert((!someTerminal) || allterminal); //someTerminal => allTerminal
@@ -107,17 +124,48 @@ public:
                 {
                     ofile<<"temp=rulePPG.applyRuleLearning(temp,numToTerminal["<< children.at(i)->name.id<<"]);\n";            
                 }
-                ofile<<"{\nSingleRule<"<< name.type<<",Plane> tr;\n";
-                ofile<<"tr.applyRuleLearning(temp, dummy);\n}\n";
+                ofile<<"\t"<<name.getDecl()<<";\n";
+                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr;\n";
+                ofile<<"\t"<<name.fullName <<"= tr.applyRuleLearning(temp, dummy);\n}\n";
             }
             else
             {
+                if (!name.isComplexType())
+                {                    
+                    if (children.size() == 1)
+                    {
+                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr;\n";
+                        ofile <<"\t"<< name.getDecl() << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                    }
+                    else if (children.size() >= 2)
+                    {
+                        //string types="";
+                        string names="";
+                        string interType="";
+                        //const vector<string> & typeOrder=ruleOrdering[rul];
+                        
+                        //types.append(typeOrder.at(0));
+                        interType.append(typeOrder.at(0));
+                        names.append(name2child[typeOrder.at(0)]->name.fullName);
+                        for(int i=1;i<(int)children.size();i++)
+                        {
+                            string oldInterType=interType;
+                            interType.append("_");
+                            interType.append(typeOrder.at(i));
+                            string oldNames=names;
+                            names.append("_");
+                            names.append(name2child[typeOrder.at(i)]->name.fullName);
+                            ofile << interType<<" *"<< names<<";\n";
+                            
+                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr;\n";
+                                                        
+                            ofile <<"\t"<<  names<< "= tr.applyRuleLearning(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
+                        }
+                    }
+                }
                 primitivePart=false;
-                object=true;                
+                object=true;                                
             }
-            
-            
-            
         }
             
     }
@@ -217,7 +265,7 @@ public:
                 rule.first = toks.at(0);
                 for(int i=1;i<(int)toks.size();i++)
                 {
-                    rule.second.insert(toks.at(i));
+                    assert(rule.second.insert(toks.at(i)).second); // insertion should not fail => no duplicate type
                 }
 
                 getTokens(order, toks, " ,");

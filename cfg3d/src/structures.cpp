@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-#define MAX_SEG_INDEX 34
+//#define MAX_SEG_INDEX 34
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -3730,4 +3730,11 @@ public:
 };
 
 
+//template <typename Support>
+//class SupportComplex : NonTerminal
+//{
+//    Support base;
+//    vector<NonTerminal*> objectsOnTop;
+//    
+//};
 #endif

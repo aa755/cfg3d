@@ -231,6 +231,7 @@ public:
     string type;
     int id;
     string memo;
+    string fullName;
 
     bool EndsWith(const string& a, const string& b) 
     {
@@ -249,6 +250,7 @@ public:
     
     Node(string fullname)
     {
+        this->fullName=fullname;
         int typeEnd=fullname.find("__");
         type=fullname.substr(0,typeEnd);
         int idEnd=fullname.find("__",typeEnd+1);
@@ -281,6 +283,10 @@ public:
         
         return false;
         
+    }
+
+    string getDecl() const {
+        return type+" *"+fullName+" ";
     }
 };
 

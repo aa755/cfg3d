@@ -13,7 +13,6 @@
 //#include "Rules_Floor.h"
 //#include "Rules_Wall.h"
 //#define FILTER_LABELS
-#define GREEDY_OBJECTS
 // Manual rules that we need.
     vector<VisualObject*> identifiedScenes;
     
