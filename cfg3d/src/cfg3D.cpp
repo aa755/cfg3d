@@ -17,16 +17,23 @@
 // Manual rules that we need.
 class RPlaneSeg : public Rule {
 public:
+
+    Plane * applyRule(Symbol * extractedSym)
+    {
+        Plane * LHS = new Plane();
+        LHS->addChild(extractedSym);
+        LHS->computeSpannedTerminals();
+        LHS->computePlaneParamsAndSetCost();
+        return LHS;
+        
+    }
+    
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) != typeid (Terminal))
             return;
         
-        Plane * LHS = new Plane();
-        LHS->addChild(extractedSym);
-        LHS->computeSpannedTerminals();
-        LHS->computePlaneParamsAndSetCost();
-        addToPqueueIfNotDuplicate(LHS,pqueue); //TODO: duplicate check is not required
+        addToPqueueIfNotDuplicate(applyRule(extractedSym),pqueue); //TODO: duplicate check is not required
     }
 };
 

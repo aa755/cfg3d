@@ -72,7 +72,10 @@ public:
         
     }
     
-    void featGenGen()
+ //   RPlane_PlaneSeg rulePPG;
+ //   RPlaneSeg rulePG;
+    
+    void featGenGen(ofstream & ofile)
     {
         if(children.size()==0)
         {
@@ -87,7 +90,7 @@ public:
             bool someTerminal=false;
             for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
             {
-                (*it)->featGenGen();
+                (*it)->featGenGen(ofile);
                 allterminal=allterminal && (*it)->terminal;
                 someTerminal=someTerminal || (*it)->terminal;
             }
@@ -97,6 +100,7 @@ public:
             {
                 primitivePart=true;
                 object=false;
+               // Plane *temp= rulePG.
             }
             else
             {
