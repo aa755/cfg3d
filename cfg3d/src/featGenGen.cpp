@@ -107,8 +107,8 @@ public:
                 {
                     ofile<<"temp=rulePPG.applyRuleLearning(temp,numToTerminal["<< children.at(i)->name.id<<"]);\n";            
                 }
-           //     ofile<<"SingleRule<"<< name.type<<",Plane> tr;\n";
-           //     ofile<<"tr.applyRuleLearning(temp, dummy);\n";
+                ofile<<"{\nSingleRule<"<< name.type<<",Plane> tr;\n";
+                ofile<<"tr.applyRuleLearning(temp, dummy);\n}\n";
             }
             else
             {

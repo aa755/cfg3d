@@ -8,10 +8,10 @@
 #include "structures.cpp"
 #include "wallDistance.h"
 #include "CPU_generatedDataStructures.cpp"
-#include "Monitor_generatedDataStructures.cpp"
-#include "Printer_generatedDataStructures.cpp"
-#include "Rules_Floor.h"
-#include "Rules_Wall.h"
+//#include "Monitor_generatedDataStructures.cpp"
+//#include "Printer_generatedDataStructures.cpp"
+//#include "Rules_Floor.h"
+//#include "Rules_Wall.h"
 //#define FILTER_LABELS
 #define GREEDY_OBJECTS
 // Manual rules that we need.
