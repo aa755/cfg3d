@@ -29,6 +29,7 @@ public:
     
     static map< RuleType , vector<string> > ruleOrdering;
     static map<string,Ptr> nameToTreeNode;
+//    static map<>
 
     
     vector<Ptr> children;
@@ -72,13 +73,14 @@ public:
         
     }
     
- //   RPlane_PlaneSeg rulePPG;
- //   RPlaneSeg rulePG;
-    
+//    RPlane_PlaneSeg rulePPG;
+//    RPlaneSeg rulePG;
+//#include "helper.cpp"    
     void featGenGen(ofstream & ofile)
     {
         if(children.size()==0)
         {
+            assert(name.type=="Terminal");
             terminal=true;
             object=false;
             primitivePart=false;
@@ -100,7 +102,13 @@ public:
             {
                 primitivePart=true;
                 object=false;
-               // Plane *temp= rulePG.
+                ofile<<"temp= rulePG.applyRule(numToTerminal["<< children.at(0)->name.id << "]);\n";
+                for(int i=1;i<(int)children.size();i++)
+                {
+                    ofile<<"temp=rulePPG.applyRuleLearning(temp,numToTerminal["<< children.at(i)->name.id<<"]);\n";            
+                }
+           //     ofile<<"SingleRule<"<< name.type<<",Plane> tr;\n";
+           //     ofile<<"tr.applyRuleLearning(temp, dummy);\n";
             }
             else
             {
@@ -233,6 +241,28 @@ public:
 map< TreeNode::RuleType , vector<string> > TreeNode::ruleOrdering;
 map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
 
+void createRunLearnFront(ofstream & outputLearnerCode) {
+    outputLearnerCode << "#include\"helper.cpp\"\n";
+    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn) {"<<endl;
+    outputLearnerCode<<"    initialize(sceneToLearn);"<<endl;
+    outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
+    outputLearnerCode<<"RPlaneSeg rulePG;\n";
+    outputLearnerCode<<"Plane *temp;\n";
+//    outputLearnerCode<<"    vector<Terminal*> temp;"<<endl<<endl;
+}
+
+void createRunLearnBack(ofstream & outputLearnerCode) {
+    outputLearnerCode<<"}"<<endl<<endl;
+    
+    outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
+    outputLearnerCode<<"if(argc!=2)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile>\"<<endl;\n exit(-1);\n}\n";        
+
+    outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
+    outputLearnerCode<<"    runLearn(scene);"<<endl;
+    outputLearnerCode<<"}"<<endl;
+
+}
+
 /*
  * 
  */
@@ -241,6 +271,13 @@ int main(int argc, char** argv)
 
     
     TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
+    ofstream ofile("featGen.cpp",ios::out);
+
+    createRunLearnFront(ofile);
+    
+    root->featGenGen(ofile);
+    createRunLearnBack(ofile);
+    ofile.close();
 //    root->setFlags();
 //    root->print();
     

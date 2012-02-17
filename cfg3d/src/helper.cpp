@@ -121,6 +121,7 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
 }
 
 map<int,Terminal*> numToTerminal;
+vector<Terminal*> dummy;
 void initialize(pcl::PointCloud<PointT> scene) {
     
     for(unsigned int i = 0; i < scene.size(); i++)
