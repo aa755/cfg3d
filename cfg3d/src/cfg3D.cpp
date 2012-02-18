@@ -113,7 +113,11 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     CPUAppendLearningRules(rules);
 //    MonitorAppendLearningRules(rules);
 //    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
-//    rules.push_back(RulePtr(new SingleRule<Floor, Plane>()));
+    vector<string> cpps;
+    cpps.push_back("hello");
+    cpps.push_back("how");
+    rules.push_back(RulePtr(new DoubleRuleComplex<Plane,Plane>(vector<string>(cpps))));
+
 //    printerAppendLearningRules(rules);
 
     //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
@@ -329,8 +333,6 @@ int main(int argc, char** argv) {
     rulePath=exec(command.data());
     rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
     runParse(neighbors, maxSegIndex,gtLableFileName);
-    SingleRuleComplex<Plane> plr;
-    plr.getCostScaleFactor();
 
     return 0;
     
