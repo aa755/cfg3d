@@ -229,8 +229,8 @@ vector<string> splitLine(string line) {
     return tokenList;
 }
 
-class Floor : public NonTerminal{};
-class Wall : public NonTerminal{};
-class door : public NonTerminal{};
-class tableTop : public NonTerminal{};
+//class Floor : public NonTerminal{};
+//class Wall : public NonTerminal{};
+//class door : public NonTerminal{};
+//class tableTop : public NonTerminal{};
 #endif //CFG3D_HELPER_CPP

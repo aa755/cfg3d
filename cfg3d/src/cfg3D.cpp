@@ -7,7 +7,8 @@
 
 #include "structures.cpp"
 #include "wallDistance.h"
-#include "CPU_generatedDataStructures.cpp"
+//#include "CPU_generatedDataStructures.cpp"
+#include "generatedDataStructures.cpp"
 //#include "Monitor_generatedDataStructures.cpp"
 //#include "Printer_generatedDataStructures.cpp"
 //#include "Rules_Floor.h"
@@ -109,7 +110,7 @@ void outputOnBothStreams(string str)
 void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapFile=NULL) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
-    CPUAppendLearningRules(rules);
+    //CPUAppendLearningRules(rules);
 //    MonitorAppendLearningRules(rules);
 //    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
 //    vector<string> cpps;
