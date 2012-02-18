@@ -2521,7 +2521,7 @@ public:
     }
     
     void readDistribution(string filename) {
-        ifstream inputStream;
+    //    ifstream inputStream;
         filename.append(".model");
         pdist=new MultiVarGaussian(filename);
     }
@@ -3032,6 +3032,7 @@ template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
 {
 protected:
+    int hello;
     //    template<typename RHS_Type1, typename RHS_Type2>
 
 //    template<typename NT_PlaneType>
@@ -3793,6 +3794,7 @@ public:
     
 };
 
+
 template<typename SupportType, typename RHS_Type2 >
 class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >
 {
@@ -3821,19 +3823,27 @@ public:
     }
     string getSingleFileName()
     {
-        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2));
+        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
     }
     
     DoubleRuleComplex( vector<string> types, bool learning=false)
     {
         if (isLearned())
         {
-
+            if(learning)
+            {
+                this->featureFile.open(getSingleFileName().data(),ios::app);
+            }
+            else
+            {
+                this->readDistribution((getSingleFileName()+".model"));
+            }
+            
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
             {
                 set<string> typeSt;
                 typeSt.insert(*it);
-                typeSt.insert(string(typeid(RHS_Type2).name));
+                typeSt.insert(string(typeid(RHS_Type2).name()));
                 string filename = getFileName(typeSt);
                 
                 if (learning)
@@ -3906,7 +3916,7 @@ public:
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         appendAllFeatures(LHS,RHS1,RHS2,terminals);
-//        writeFeaturesToFile();
+        this->writeFeaturesToFile();
         return LHS;
     }
     
