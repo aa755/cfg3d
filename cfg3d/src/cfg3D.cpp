@@ -112,10 +112,10 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     CPUAppendLearningRules(rules);
 //    MonitorAppendLearningRules(rules);
 //    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
-    vector<string> cpps;
-    cpps.push_back("hello");
-    cpps.push_back("how");
-    rules.push_back(RulePtr(new DoubleRuleComplex<Plane,Plane>(vector<string>(cpps))));
+//    vector<string> cpps;
+//    cpps.push_back("hello");
+//    cpps.push_back("how");
+//    rules.push_back(RulePtr(new DoubleRuleComplex<Plane,Plane>(vector<string>(cpps))));
 
 //    printerAppendLearningRules(rules);
 
@@ -161,6 +161,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     }
 
     NUMPointsToBeParsed=0;
+    overallMinZ=infinity();
     for(unsigned int i=0;i<scene.size();i++)
     {
         if(rand()%10 != 1)
@@ -168,6 +169,9 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
         int segIndex=scene.points[i].segment;
         if(segIndex>0 && segIndex<=maxSegIndex)
         {
+            if(overallMinZ>scene.points[i].z)
+                overallMinZ=scene.points[i].z;
+            
             terminals.at(segIndex-1)->addPointIndex(i);
             
             

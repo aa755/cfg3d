@@ -123,7 +123,8 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
 map<int,Terminal*> numToTerminal;
 vector<Terminal*> dummy;
 void initialize(pcl::PointCloud<PointT> scene) {
-    
+
+    overallMinZ=infinity();
     for(unsigned int i = 0; i < scene.size(); i++)
     {
         int currentSegNum = scene.points[i].segment;
@@ -134,6 +135,8 @@ void initialize(pcl::PointCloud<PointT> scene) {
             if(Terminal::totalNumTerminals<currentSegNum)
                 Terminal::totalNumTerminals=currentSegNum;
             
+            if(overallMinZ>scene.points[i].z)
+                overallMinZ=scene.points[i].z;
             
             Terminal* terminalToAddTo = numToTerminal[currentSegNum];
             if(terminalToAddTo==NULL)
