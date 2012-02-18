@@ -3893,7 +3893,7 @@ public:
             }
             else
             {
-                this->readDistribution((getSingleFileName()+".model"));
+                this->readDistribution(rulePath+"/"+(getSingleFileName()));
             }
             
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
@@ -3910,7 +3910,7 @@ public:
                 }
                 else
                 {
-                    pairWiseModels[typeSt]=new MultiVarGaussian(filename+".model");
+                    pairWiseModels[typeSt]=new MultiVarGaussian(rulePath+"/"+filename+".model");
 
                 }
             }
