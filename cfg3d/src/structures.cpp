@@ -3794,6 +3794,63 @@ public:
     
 };
 
+template<typename T>
+class PairInfoSupportComplex
+{
+    const static int NUM_FEATS = 8;
+public:
+
+    union
+    {
+        // add new features here and update the static constants. make use to set them later
+        T all[NUM_FEATS];
+
+        struct
+        {
+            T centDist;
+            T centDistHorz;
+            T centZDiff12;
+            T z1Min_2Max;
+            T z1Max_2Min;
+            T z1Min_2Min;
+            T z1Max_2Max;
+            T minDist;
+        };
+    };
+    
+    void computeInfo(Symbol * rhs1, Symbol * rhs2){};
+    void writeToFile(ofstream & featureFile)
+    {
+        for(int i=0;i<NUM_FEATS;i++)
+        {
+            featureFile<<all[i]<<",";
+        }
+        featureFile<<endl;
+        
+    }
+    
+    void pushToVector(vector<T> & infos)
+    {
+        for(int i=0;i<NUM_FEATS;i++)
+            infos.push_back(all[i]);
+    }
+
+};
+
+template<>
+void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
+{
+    centDist=(rhs1->centroidDistance(rhs2));
+    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
+    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z);
+
+    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
+    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ());
+
+    minDist=(rhs1->getMinDistance(rhs2));
+}
 
 template<typename SupportType, typename RHS_Type2 >
 class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >
@@ -3859,64 +3916,54 @@ public:
             }
         }
     }
-
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
-//    {
-//        assert(3 == 2); // needs specialization
-//    }
-
-    /**
-     * 
-     * @param rhs1 : a nonterminal(possibly obtained after expansion) from the 1st RHS of the rule
-     * @param rhs2 : the second NT of the rule
-     */
-    void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
+    
+    void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
-        assert(false);
-        PairInfo<float> pairFeats;
-        pairFeats.computeInfo(rhs1,rhs2);
-//        pairFeats.pushToVector(features);
+        this->features.clear();
+        this->features.push_back(RHS1->getMaxZ() - RHS2->getMinZ());
     }
     
-    void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+    LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-//        features.clear();
-        
-        vector<Symbol*> RHS1Expanded;
-        vector<Symbol*> RHS2Expanded;
-        rhs1->expandIntermediates(RHS1Expanded);
-        rhs2->expandIntermediates(RHS2Expanded);
-        assert(RHS2Expanded.size()==1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
-        
-        vector<Symbol*>::iterator it1;
-        vector<Symbol*>::iterator it2;
-        
-        for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
-        {
-            for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
-            {
-                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
-                appendPairFeatures(*it1, *it2);
-            } 
-        }
-        
-        output->computeFeatures();
+        LHS_Type * LHS = new LHS_Type();
+        LHS->addChild(RHS1);
+        LHS->addChild(RHS2);
+        LHS->base=RHS1->base;
+        LHS->objectsOnTop=RHS1->objectsOnTop;
+        LHS->objectsOnTop.push_back(RHS2);
+        appendMainFeats(RHS1,RHS2);
+        LHS->computeSpannedTerminals();
+        return LHS;
     }
-    
-    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
-        // Initialize features.
-//        output->setAdditionalCost(getMinusLogProbability(features));
-        return true;
-    }
-    
+
+        
     LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
 //        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         LHS->setAdditionalCost(0);
-        LHS->declareOptimal();
-        appendAllFeatures(LHS,RHS1,RHS2,terminals);
+        LHS->declareOptimal();        
         this->writeFeaturesToFile();
+        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+        {
+            set<string> sortTypes;
+            string name1=string(typeid(*it).name());
+            string name2=string(typeid(*RHS2).name());
+            
+            sortTypes.insert(name1);
+            sortTypes.insert(name2);
+            PairInfoSupportComplex<float> feats;
+            if(name1<name2)
+                feats.computeInfo((*it),RHS2);
+            else
+                feats.computeInfo(RHS2,(*it));
+
+            ofstream * file= pairWiseFeatFiles[sortTypes];
+            assert(file!=NULL);
+            feats.writeToFile(*file);
+            
+                
+        }
         return LHS;
     }
     
@@ -3924,14 +3971,36 @@ public:
     {
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
-        // below to be replaced by generic learned rules
         
-            appendAllFeatures(LHS, RHS1, RHS2, terminals);
-            if (setCost(LHS, RHS1, RHS2, terminals))
-            {
-                return LHS;
-            }
+            appendMainFeats(RHS1, RHS2);
+             setCost(LHS, RHS1, RHS2, terminals); // set main cost
+             
+        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+        {
+            set<string> sortTypes;
+            string name1=string(typeid(*it).name());
+            string name2=string(typeid(*RHS2).name());
+            
+            sortTypes.insert(name1);
+            sortTypes.insert(name2);
+            PairInfoSupportComplex<float> feats;
+            if(name1<name2)
+                feats.computeInfo((*it),RHS2);
             else
+                feats.computeInfo(RHS2,(*it));
+
+            MultiVariateProbabilityDistribution * model= pairWiseModels[sortTypes];
+            assert(model!=NULL);
+            vector<float> featv;
+            feats.pushToVector(featv);
+            LHS->setAdditionalCost(model->minusLogProb(featv));
+            
+                
+        }
+             
+             
+             
+             if(isinf(LHS->getCost()))
             {
                  delete LHS;
                return NULL;
