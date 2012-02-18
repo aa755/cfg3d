@@ -253,6 +253,16 @@ def isNotComplex(rule):
 #    return vect[0].find("Complex") == -1
     return rule.find("Complex") == -1
 
+def mergeTwoFiles(first, second, out):
+    first = getFile(first)
+    second = getFile(second)
+    output = getFileWrite(out)
+    for line in first:
+        output.write(line)
+    for line in second:
+        output.write(line)
+    
+
 if __name__ == '__main__':
     
     allRules = []
@@ -274,20 +284,39 @@ if __name__ == '__main__':
     filterOutSingles(improperUniqueRules, improperUniqueRules2PlusRHS, properRules1RHS)
     
     properRules, b = properfy(improperUniqueRules2PlusRHS, filterOutDoubles(tally))
-    pprint.pprint(properRules)
-    properRules2PlusRHSFile = getFileWrite('properRules.2PlusRHS')
+    properRules2PlusRHSName = 'properRules.2PlusRHS'
+    properRules2PlusRHSFile = getFileWrite(properRules2PlusRHSName)
     
     properRules2PlusRHS = set()
+    
+    complexToComponents = {}
+    
+    orderFile = getFileWrite('order')
+    
     for elem in properRules:
 #        if isNotComplex(elem):
 #            properRules2PlusRHS.add(elem)
         properRules2PlusRHS.add(elem)
+        LHS,RHS = elem.split(';')
+        if not isNotComplex(LHS):
+            if complexToComponents.has_key(LHS):
+                complexToComponents[LHS] = complexToComponents[LHS].union(RHS.split('_'))
+            else:
+                complexToComponents[LHS] = set(RHS.split('_'))
+        else:
+            orderFile.write(mergeStrings([elem, '\n']))
+    
+    for key,value in complexToComponents.iteritems():
+        orderFile.write(key)
+        orderFile.write(';')
+        orderFile.write(','.join(list(value)))
+        orderFile.write('\n')
+    
     
     for elem in sorted(properRules2PlusRHS):
         elem = elem.replace('_', ',')
         properRules2PlusRHSFile.write(mergeStrings([elem, '\n']))
-        
-    
+
     
     pass
         

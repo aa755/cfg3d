@@ -18,6 +18,7 @@ def mergeStrings(lst):
     return ''.join(lst)
 
 functionOpen = 'void appendLearningRules(vector<RulePtr>& learningRules) {\n'
+temp = 'vector<string> temp;\n'
 functionClose = '}\n'
 
 def printImports(dataStructuresFile):
@@ -39,9 +40,13 @@ def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText)
                 addingSingleRuleText = mergeStrings([addingSingleRuleText, complexDeclaration])
                 currentRules.add(complexDeclaration)
             
-            addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',RHS,'>()));\n'])
+            addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',RHS,'>(temp)));\n'])
             if not addRule in currentRules:
-                addingSingleRuleText = mergeStrings([addingSingleRuleText, addRule])
+                clear = '\ttemp.clear();\n'
+                if not isNotComplex(RHS):
+                    RHS = mergeStrings(['SupportComplex<',RHS.replace('Complex',''),'>'])
+                pushBack = mergeStrings(['\ttemp.push_back(typeid(',RHS,').name());\n'])
+                addingSingleRuleText = mergeStrings([addingSingleRuleText, clear, pushBack, addRule])
                 currentRules.add(addRule)
         elif vect[1] == 'Plane\n':
             declaration = mergeStrings(['class ', vect[0], ' : public PlanarPrimitive{};\n'])
@@ -125,8 +130,17 @@ def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText,
                 addingDoubleRuleText = mergeStrings([addingDoubleRuleText, complexDeclaration])
                 currentRules.add(complexDeclaration)
             
+            buildVect = '\ttemp.clear();\n'
             for elem in RHS.split(','):
-                addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',elem.rstrip('\n'),'>()));\n'])
+                if not isNotComplex(elem):
+                    elem = mergeStrings(['SupportComplex<',elem.replace('Complex',''),'>'])
+                buildVect = mergeStrings([buildVect, '\ttemp.push_back(typeid(',elem.rstrip('\n'),').name());\n'])
+            addingDoubleRuleText = mergeStrings([addingDoubleRuleText,buildVect])
+            
+            for elem in RHS.split(','):
+                if not isNotComplex(elem):
+                    elem = mergeStrings(['SupportComplex<',elem.replace('Complex', '').rstrip('\n'),'> '])
+                addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',elem.rstrip('\n'),'>(temp)));\n'])
                 if not addRule in currentRules:
                     addingDoubleRuleText = mergeStrings([addingDoubleRuleText, addRule])
                     currentRules.add(addRule)
@@ -146,6 +160,7 @@ if __name__ == '__main__':
     addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules)
     
     dataStructuresFile.write(functionOpen)   
+    dataStructuresFile.write(temp)   
     dataStructuresFile.write(addingSingleRuleText)
     dataStructuresFile.write(addingDoubleRuleText) 
     dataStructuresFile.write(functionClose)
