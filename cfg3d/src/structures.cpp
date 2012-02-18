@@ -4012,4 +4012,5 @@ public:
     
 }; 
 
+float overallMinZ;
 #endif
