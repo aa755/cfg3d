@@ -225,6 +225,11 @@ Eigen::Vector3d getDirection(double azimuth, double elev) {
     bg::transform<spherical, cartesian > (ps, pc);
     return Eigen::Vector3d(pc.get < 0 > (), pc.get < 1 > (), pc.get < 2 > ());
 }
+    bool EndsWith(const string& a, const string& b) 
+    {
+        if (b.size() > a.size()) return false;
+        return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+    }
 class Node
 {
 public:
@@ -233,11 +238,6 @@ public:
     string memo;
     string fullName;
 
-    bool EndsWith(const string& a, const string& b) 
-    {
-        if (b.size() > a.size()) return false;
-        return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
-    }
     
     bool isComplexType()
     {

@@ -103,7 +103,7 @@ public:
             map<string,Ptr> name2child;
             RuleType rul;
             rul.first=name.type;
-            vector<string>  typeOrder;
+            //vector<string>  typeOrder;
             for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
             {
                 (*it)->featGenGen(ofile);
@@ -111,7 +111,7 @@ public:
                 someTerminal=someTerminal || (*it)->terminal;
                 name2child[(*it)->name.type]=(*it);
                 rul.second.insert((*it)->name.type);
-                typeOrder.push_back((*it)->name.type);
+  //              typeOrder.push_back((*it)->name.type);
             }
           
             assert((!someTerminal) || allterminal); //someTerminal => allTerminal
@@ -119,13 +119,13 @@ public:
             {
                 primitivePart=true;
                 object=false;
-                ofile<<"temp= rulePG.applyRule(numToTerminal["<< children.at(0)->name.id << "]);\n";
+                ofile<<"temp= rulePG.applyRuleLearning(numToTerminal["<< children.at(0)->name.id << "]);\n";
                 for(int i=1;i<(int)children.size();i++)
                 {
                     ofile<<"temp=rulePPG.applyRuleLearning(temp,numToTerminal["<< children.at(i)->name.id<<"]);\n";            
                 }
                 ofile<<"\t"<<name.getDecl()<<";\n";
-                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr;\n";
+                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr(true);\n";
                 ofile<<"\t"<<name.fullName <<"= tr.applyRuleLearning(temp, dummy);\n}\n";
             }
             else
@@ -134,7 +134,7 @@ public:
                 {                    
                     if (children.size() == 1)
                     {
-                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr;\n";
+                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
                         ofile <<"\t"<< name.getDecl() << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else if (children.size() >= 2)
@@ -142,8 +142,8 @@ public:
                         //string types="";
                         string names="";
                         string interType="";
-                        //const vector<string> & typeOrder=ruleOrdering[rul];
-                        
+                        const vector<string> & typeOrder=ruleOrdering[rul];
+                        assert(typeOrder.size()>0) ; // o/w this mapping was not present in order file
                         //types.append(typeOrder.at(0));
                         interType.append(typeOrder.at(0));
                         names.append(name2child[typeOrder.at(0)]->name.fullName);
@@ -157,7 +157,7 @@ public:
                             names.append(name2child[typeOrder.at(i)]->name.fullName);
                             ofile << interType<<" *"<< names<<";\n";
                             
-                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr;\n";
+                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr(true);\n";
                                                         
                             ofile <<"\t"<<  names<< "= tr.applyRuleLearning(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
                         }
@@ -254,29 +254,23 @@ public:
                 
                 if (line.size() == 0)
                     break;
-                
+                cout<<line<<endl;
                 RuleType rule;
                 vector<string> toks;
                 getTokens(line, toks, ";");
                 assert( toks.size()==2);
-                string ruleStr=toks.at(0);
+                string ruleLHS=toks.at(0);
                 string order =toks.at(1);
-                getTokens(ruleStr, toks, " ,");
-                rule.first = toks.at(0);
-                for(int i=1;i<(int)toks.size();i++)
-                {
-                    assert(rule.second.insert(toks.at(i)).second); // insertion should not fail => no duplicate type
-                }
-
-                getTokens(order, toks, " ,");
+                getTokens(order, toks, "_");
+                rule.first = ruleLHS;
                 
-                // check that all members of the ordering are actually
-                // present at the end of rule
+                if(EndsWith(ruleLHS,"Complex"))
+                    break;
                 
-                assert(rule.second.size()==toks.size());
                 for(int i=0;i<(int)toks.size();i++)
                 {
-                    assert(rule.second.find(toks.at(i))!=rule.second.end());
+                    if(!rule.second.insert(toks.at(i)).second) // insertion should not fail => no duplicate type
+                    cerr<<"WARN"<<endl;
                 }
                 
                 ruleOrdering[rule]=toks;
@@ -291,6 +285,7 @@ map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
     outputLearnerCode << "#include\"helper.cpp\"\n";
+    outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
     outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn) {"<<endl;
     outputLearnerCode<<"    initialize(sceneToLearn);"<<endl;
     outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
@@ -320,6 +315,7 @@ int main(int argc, char** argv)
     
     TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
     ofstream ofile("featGen.cpp",ios::out);
+    TreeNode::parseMapping(argv[2]);
 
     createRunLearnFront(ofile);
     
@@ -329,7 +325,6 @@ int main(int argc, char** argv)
 //    root->setFlags();
 //    root->print();
 
-    TreeNode::parseMapping(argv[2]);
     return 0;
 }
 

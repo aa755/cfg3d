@@ -3662,6 +3662,18 @@ public:
         
     }
     
+    Plane * applyRuleLearning(Symbol * extractedSym)
+    {
+        Plane * LHS = new Plane();
+        LHS->addChild(extractedSym);
+        LHS->computeSpannedTerminals();
+        LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
+        LHS->declareOptimal();
+        return LHS;
+        
+    }
+    
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) != typeid (Terminal))
@@ -3705,6 +3717,7 @@ public:
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         
         return LHS;
