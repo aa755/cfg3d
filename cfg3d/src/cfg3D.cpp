@@ -328,6 +328,8 @@ int main(int argc, char** argv) {
     rulePath=exec(command.data());
     rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
     runParse(neighbors, maxSegIndex,gtLableFileName);
+    SingleRuleComplex<Plane, Plane> plr;
+    plr.getCostScaleFactor();
 
     return 0;
     

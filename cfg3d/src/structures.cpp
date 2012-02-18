@@ -2,7 +2,7 @@
 #define	STRUCTURES_CPP
 
 //options
-//#define MAX_SEG_INDEX 34
+#define MAX_SEG_INDEX 100000
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -3729,12 +3729,177 @@ public:
     }
 };
 
+class NTComplex : public NonTerminal
+{
+public:
+    virtual NonTerminal * getBase()=0;
+};
 
-//template <typename Support>
-//class SupportComplex : NonTerminal
+template <typename Support>
+class SupportComplex : NTComplex
+{
+public:
+    Support * base;
+    NonTerminal * getBase()
+    {
+        return base;
+    }
+
+    vector<NonTerminal*> objectsOnTop;
+    
+};
+
+template<typename LHS_Type, typename RHS_Type>
+class SingleRuleComplex : public SingleRule<LHS_Type,RHS_Type>
+{
+
+public:
+    double getCostScaleFactor()
+    {
+        return 1.0;
+    }
+    
+    
+    SingleRuleComplex()
+    {
+    }
+    
+    
+    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        computeFeatures(RHS);
+        LHS->setAdditionalCost(0);
+        LHS->declareOptimal();
+        
+        return LHS;
+        
+    }
+    
+    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    {
+        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        
+        // to be replace by generic features
+        computeFeatures(RHS);
+        LHS->setAdditionalCost(0);
+        return LHS;
+    }
+    
+};
+
+//template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
+//class DoubleRuleComplex : public DoubleRule<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 //{
-//    Support base;
-//    vector<NonTerminal*> objectsOnTop;
+//    map<string, MultiVariateProbabilityDistribution * > pairWiseModels; // between a type inside RHS_Type1(key) and Rhs_Type2
 //    
-//};
+//public:
+//    
+//    
+//    bool isLearned()
+//    {
+//        return true;
+//    }
+//    
+//    DoubleRule(bool learning=false)
+//    {
+//        if (isLearned())
+//        {
+//            string filename = string(string("ruledoublecomplex_") + "__" + string(typeid (RHS_Type1).name()) + "_" + string(typeid (RHS_Type2).name());
+//            if (learning)
+//            {
+//                // LHS__RHS1_RHS2
+//                featureFile.open(filename.data(), ios::app); // append to file
+//            }
+//            else
+//            {
+//                readDistribution(rulePath+"/"+filename);
+//            }
+//        }
+//    }
+//
+////    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
+////    {
+////        assert(3 == 2); // needs specialization
+////    }
+//
+//    /**
+//     * 
+//     * @param rhs1 : a nonterminal(possibly obtained after expansion) from the 1st RHS of the rule
+//     * @param rhs2 : the second NT of the rule
+//     */
+//    void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
+//    {
+//        assert(false);
+//        PairInfo<float> pairFeats;
+//        pairFeats.computeInfo(rhs1,rhs2);
+//        pairFeats.pushToVector(features);
+//    }
+//    
+//    void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+//    {
+//        features.clear();
+//        
+//        vector<Symbol*> RHS1Expanded;
+//        vector<Symbol*> RHS2Expanded;
+//        rhs1->expandIntermediates(RHS1Expanded);
+//        rhs2->expandIntermediates(RHS2Expanded);
+//        assert(RHS2Expanded.size()==1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
+//        
+//        vector<Symbol*>::iterator it1;
+//        vector<Symbol*>::iterator it2;
+//        
+//        for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
+//        {
+//            for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
+//            {
+//                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+//                appendPairFeatures(*it1, *it2);
+//            } 
+//        }
+//        
+//        output->computeFeatures();
+//    }
+//    
+//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+//        // Initialize features.
+//        output->setAdditionalCost(getMinusLogProbability(features));
+//        return true;
+//    }
+//    
+//    LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+//    {
+//        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+//        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+//        LHS->setAdditionalCost(0);
+//        LHS->declareOptimal();
+//        appendAllFeatures(LHS,RHS1,RHS2,terminals);
+//        writeFeaturesToFile();
+//        return LHS;
+//    }
+//    
+//    LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+//    {
+//        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+//        
+//        // below to be replaced by generic learned rules
+//        
+//            appendAllFeatures(LHS, RHS1, RHS2, terminals);
+//            if (setCost(LHS, RHS1, RHS2, terminals))
+//            {
+//                return LHS;
+//            }
+//            else
+//            {
+//                 delete LHS;
+//               return NULL;
+//            }
+//        }
+//         return LHS;
+//        
+//    }
+//    
+//}; 
+
 #endif
