@@ -328,7 +328,7 @@ int main(int argc, char** argv)
     ofile.close();
 //    root->setFlags();
 //    root->print();
-    
+
     TreeNode::parseMapping(argv[2]);
     return 0;
 }
