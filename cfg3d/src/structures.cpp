@@ -3797,7 +3797,7 @@ template<typename SupportType, typename RHS_Type2 >
 class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >
 {
     map<set<string>, MultiVariateProbabilityDistribution * > pairWiseModels; // between a type inside RHS_Type1(key) and Rhs_Type2
-    map<set<string>, ofstream*  > pairWiseModelFiles; // between a type inside RHS_Type1(key) and Rhs_Type2
+    map<set<string>, ofstream*  > pairWiseFeatFiles; // between a type inside RHS_Type1(key) and Rhs_Type2
     
     typedef SupportComplex<SupportType> LHS_Type;
     typedef SupportComplex<SupportType> RHS_Type1;
@@ -3812,11 +3812,16 @@ public:
     string getFileName(set<string> & types)
     {
         set<string>::iterator sit=types.begin();
-        string out=string("rule_") +string(typeid(LHS_Type).name())+"_";
+        string out=string("rule_") +string(typeid(LHS_Type).name())+"__";
         out.append(*sit+"_");
         sit++;
         out.append(*sit);
+        cerr<<"filename:"<<out<<endl;
         return out;
+    }
+    string getSingleFileName()
+    {
+        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2));
     }
     
     DoubleRuleComplex( vector<string> types, bool learning=false)
@@ -3834,10 +3839,12 @@ public:
                 if (learning)
                 {
                     ofstream * temp =new ofstream(filename.data(), ios::app); // append to file
+                    pairWiseFeatFiles[typeSt]=temp;
                 }
                 else
                 {
-                    //readDistribution(rulePath+"/"+filename);
+                    pairWiseModels[typeSt]=new MultiVarGaussian(filename+".model");
+
                 }
             }
         }
