@@ -8,6 +8,7 @@
 #include "structures.cpp"
 #include "wallDistance.h"
 #include "CPU_generatedDataStructures.cpp"
+#include "generatedDataStructures.cpp"
 //#include "Monitor_generatedDataStructures.cpp"
 //#include "Printer_generatedDataStructures.cpp"
 //#include "Rules_Floor.h"
