@@ -3789,6 +3789,7 @@ public:
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
+        LHS->base=RHS;
         LHS->declareOptimal();
         
         return LHS;
@@ -3800,6 +3801,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
+        LHS->base=RHS;
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
         return LHS;
@@ -3933,7 +3935,7 @@ public:
     void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         this->features.clear();
-        this->features.push_back(RHS1->getMaxZ() - RHS2->getMinZ());
+        this->features.push_back(RHS1->base->getMaxZ() - RHS2->getMinZ());
     }
     
     LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
