@@ -165,7 +165,7 @@ public:
                 numFeats++;
             }
             mean.resize(numFeats);
-            cerr<<filename<<","<<numFeats<<endl;
+         //   cerr<<filename<<","<<numFeats<<endl;
             int c=0;
             BOOST_FOREACH(std::string t, tokens1)
             {
@@ -2930,6 +2930,7 @@ public:
         return 1.0;
     }
     
+    SingleRule(string dummyConstructor){}
     
     SingleRule(bool learning=false)
     {
@@ -3401,6 +3402,7 @@ public:
         return true;
     }
     
+    DoubleRule(string dummyConstructor){}
     DoubleRule(bool learning=false)
     {
         if (isLearned())
@@ -3778,7 +3780,7 @@ public:
     }
     
     
-    SingleRuleComplex()
+    SingleRuleComplex():SingleRule<SupportComplex<SupportType> ,SupportType>("dummy")
     {
     }
     
@@ -3889,7 +3891,7 @@ public:
         string out=string("rule_") +string(typeid(LHS_Type).name())+"__";
         out.append(types.first+"_");
         out.append(types.second);
-        cerr<<"filename:"<<out<<endl;
+       // cerr<<"filename:"<<out<<endl;
         return out;
     }
     
@@ -3898,7 +3900,7 @@ public:
         return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
     }
     
-    DoubleRuleComplex( vector<string> types, bool learning=false)
+    DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
     {
         if (isLearned())
         {

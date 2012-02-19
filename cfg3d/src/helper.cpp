@@ -121,6 +121,12 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
 }
 
 map<int,Terminal*> numToTerminal;
+Terminal * getTerminalSafe(int segmentNum)
+{
+    Terminal * ret=numToTerminal[segmentNum];
+    assert(ret!=NULL);
+    return ret;
+}
 vector<Terminal*> dummy;
 void initialize(pcl::PointCloud<PointT> scene) {
 

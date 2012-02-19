@@ -126,10 +126,10 @@ public:
             {
                 primitivePart=true;
                 object=false;
-                ofile<<"temp= rulePG.applyRuleLearning(numToTerminal["<< children.at(0)->name.id << "]);\n";
+                ofile<<"temp= rulePG.applyRuleLearning(getTerminalSafe("<< children.at(0)->name.id << "));\n";
                 for(int i=1;i<(int)children.size();i++)
                 {
-                    ofile<<"temp=rulePPG.applyRuleLearning(temp,numToTerminal["<< children.at(i)->name.id<<"]);\n";            
+                    ofile<<"temp=rulePPG.applyRuleLearning(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
                 ofile<<"\t"<<name.getDecl()<<";\n";
                 ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr(true);\n";
@@ -143,7 +143,7 @@ public:
                     if (children.size() == 1)
                     {
                         ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
-                        ofile <<"\t"<< name.getDecl() << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else if (children.size() >= 2)
                     {
@@ -377,6 +377,7 @@ int main(int argc, char** argv)
     
     dotFile=argv[1];
     TreeNode::Ptr root=TreeNode::readDotTree(dotFile);    
+    assert(root!=NULL);
     ofstream ofile("featGen.cpp",ios::out);
     TreeNode::parseMapping(argv[2]);
 
