@@ -11,6 +11,7 @@
 using namespace std;
 using namespace boost;
 
+char * dotFile;
 
 class TreeNode
 {
@@ -28,6 +29,7 @@ public:
     typedef  weak_ptr<TreeNode> WPtr;
     static map< RuleType , vector<string> > ruleOrdering;
     static map<string,Ptr> nameToTreeNode;
+    static ofstream errFile;
 //    static map<>
 
     
@@ -103,6 +105,8 @@ public:
             RuleType rul;
             rul.first=name.type;
             //vector<string>  typeOrder;
+            set<string> dupCheck;
+            
             for(vector<Ptr>::iterator it=children.begin();it!=children.end();it++)
             {
                 (*it)->featGenGen(ofile);
@@ -110,6 +114,10 @@ public:
                 someTerminal=someTerminal || (*it)->terminal;
                 name2child[(*it)->name.type]=(*it);
                 rul.second.insert((*it)->name.type);
+                if(!dupCheck.insert((*it)->name.type).second)
+                {
+                    errFile<<"dup:"<<name.fullName<<"-"<<(*it)->name.type<<endl;
+                }
   //              typeOrder.push_back((*it)->name.type);
             }
           
@@ -168,7 +176,10 @@ public:
                 }
                 else
                 {
-                    assert(!name.isOccludedComplexType());
+                    if(name.isOccludedComplexType())
+                    {
+                        errFile<<"FloorOccluded"<<dotFile<<endl;
+                    }
                     string support=name.stripComplexFromType();
                     
                     // move the support to first
@@ -330,6 +341,7 @@ public:
 
 map< TreeNode::RuleType , vector<string> > TreeNode::ruleOrdering;
 map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
+ofstream TreeNode::errFile;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
     outputLearnerCode << "#include\"helper.cpp\"\n";
@@ -360,8 +372,11 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
 int main(int argc, char** argv)
 {
 
+
+    TreeNode::errFile.open("errTrees.txt",ios::app);
     
-    TreeNode::Ptr root=TreeNode::readDotTree(argv[1]);    
+    dotFile=argv[1];
+    TreeNode::Ptr root=TreeNode::readDotTree(dotFile);    
     ofstream ofile("featGen.cpp",ios::out);
     TreeNode::parseMapping(argv[2]);
 
@@ -370,6 +385,7 @@ int main(int argc, char** argv)
     root->featGenGen(ofile);
     createRunLearnBack(ofile);
     ofile.close();
+    TreeNode::errFile.close();
 //    root->setFlags();
 //    root->print();
 
