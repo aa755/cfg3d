@@ -114,11 +114,6 @@ public:
                 someTerminal=someTerminal || (*it)->terminal;
                 name2child[(*it)->name.type]=(*it);
                 rul.second.insert((*it)->name.type);
-                if(!dupCheck.insert((*it)->name.type).second)
-                {
-                    errFile<<"dup:"<<name.fullName<<"-"<<(*it)->name.type<<endl;
-                }
-  //              typeOrder.push_back((*it)->name.type);
             }
           
             assert((!someTerminal) || allterminal); //someTerminal => allTerminal
@@ -138,8 +133,17 @@ public:
             else
             {
                 if (!name.isComplexType())
-                {                    
-                ofile<<"\t"<<name.getDecl()<<";\n";
+                {
+                    for (vector<Ptr>::iterator it = children.begin(); it != children.end(); it++)
+                    {
+                        if (!dupCheck.insert((*it)->name.type).second)
+                        {
+                            errFile << "dup:" << name.fullName << "-" << (*it)->name.type << endl;
+                        }
+                        //              typeOrder.push_back((*it)->name.type);
+                    }
+                    
+                    ofile << "\t" << name.getDecl() << ";\n";
                     if (children.size() == 1)
                     {
                         ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
