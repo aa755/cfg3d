@@ -239,10 +239,32 @@ public:
     string fullName;
 
     
-    bool isComplexType()
+    bool isComplexType() const
     {
         return EndsWith(type,"Complex");
     }
+    
+    string getCorrectedType()
+    {
+        if(!isComplexType())
+            return type;
+        else
+        {
+            return "SupportComplex<"+stripComplexFromType()+"> ";
+        }
+    }
+    
+    bool isOccludedComplexType()
+    {
+        return EndsWith(type,"OccludedComplex");
+    }
+    
+    string stripComplexFromType() const
+    {
+        assert(isComplexType());
+        return type.substr(0,type.length()-7);
+    }
+    
     bool isRootType()
     {
         return (type=="FloorComplex");
@@ -287,6 +309,10 @@ public:
 
     string getDecl() const {
         return type+" *"+fullName+" ";
+    }
+    
+    string getComplexDecl() const {
+        return string("SupportComplex<")+stripComplexFromType() +"> *"+fullName+" ";
     }
 };
 

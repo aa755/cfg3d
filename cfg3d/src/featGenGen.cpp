@@ -26,7 +26,6 @@ public:
     typedef pair<string,set<string> > RuleType;
     typedef  shared_ptr<TreeNode> Ptr;
     typedef  weak_ptr<TreeNode> WPtr;
-    
     static map< RuleType , vector<string> > ruleOrdering;
     static map<string,Ptr> nameToTreeNode;
 //    static map<>
@@ -132,6 +131,7 @@ public:
             {
                 if (!name.isComplexType())
                 {                    
+                ofile<<"\t"<<name.getDecl()<<";\n";
                     if (children.size() == 1)
                     {
                         ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
@@ -161,7 +161,55 @@ public:
                                                         
                             ofile <<"\t"<<  names<< "= tr.applyRuleLearning(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
                         }
+                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr(true);\n";
+                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << names << ", dummy);\n}\n";
+                        
                     }
+                }
+                else
+                {
+                    assert(!name.isOccludedComplexType());
+                    string support=name.stripComplexFromType();
+                    
+                    // move the support to first
+                    bool found=false;
+                    vector<string> childTypes;
+                    for (vector<Ptr>::iterator it = children.begin(); it != children.end(); it++)
+                    {
+                        if ((*it)->name.type == support)
+                        {
+                            found=true;
+                            if(it!=children.begin())
+                                iter_swap(it,children.begin());
+                        }
+                        else
+                            childTypes.push_back((*it)->name.getCorrectedType());
+                    }
+                    
+                    
+                    assert(found);
+                    
+                    ofile<<"\t"<<name.getComplexDecl()<<";\n";
+ 
+                    ofile<<"{\n\t tempTypeStrs.clear();\n"<<endl;
+                    
+                    for(vector<string>::iterator it=childTypes.begin();it!=childTypes.end();it++)
+                    {
+                        ofile<<"\ttempTypeStrs.push_back(typeid("<<*it<<").name());\n";
+                    }
+                    
+                            
+                        ofile << "{\n\tSingleRuleComplex<" << support << "> tr;\n";                        
+                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+            
+                        for(int i=1;i<(int)children.size();i++)
+                        {
+                            ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
+                            ofile <<"\t\t"<<  name.fullName << "= tr.applyRuleLearning(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
+                        }
+       
+                        ofile<<"}\n";
+                        
                 }
                 primitivePart=false;
                 object=true;                                

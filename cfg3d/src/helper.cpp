@@ -237,4 +237,6 @@ vector<string> splitLine(string line) {
 //class Wall : public NonTerminal{};
 //class door : public NonTerminal{};
 //class tableTop : public NonTerminal{};
+
+vector<string> tempTypeStrs;
 #endif //CFG3D_HELPER_CPP
