@@ -3662,6 +3662,18 @@ public:
         
     }
     
+    Plane * applyRuleLearning(Symbol * extractedSym)
+    {
+        Plane * LHS = new Plane();
+        LHS->addChild(extractedSym);
+        LHS->computeSpannedTerminals();
+        LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
+        LHS->declareOptimal();
+        return LHS;
+        
+    }
+    
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) != typeid (Terminal))
@@ -3705,6 +3717,7 @@ public:
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         
         return LHS;
@@ -3776,6 +3789,7 @@ public:
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
+        LHS->base=RHS;
         LHS->declareOptimal();
         
         return LHS;
@@ -3787,6 +3801,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
+        LHS->base=RHS;
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
         return LHS;
@@ -3855,8 +3870,9 @@ void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
 template<typename SupportType, typename RHS_Type2 >
 class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >
 {
-    map<set<string>, MultiVariateProbabilityDistribution * > pairWiseModels; // between a type inside RHS_Type1(key) and Rhs_Type2
-    map<set<string>, ofstream*  > pairWiseFeatFiles; // between a type inside RHS_Type1(key) and Rhs_Type2
+    typedef pair<string,string> PairType;
+    map<PairType, MultiVariateProbabilityDistribution * > pairWiseModels; // between a type inside RHS_Type1(key) and Rhs_Type2
+    map<PairType, ofstream*  > pairWiseFeatFiles; // between a type inside RHS_Type1(key) and Rhs_Type2
     
     typedef SupportComplex<SupportType> LHS_Type;
     typedef SupportComplex<SupportType> RHS_Type1;
@@ -3868,16 +3884,15 @@ public:
         return true;
     }
     
-    string getFileName(set<string> & types)
+    string getFileName(PairType & types)
     {
-        set<string>::iterator sit=types.begin();
         string out=string("rule_") +string(typeid(LHS_Type).name())+"__";
-        out.append(*sit+"_");
-        sit++;
-        out.append(*sit);
+        out.append(types.first+"_");
+        out.append(types.second);
         cerr<<"filename:"<<out<<endl;
         return out;
     }
+    
     string getSingleFileName()
     {
         return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
@@ -3893,14 +3908,14 @@ public:
             }
             else
             {
-                this->readDistribution((getSingleFileName()+".model"));
+                this->readDistribution(rulePath+"/"+(getSingleFileName()));
             }
             
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
             {
-                set<string> typeSt;
-                typeSt.insert(*it);
-                typeSt.insert(string(typeid(RHS_Type2).name()));
+                PairType typeSt;
+                typeSt.first=(*it);
+                typeSt.second=(string(typeid(RHS_Type2).name()));
                 string filename = getFileName(typeSt);
                 
                 if (learning)
@@ -3910,7 +3925,7 @@ public:
                 }
                 else
                 {
-                    pairWiseModels[typeSt]=new MultiVarGaussian(filename+".model");
+                    pairWiseModels[typeSt]=new MultiVarGaussian(rulePath+"/"+filename+".model");
 
                 }
             }
@@ -3920,7 +3935,7 @@ public:
     void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         this->features.clear();
-        this->features.push_back(RHS1->getMaxZ() - RHS2->getMinZ());
+        this->features.push_back(RHS1->base->getMaxZ() - RHS2->getMinZ());
     }
     
     LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
@@ -3946,18 +3961,20 @@ public:
         this->writeFeaturesToFile();
         for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
         {
-            set<string> sortTypes;
-            string name1=string(typeid(*it).name());
+            PairType sortTypes;
+            string name1=string(typeid(*(*it)).name());
             string name2=string(typeid(*RHS2).name());
             
-            sortTypes.insert(name1);
-            sortTypes.insert(name2);
+            sortTypes.first=(name1);
+            sortTypes.second=(name2);
             PairInfoSupportComplex<float> feats;
+            
             if(name1<name2)
                 feats.computeInfo((*it),RHS2);
             else
                 feats.computeInfo(RHS2,(*it));
 
+            cout<<name1<<","<<name2<<endl;
             ofstream * file= pairWiseFeatFiles[sortTypes];
             assert(file!=NULL);
             feats.writeToFile(*file);
@@ -3977,12 +3994,13 @@ public:
              
         for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
         {
-            set<string> sortTypes;
-            string name1=string(typeid(*it).name());
+            PairType sortTypes;
+            string name1=string(typeid(*(*it)).name());
             string name2=string(typeid(*RHS2).name());
             
-            sortTypes.insert(name1);
-            sortTypes.insert(name2);
+            sortTypes.first=(name1);
+            sortTypes.second=(name2);
+            
             PairInfoSupportComplex<float> feats;
             if(name1<name2)
                 feats.computeInfo((*it),RHS2);

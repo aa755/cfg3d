@@ -225,6 +225,11 @@ Eigen::Vector3d getDirection(double azimuth, double elev) {
     bg::transform<spherical, cartesian > (ps, pc);
     return Eigen::Vector3d(pc.get < 0 > (), pc.get < 1 > (), pc.get < 2 > ());
 }
+    bool EndsWith(const string& a, const string& b) 
+    {
+        if (b.size() > a.size()) return false;
+        return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+    }
 class Node
 {
 public:
@@ -233,16 +238,33 @@ public:
     string memo;
     string fullName;
 
-    bool EndsWith(const string& a, const string& b) 
-    {
-        if (b.size() > a.size()) return false;
-        return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
-    }
     
-    bool isComplexType()
+    bool isComplexType() const
     {
         return EndsWith(type,"Complex");
     }
+    
+    string getCorrectedType()
+    {
+        if(!isComplexType())
+            return type;
+        else
+        {
+            return "SupportComplex<"+stripComplexFromType()+"> ";
+        }
+    }
+    
+    bool isOccludedComplexType()
+    {
+        return EndsWith(type,"OccludedComplex");
+    }
+    
+    string stripComplexFromType() const
+    {
+        assert(isComplexType());
+        return type.substr(0,type.length()-7);
+    }
+    
     bool isRootType()
     {
         return (type=="FloorComplex");
@@ -287,6 +309,10 @@ public:
 
     string getDecl() const {
         return type+" *"+fullName+" ";
+    }
+    
+    string getComplexDecl() const {
+        return string("SupportComplex<")+stripComplexFromType() +"> *"+fullName+" ";
     }
 };
 

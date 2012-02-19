@@ -125,11 +125,12 @@ vector<Terminal*> dummy;
 void initialize(pcl::PointCloud<PointT> scene) {
 
     overallMinZ=infinity();
+    Terminal::totalNumTerminals=0;
+   
     for(unsigned int i = 0; i < scene.size(); i++)
     {
         int currentSegNum = scene.points[i].segment;
 
-        Terminal::totalNumTerminals=0;
         if(currentSegNum > 0)
         {
             if(Terminal::totalNumTerminals<currentSegNum)
@@ -148,15 +149,18 @@ void initialize(pcl::PointCloud<PointT> scene) {
         }
     
     }
-    segMinDistances.setZero(terminals.size(),terminals.size());
+    segMinDistances.setZero(Terminal::totalNumTerminals,Terminal::totalNumTerminals);
     
-    for(unsigned int i1=0;i1<terminals.size();i1++)
+    for(int i1=1;i1<=Terminal::totalNumTerminals;i1++)
     {
-            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
+            for(int i2=i1+1;i2<=Terminal::totalNumTerminals;i2++)
             {
-                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
-                segMinDistances(i1,i2)=minDistance;
-                segMinDistances(i2,i1)=minDistance;
+                Terminal * t1=numToTerminal[i1];
+                Terminal * t2=numToTerminal[i2];
+                assert(t1!=NULL && t2!=NULL);
+                float minDistance=getSmallestDistance(scene, t1->getPointIndicesBoostPtr(), t2->getPointIndicesBoostPtr());
+                segMinDistances(i1-1,i2-1)=minDistance;
+                segMinDistances(i2-1,i1-1)=minDistance;
             }
     }
   
@@ -233,4 +237,6 @@ vector<string> splitLine(string line) {
 //class Wall : public NonTerminal{};
 //class door : public NonTerminal{};
 //class tableTop : public NonTerminal{};
+
+vector<string> tempTypeStrs;
 #endif //CFG3D_HELPER_CPP
