@@ -18,6 +18,7 @@ def mergeStrings(lst):
     return ''.join(lst)
 
 functionOpen = 'void appendLearningRules(vector<RulePtr>& learningRules) {\n'
+temp = 'vector<string> temp;\n'
 functionClose = '}\n'
 
 def printImports(dataStructuresFile):
@@ -39,9 +40,13 @@ def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText)
                 addingSingleRuleText = mergeStrings([addingSingleRuleText, complexDeclaration])
                 currentRules.add(complexDeclaration)
             
-            addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',RHS,'>()));\n'])
+            addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',RHS,'>(temp)));\n'])
             if not addRule in currentRules:
-                addingSingleRuleText = mergeStrings([addingSingleRuleText, addRule])
+                clear = '\ttemp.clear();\n'
+                if not isNotComplex(RHS):
+                    RHS = mergeStrings(['SupportComplex<',RHS.replace('Complex',''),'>'])
+                pushBack = mergeStrings(['\ttemp.push_back(typeid(',RHS,').name());\n'])
+                addingSingleRuleText = mergeStrings([addingSingleRuleText, clear, pushBack, addRule])
                 currentRules.add(addRule)
         elif vect[1] == 'Plane\n':
             declaration = mergeStrings(['class ', vect[0], ' : public PlanarPrimitive{};\n'])
@@ -106,35 +111,64 @@ def handleDoubleRuleNTLine(line, dataStructuresFile, addingDoubleRuleText, curre
 def isNotComplex(rule):
     return rule.find("Complex") == -1
 
-def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules):
+def isGood(rule):
+    return rule.find("Occluded") == -1 and rule.find("WallComplexH") == -1 
+
+
+def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems):
     for line in doubleRuleFile:
-        if isNotComplex(line):
-            addingDoubleRuleText, currentDeclarations, currentRules = handleDoubleRuleNTLine(line, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules)
-            LHS,RHS = line.split(';')
-            RHS = RHS.split(',')
-            addRule = doubleRuleString(LHS, RHS[0], RHS[1].rstrip('\n'))
-            if not addRule in currentRules:     
-                addingDoubleRuleText = mergeStrings([addingDoubleRuleText, addRule])
-                currentRules.add(addRule)
-        else:
-            LHS,RHS = line.split(';')
-            LHS = LHS.replace('Complex','')
-            
-            complexDeclaration = mergeStrings(['\tlearningRules.push_back(RulePtr(new SingleRuleComplex<',LHS,'>()));\n'])
-            if not complexDeclaration in currentRules:     
-                addingDoubleRuleText = mergeStrings([addingDoubleRuleText, complexDeclaration])
-                currentRules.add(complexDeclaration)
-            
-            for elem in RHS.split(','):
-                addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHS,',',elem.rstrip('\n'),'>()));\n'])
-                if not addRule in currentRules:
+        if isGood(line):
+            if isNotComplex(line):
+                addingDoubleRuleText, currentDeclarations, currentRules = handleDoubleRuleNTLine(line, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules)
+                LHS,RHS = line.split(';')
+                RHS = RHS.split(',')
+                addRule = doubleRuleString(LHS, RHS[0], RHS[1].rstrip('\n'))
+                if not addRule in currentRules:     
                     addingDoubleRuleText = mergeStrings([addingDoubleRuleText, addRule])
                     currentRules.add(addRule)
+            else:
+                LHS,RHS = line.split(';')
+                LHSSupport = LHS.replace('Complex','')
+                
+                complexDeclaration = mergeStrings(['\tlearningRules.push_back(RulePtr(new SingleRuleComplex<',LHSSupport,'>()));\n'])
+                if not complexDeclaration in currentRules:     
+                    addingDoubleRuleText = mergeStrings([addingDoubleRuleText, complexDeclaration])
+                    currentRules.add(complexDeclaration)
+                
+                complexVect = complexToElems[LHS]
+                buildVect = '\ttemp.clear();\n'
+                buildVect = mergeStrings([buildVect, complexVect])
+    #            addingDoubleRuleText = mergeStrings([addingDoubleRuleText,buildVect])
+                
+                for elem in RHS.split(','):
+                    if not isNotComplex(elem):
+                        elem = mergeStrings(['SupportComplex<',elem.replace('Complex', '').rstrip('\n'),'> '])
+                    addRule = mergeStrings(['\tlearningRules.push_back(RulePtr(new DoubleRuleComplex<',LHSSupport,',',elem.rstrip('\n'),'>(temp)));\n'])
+                    if not addRule in currentRules:
+                        addingDoubleRuleText = mergeStrings([addingDoubleRuleText, buildVect, addRule])
+                        currentRules.add(addRule)
     return addingDoubleRuleText
+
+def complexRuleParse(file):
+    complexToElems = {}
+    buildingVectString = ''
+    for line in file:
+        LHS,RHS = line.split(';')
+        supported = map(lambda x: x.rstrip('\n'), RHS.split(','))
+        for supportedElem in supported:
+            if isNotComplex(supportedElem):                
+                buildingVectString = ''.join([buildingVectString, '\ttemp.push_back(typeid(',supportedElem,').name());\n'])
+            else:
+                if isGood(supportedElem):
+                    buildingVectString = ''.join([buildingVectString, '\ttemp.push_back(typeid(SupportComplex<',supportedElem.replace('Complex',''),'>).name());\n'])
+        complexToElems[LHS] = buildingVectString              
+    return complexToElems
 
 if __name__ == '__main__':
     doubleRuleFile = getFile('properRules.2PlusRHS')
     singleRuleFile = getFile('properRules.1RHS')
+    complexRuleFile = getFile('complex')
+    complexToElems = complexRuleParse(complexRuleFile)
     
     dataStructuresFile = getFileWrite('generatedDataStructures.cpp')
     
@@ -143,9 +177,10 @@ if __name__ == '__main__':
     addingSingleRuleText = ''
     addingDoubleRuleText = ''
     addingSingleRuleText, currentDeclarations, currentRules = printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText)
-    addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules)
+    addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems)
     
     dataStructuresFile.write(functionOpen)   
+    dataStructuresFile.write(temp)   
     dataStructuresFile.write(addingSingleRuleText)
     dataStructuresFile.write(addingDoubleRuleText) 
     dataStructuresFile.write(functionClose)
