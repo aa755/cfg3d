@@ -155,7 +155,7 @@ public:
                         string names="";
                         string interType="";
                         const vector<string> & typeOrder=ruleOrdering[rul];
-                        assert(typeOrder.size()>0) ; // o/w this mapping was not present in order file
+                        assert(typeOrder.size()==children.size()) ; // o/w this mapping was not present in order file
                         //types.append(typeOrder.at(0));
                         interType.append(typeOrder.at(0));
                         names.append(name2child[typeOrder.at(0)]->name.fullName);
