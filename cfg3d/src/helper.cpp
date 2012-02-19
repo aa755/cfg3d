@@ -149,12 +149,22 @@ void initialize(pcl::PointCloud<PointT> scene) {
             if(terminalToAddTo==NULL)
             {
                 terminalToAddTo=new Terminal(currentSegNum-1);
+                assert(terminalToAddTo!=NULL);
                 numToTerminal[currentSegNum]=terminalToAddTo;
             }
             terminalToAddTo->addPointIndex(i);            
         }
     
     }
+    
+    for(map<int,Terminal*>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
+    {
+        Terminal *terminal=it->second;
+        terminal->computeFeatures();
+        terminal->setNeighbors(Terminal::totalNumTerminals);
+        terminal->declareOptimal();        
+    }
+    
     segMinDistances.setZero(Terminal::totalNumTerminals,Terminal::totalNumTerminals);
     
     for(int i1=1;i1<=Terminal::totalNumTerminals;i1++)
@@ -177,13 +187,6 @@ void initialize(pcl::PointCloud<PointT> scene) {
             }
     }
   
-    for(map<int,Terminal*>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
-    {
-        Terminal *terminal=it->second;
-        terminal->computeFeatures();
-        terminal->setNeighbors(Terminal::totalNumTerminals);
-        terminal->declareOptimal();        
-    }
     // Plane initialization.
 //    initializePlanes(maxSegNum);
 }
