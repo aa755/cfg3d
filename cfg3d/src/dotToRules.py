@@ -292,6 +292,7 @@ if __name__ == '__main__':
     complexToComponents = {}
     
     orderFile = getFileWrite('order')
+    complexFile = getFileWrite('complex')
     
     for elem in properRules:
 #        if isNotComplex(elem):
@@ -307,10 +308,8 @@ if __name__ == '__main__':
             orderFile.write(mergeStrings([elem, '\n']))
     
     for key,value in complexToComponents.iteritems():
-        orderFile.write(key)
-        orderFile.write(';')
-        orderFile.write(','.join(list(value)))
-        orderFile.write('\n')
+        orderFile.write(mergeStrings([key, ';', ','.join(list(value)), '\n']))
+        complexFile.write(mergeStrings([key, ';', ','.join(list(value)), '\n']))
     
     
     for elem in sorted(properRules2PlusRHS):
