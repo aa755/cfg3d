@@ -416,6 +416,8 @@ public:
         resetSpannedTerminalIterator();
         other->resetSpannedTerminalIterator();
         
+        assert(other!=this); // it is a parse tree and not a graph
+        
         int index1,index2;
         float minDistance=numeric_limits<float>::infinity();
         while(nextSpannedTerminal(index1))
