@@ -423,6 +423,9 @@ public:
             while(other->nextSpannedTerminal(index2))
             {
                 float distance=segMinDistances(index1,index2);
+                
+                assert(!isnan(distance)); // one of the segments does not exist
+                
                 if(distance<minDistance)
                 {
                     minDistance=distance;

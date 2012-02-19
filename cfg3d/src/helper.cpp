@@ -163,10 +163,17 @@ void initialize(pcl::PointCloud<PointT> scene) {
             {
                 Terminal * t1=numToTerminal[i1];
                 Terminal * t2=numToTerminal[i2];
-                assert(t1!=NULL && t2!=NULL);
-                float minDistance=getSmallestDistance(scene, t1->getPointIndicesBoostPtr(), t2->getPointIndicesBoostPtr());
-                segMinDistances(i1-1,i2-1)=minDistance;
-                segMinDistances(i2-1,i1-1)=minDistance;
+                if(t1!=NULL && t2!=NULL)
+                {
+                        float minDistance=getSmallestDistance(scene, t1->getPointIndicesBoostPtr(), t2->getPointIndicesBoostPtr());
+                        segMinDistances(i1-1,i2-1)=minDistance;
+                        segMinDistances(i2-1,i1-1)=minDistance;
+                }
+                else
+                {
+                        segMinDistances(i1-1,i2-1)=numeric_limits<double>::quiet_NaN( );
+                        segMinDistances(i2-1,i1-1)=numeric_limits<double>::quiet_NaN( );
+                }
             }
     }
   

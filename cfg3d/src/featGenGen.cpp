@@ -313,7 +313,7 @@ public:
                 
                 if (line.size() == 0)
                     break;
-                cout<<line<<endl;
+                //cout<<line<<endl;
                 RuleType rule;
                 vector<string> toks;
                 getTokens(line, toks, ";");
@@ -329,7 +329,7 @@ public:
                 for(int i=0;i<(int)toks.size();i++)
                 {
                     if(!rule.second.insert(toks.at(i)).second) // insertion should not fail => no duplicate type
-                    cerr<<"WARN"<<endl;
+                    cerr<<"WARN:"<<line<<endl;
                 }
                 
                 ruleOrdering[rule]=toks;
