@@ -138,7 +138,7 @@ public:
                     {
                         if (!dupCheck.insert((*it)->name.type).second)
                         {
-                            errFile << "dup:" << name.fullName << "-" << (*it)->name.type << endl;
+                            errFile << dotFile<< ":dup:" << name.fullName << "-" << (*it)->name.type << endl;
                         }
                         //              typeOrder.push_back((*it)->name.type);
                     }
