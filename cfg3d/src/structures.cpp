@@ -1462,7 +1462,7 @@ public:
     
       string getName()
     {
-        return getCleanedTypeName()+boost::lexical_cast<std::string>(children.size())+string("i")+boost::lexical_cast<std::string>(id)+"_"+boost::lexical_cast<string>((int)getCost());;
+        return getCleanedTypeName()+"__"+boost::lexical_cast<std::string>(id)+"__"+boost::lexical_cast<string>((int)getCost());
     }
     
       string getCleanedTypeName() const
@@ -1837,6 +1837,8 @@ public:
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut = scene;
+        
+        graphvizFile << root->getName() << " ;\n";
 
 
         stack<NonTerminal*> parseTreeNodes;
