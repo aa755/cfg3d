@@ -2503,6 +2503,7 @@ protected:
     ofstream featureFile;
     bool modelFileMissing;
 public:
+    string filename;
     /**
      * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
      * @param pqueue : the priority queue
@@ -2528,6 +2529,7 @@ public:
     
     void readDistribution(string filename) {
     //    ifstream inputStream;
+        this->filename=filename;
         filename.append(".model");
         modelFileMissing=false;
         ifstream file(filename.data(), std::ios::in);
@@ -3587,6 +3589,8 @@ public:
 
     virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
+//        if()
+       // cout<<filename<<"combine called\n";
         combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
     }
 }; 
@@ -3798,6 +3802,7 @@ public:
     
     SingleRuleComplex():SingleRule<SupportComplex<SupportType> ,SupportType>("dummy")
     {
+        this->filename=string("SupportComplex_")+typeid(SupportType).name(); // not used : only for tagging
     }
     
     
@@ -3896,50 +3901,56 @@ class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , Suppo
     typedef SupportComplex<SupportType> RHS_Type1;
 public:
     
+    PairType makeSortedPair(string name1, string name2)
+    {
+        if(name1<name2)
+            return PairType(name1,name2);
+        else
+            return PairType(name2,name1);
+    }
     
    virtual string getFileName(PairType & types)
     {
-        string out=string("rule_") +string(typeid(LHS_Type).name())+"__";
+        string out=string("rule_DSRP_") +string(typeid(LHS_Type).name())+"__";
         out.append(types.first+"_");
         out.append(types.second);
        // cerr<<"filename:"<<out<<endl;
         return out;
     }
     
-    virtual string getSingleFileName()
-    {
-        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
-    }
+//    virtual string getSingleFileName()
+//    {
+//        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
+//    }
     
     DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
     {
-        if (this->isLearned())
+        // this->filename=string("SupportComplexDR__")+typeid(SupportType).name()+"__"+typeid(RHS_Type2).name(); // not used : only for tagging
+       if (this->isLearned())
         {
-            if(learning)
-            {
-                this->featureFile.open(getSingleFileName().data(),ios::app);
-            }
-            else
-            {
-                this->readDistribution(rulePath+"/"+(getSingleFileName()));
-            }
+//            if(learning)
+//            {
+//                this->featureFile.open(getSingleFileName().data(),ios::app);
+//            }
+//            else
+//            {
+//                this->readDistribution(rulePath+"/"+(getSingleFileName()));
+//            }
             
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
             {
-                PairType typeSt;
-                typeSt.first=(*it);
-                typeSt.second=(string(typeid(RHS_Type2).name()));
-                string filename = getFileName(typeSt);
+                PairType typeSt=makeSortedPair(*it,string(typeid(RHS_Type2).name()));
+                string fname = getFileName(typeSt);
                 
                 if (learning)
                 {
-                    ofstream * temp =new ofstream(filename.data(), ios::app); // append to file
+                    ofstream * temp =new ofstream(fname.data(), ios::app); // append to file
                     pairWiseFeatFiles[typeSt]=temp;
                 }
                 else
                 {
-                    string fname=rulePath+"/"+filename+".model";
-                    ifstream file(fname.data(), std::ios::in);
+                    string fnamep=rulePath+"/"+fname+".model";
+                    ifstream file(fnamep.data(), std::ios::in);
                     if(file.is_open())
                     {
                         pairWiseModels[typeSt]=new MultiVarGaussian(file);
@@ -3975,17 +3986,17 @@ public:
     {
 //        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();        
-        this->writeFeaturesToFile();
         for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
         {
             PairType sortTypes;
             string name1=string(typeid(*(*it)).name());
             string name2=string(typeid(*RHS2).name());
             
-            sortTypes.first=(name1);
-            sortTypes.second=(name2);
+            sortTypes=makeSortedPair(name1,name2);
+            
             PairInfoSupportComplex<float> feats;
             
             if(name1<name2)
@@ -4017,8 +4028,7 @@ public:
             string name1=string(typeid(*(*it)).name());
             string name2=string(typeid(*RHS2).name());
             
-            sortTypes.first=(name1);
-            sortTypes.second=(name2);
+            sortTypes=makeSortedPair(name1,name2);
 
             MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
             if (model != NULL)
@@ -4061,11 +4071,11 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     if(!rule->isModelFileMissing())
     {
         rules.push_back(rule);
-        cout<<"added rule:"<<typeid(*rule).name()<<endl;
+        cout<<"added rule:"<<rule->filename<<endl;
     }
     else
     {
-        cout<<"rejected rule:"<<typeid(*rule).name()<<endl;        
+        cout<<"rejected rule:"<<rule->filename<<endl;        
     }
     
 }
