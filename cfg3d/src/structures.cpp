@@ -4038,4 +4038,9 @@ public:
 }; 
 
 float overallMinZ;
+
+void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
+    rules.push_back(rule);
+}
+
 #endif

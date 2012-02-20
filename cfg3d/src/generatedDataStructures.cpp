@@ -99,7 +99,7 @@ class sofaBackRest_sofaBase_sofaFrontBelowSeat_sofaSide : public NonTerminalInte
 void appendLearningRules(vector<RulePtr>& learningRules) {
 vector<string> temp;
 	learningRules.push_back(RulePtr(new SingleRule<sofaArm,Plane>()));
-	learningRules.push_back(RulePtr(new SingleRule<monitor,Plane>()));
+appendRuleInstance(learningRules,RulePtr(new SingleRule<monitor,Plane>()));
 	learningRules.push_back(RulePtr(new SingleRule<Chair,chairBackRest>()));
 	learningRules.push_back(RulePtr(new SingleRule<tableTop,Plane>()));
 	learningRules.push_back(RulePtr(new SingleRule<sofaBackRest,Plane>()));
