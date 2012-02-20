@@ -480,6 +480,9 @@ public:
         // remaining non-color feats
         features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
+        features.push_back(centroid.z);
+        features.push_back(maxxyz.z);
+        features.push_back(minxyz.z);
         
         
         
@@ -2036,7 +2039,7 @@ public:
         planeParamsComputed = true;
     }
     
-    static const int NORMAL_Z_INDEX=8;
+    static const int NORMAL_Z_INDEX=11;
     virtual void appendAdditionalFeatures(vector<float> & features)
     {
         //assert(featuresComputed);
@@ -3923,7 +3926,7 @@ public:
 //        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
 //    }
     
-    DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
+    DoubleRuleComplex( vector<string> types, bool learning=false)//:DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
     {
         // this->filename=string("SupportComplexDR__")+typeid(SupportType).name()+"__"+typeid(RHS_Type2).name(); // not used : only for tagging
        if (this->isLearned())
