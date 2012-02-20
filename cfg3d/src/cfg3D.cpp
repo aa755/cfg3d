@@ -50,11 +50,12 @@ public:
     }
 };
 
+template<typename SceneType>
 class RScene : public Rule {
 public:
     void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
-        if (extractedSym->isOfSubClass<VisualObjects>()) // if min is of type Scene(Goal)
+        if (extractedSym->isOfSubClass<SceneType>()) // if min is of type Scene(Goal)
         {
             Scene * LHS= new Scene();
                 LHS->addChild(extractedSym);
@@ -94,9 +95,12 @@ void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
 #ifdef GREEDY_OBJECTS
     rules.push_back(RulePtr(new RGreedyScene()));
 #else
-    rules.push_back(RulePtr(new RVisualObjects()));
-    rules.push_back(RulePtr(new DoubleRule<VisualObjects, VisualObjects, VisualObject>()));
-    rules.push_back(RulePtr(new RScene()));
+//    rules.push_back(RulePtr(new RVisualObjects()));
+//    rules.push_back(RulePtr(new DoubleRule<VisualObjects, VisualObjects, VisualObject>()));
+//    rules.push_back(RulePtr(new RScene()));
+    
+    appendLearningRules(rules);
+    rules.push_back(RulePtr(new RScene<SupportComplex<Floor> >()));
     
 #endif
 }

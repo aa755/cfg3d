@@ -1734,11 +1734,11 @@ int NonTerminal::id_counter = 0;
 class NonTerminalIntermediate : virtual public NonTerminal
 {
 public:
-    virtual void appendFeatures(vector<float> & features)
-    {
-        // intermediate types dont contribute to features
-//        assert(false);
-    }
+//    virtual void appendFeatures(vector<float> & features)
+//    {
+//         intermediate types dont contribute to features
+////        assert(false);
+//    }
     
     virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
     {
@@ -3464,7 +3464,7 @@ public:
             } 
         }
         
-        output->computeFeatures();
+       // output->computeFeatures();
      //   Symbol * rhs1;
       //  Symbol * rhs2;
         

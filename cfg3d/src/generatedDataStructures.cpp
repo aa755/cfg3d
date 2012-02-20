@@ -1,4 +1,4 @@
-#include "helper.cpp"
+#include "structures.cpp"
 
 class sofaArm : public PlanarPrimitive{};
 class monitor : public PlanarPrimitive{};
