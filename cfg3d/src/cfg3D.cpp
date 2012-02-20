@@ -321,6 +321,7 @@ int main(int argc, char** argv) {
     if(argc!=3&&argc!=4)
     {
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> [gtLabelfile]"<<endl;
+        exit(-1);
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
     fileName = string(argv[1]);

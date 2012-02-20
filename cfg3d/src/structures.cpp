@@ -3947,8 +3947,8 @@ public:
                 }
                 else
                 {
-                    string filename=rulePath+"/"+filename+".model";
-                    ifstream file(filename.data(), std::ios::in);
+                    string fname=rulePath+"/"+filename+".model";
+                    ifstream file(fname.data(), std::ios::in);
                     if(file.is_open())
                     {
                         pairWiseModels[typeSt]=new MultiVarGaussian(file);
