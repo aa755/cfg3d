@@ -4025,6 +4025,7 @@ public:
             appendMainFeats(RHS1, RHS2);
              setCost(LHS, RHS1, RHS2, terminals); // set main cost
              
+            double additionalCost=0;
         for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
         {
             PairType sortTypes;
@@ -4045,14 +4046,16 @@ public:
 
                 vector<float> featv;
                 feats.pushToVector(featv);
-                LHS->setAdditionalCost(model->minusLogProb(featv));
+                additionalCost+=(model->minusLogProb(featv));
             }
             else
             {
-                LHS->setAdditionalCost(5);
+                additionalCost+= 50;
             }
                 
         }
+            
+        LHS->setAdditionalCost(additionalCost);    
              
              
              
