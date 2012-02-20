@@ -1545,7 +1545,7 @@ public:
             cost += children[i]->getCost();
         cost += additionalCost;
         costSet = true;
-        cout << "Setting additional cost: " << additionalCost << ", total cost to: " << cost << endl;
+        cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
     }
 
     /**
@@ -1566,7 +1566,7 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
-        cout << "Setting absolute cost to: " << cost << endl;
+        cout << "absc " << cost << endl;
     }
 
     virtual void addChild(Symbol * child) {
