@@ -149,10 +149,8 @@ public:
         return lp;
     }
 
-    MultiVarGaussian(string filename)
+    MultiVarGaussian(std::ifstream & file)
     {
-        std::ifstream file;
-        file.open(filename.data(), std::ios::in);
         std::string line;
         string separator=",";
         boost::char_separator<char> sep(separator.data());
@@ -2531,7 +2529,10 @@ public:
     void readDistribution(string filename) {
     //    ifstream inputStream;
         filename.append(".model");
-        pdist=new MultiVarGaussian(filename);
+        
+        ifstream file(filename.data(), std::ios::in);        
+        pdist=new MultiVarGaussian(file);
+        file.close();
     }
     
     void readDistributionInd(string filename) {
@@ -3940,7 +3941,10 @@ public:
                 }
                 else
                 {
-                    pairWiseModels[typeSt]=new MultiVarGaussian(rulePath+"/"+filename+".model");
+                    string filename=rulePath+"/"+filename+".model";
+                    ifstream file(filename.data(), std::ios::in);
+                    pairWiseModels[typeSt]=new MultiVarGaussian(file);
+                    file.close();
 
                 }
             }
