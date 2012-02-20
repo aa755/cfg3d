@@ -2503,6 +2503,7 @@ class Rule {
 protected:
     vector<float> features;
     ofstream featureFile;
+    bool modelFileMissing;
 public:
     /**
      * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
@@ -2518,7 +2519,9 @@ public:
     Rule()
     {
         pdist=NULL;
+        modelFileMissing=false;
     }
+    
     ProbabilityDistribution * getNormalZDist()
     {
         assert(false); // not in use
@@ -2619,6 +2622,11 @@ public:
                 delete pdist;
         for(int i=0;i<(int)g.size();i++)
             delete g.at(i);
+    }
+
+    bool isModelFileMissing() const
+    {
+        return modelFileMissing;
     }
 };
 /**
