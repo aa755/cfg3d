@@ -2529,8 +2529,14 @@ public:
     void readDistribution(string filename) {
     //    ifstream inputStream;
         filename.append(".model");
-        
-        ifstream file(filename.data(), std::ios::in);        
+        modelFileMissing=false;
+        ifstream file(filename.data(), std::ios::in);
+        if(!file.is_open())
+        {
+            cerr<<"no mainmodel found for rule:"<<typeid(*this).name()<<endl;
+            modelFileMissing=true;
+            return;
+        }
         pdist=new MultiVarGaussian(file);
         file.close();
     }
@@ -3943,8 +3949,11 @@ public:
                 {
                     string filename=rulePath+"/"+filename+".model";
                     ifstream file(filename.data(), std::ios::in);
-                    pairWiseModels[typeSt]=new MultiVarGaussian(file);
-                    file.close();
+                    if(file.is_open())
+                    {
+                        pairWiseModels[typeSt]=new MultiVarGaussian(file);
+                        file.close();
+                    }
 
                 }
             }
@@ -4019,19 +4028,25 @@ public:
             
             sortTypes.first=(name1);
             sortTypes.second=(name2);
-            
-            PairInfoSupportComplex<float> feats;
-            if(name1<name2)
-                feats.computeInfo((*it),RHS2);
-            else
-                feats.computeInfo(RHS2,(*it));
 
-            MultiVariateProbabilityDistribution * model= pairWiseModels[sortTypes];
-            assert(model!=NULL);
-            vector<float> featv;
-            feats.pushToVector(featv);
-            LHS->setAdditionalCost(model->minusLogProb(featv));
-            
+            MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
+            if (model != NULL)
+            {
+                PairInfoSupportComplex<float> feats;
+                if (name1 < name2)
+                    feats.computeInfo((*it), RHS2);
+                else
+                    feats.computeInfo(RHS2, (*it));
+
+
+                vector<float> featv;
+                feats.pushToVector(featv);
+                LHS->setAdditionalCost(model->minusLogProb(featv));
+            }
+            else
+            {
+                LHS->setAdditionalCost(5);
+            }
                 
         }
              
@@ -4052,7 +4067,16 @@ public:
 float overallMinZ;
 
 void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
-    rules.push_back(rule);
+    if(!rule->isModelFileMissing())
+    {
+        rules.push_back(rule);
+        cout<<"added rule:"<<typeid(*rule).name()<<endl;
+    }
+    else
+    {
+        cout<<"rejected rule:"<<typeid(*rule).name()<<endl;        
+    }
+    
 }
 
 #endif
