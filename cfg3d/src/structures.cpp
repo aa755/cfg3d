@@ -2924,7 +2924,7 @@ public:
 template<typename LHS_Type, typename RHS_Type>
 class SingleRule : public Rule
 {
-    void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
         NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
@@ -2935,7 +2935,7 @@ class SingleRule : public Rule
         }
     }
 
-    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) == typeid (RHS_Type))
         {
@@ -2945,7 +2945,7 @@ class SingleRule : public Rule
 
     bool learning;
 public:
-    double getCostScaleFactor()
+    virtual double getCostScaleFactor()
     {
         return 1.0;
     }
@@ -2964,7 +2964,7 @@ public:
         }
     }
     
-    void computeFeatures(RHS_Type* input)
+    virtual void computeFeatures(RHS_Type* input)
     {
         features.clear();
         computeFeaturesSpecializable(input);
@@ -2974,7 +2974,7 @@ public:
      * to be specialied by rules ishing to add all feats on their own
      * @param input
      */
-    void computeFeaturesSpecializable(RHS_Type* input)
+    virtual void computeFeaturesSpecializable(RHS_Type* input)
     {
         input->appendFeatures(features);
         computeAdditionalFeats(input);
@@ -2982,7 +2982,7 @@ public:
     
     /** to be specialized for rules requiring additional features
      */
-    void computeAdditionalFeats(RHS_Type* input)
+    virtual void computeAdditionalFeats(RHS_Type* input)
     {
     }
     
@@ -2996,7 +2996,7 @@ public:
 //        assert(3 == 2);
 //    }
     
-    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
@@ -3006,7 +3006,7 @@ public:
             return true;
     }
     
-    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
@@ -3020,7 +3020,7 @@ public:
         
     }
     
-    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -3035,7 +3035,7 @@ public:
         }
     }
 
-    LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);
@@ -3043,7 +3043,7 @@ public:
         return LHS;
     }
     
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
     }
@@ -3079,7 +3079,7 @@ protected:
     
     vector<PairInfo<ProbabilityDistribution *> > modelsForLHS; // LHS might me an intermediate for multiple NTs
     
-   void readPairModels(int numSymsInRHS1)
+   virtual void readPairModels(int numSymsInRHS1)
     {
         modelsForLHS.resize(numSymsInRHS1);
         
@@ -3090,7 +3090,7 @@ protected:
         }
     }
     
-    void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
 
         RHS_Type1 * RHS_extracted = dynamic_cast<RHS_Type1 *> (extractedSym);
@@ -3115,7 +3115,7 @@ protected:
     }
 
 
-    void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
 
         RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
@@ -3139,7 +3139,7 @@ protected:
     }
 
 
-    void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         if (extractedSym->isOfSubClass<RHS_Type1>())
         {
@@ -3417,7 +3417,7 @@ public:
     
     const static int NUM_FEATS_PER_PAIR=26;
     
-    bool isLearned()
+    virtual bool isLearned()
     {
         return true;
     }
@@ -3450,14 +3450,14 @@ public:
      * @param rhs1 : a nonterminal(possibly obtained after expansion) from the 1st RHS of the rule
      * @param rhs2 : the second NT of the rule
      */
-    void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
+    virtual void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
     {
         PairInfo<float> pairFeats;
         pairFeats.computeInfo(rhs1,rhs2);
         pairFeats.pushToVector(features);
     }
     
-    void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
     {
         features.clear();
         
@@ -3493,13 +3493,13 @@ public:
 //        output->appendFeatures(features);
     }
     
-    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
         output->setAdditionalCost(getMinusLogProbability(features));
         return true;
     }
     
-    LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
@@ -3510,7 +3510,7 @@ public:
         return LHS;
     }
     
-    LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
@@ -3574,7 +3574,7 @@ public:
         
     }
     
-    LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
     {
         assert(typeid(*RHS1)==typeid(RHS_Type1));
         assert(typeid(*RHS2)==typeid(RHS_Type2));
@@ -3585,7 +3585,7 @@ public:
         return LHS;
     }
 
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         combineAndPushGeneric (extractedSym, pqueue, terminals, iterationNo);
     }
@@ -3794,10 +3794,6 @@ class SingleRuleComplex : public SingleRule<SupportComplex<SupportType> ,Support
     typedef SupportType RHS_Type;
     
 public:
-    double getCostScaleFactor()
-    {
-        return 1.0;
-    }
     
     
     SingleRuleComplex():SingleRule<SupportComplex<SupportType> ,SupportType>("dummy")
@@ -3805,7 +3801,7 @@ public:
     }
     
     
-    LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -3818,7 +3814,7 @@ public:
         
     }
     
-    LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -3901,12 +3897,7 @@ class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , Suppo
 public:
     
     
-    bool isLearned()
-    {
-        return true;
-    }
-    
-    string getFileName(PairType & types)
+   virtual string getFileName(PairType & types)
     {
         string out=string("rule_") +string(typeid(LHS_Type).name())+"__";
         out.append(types.first+"_");
@@ -3915,14 +3906,14 @@ public:
         return out;
     }
     
-    string getSingleFileName()
+    virtual string getSingleFileName()
     {
         return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
     }
     
     DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
     {
-        if (isLearned())
+        if (this->isLearned())
         {
             if(learning)
             {
@@ -3960,13 +3951,13 @@ public:
         }
     }
     
-    void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    virtual void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         this->features.clear();
         this->features.push_back(RHS1->base->getMaxZ() - RHS2->getMinZ());
     }
     
-    LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS1);
@@ -3980,7 +3971,7 @@ public:
     }
 
         
-    LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
 //        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
@@ -4012,7 +4003,7 @@ public:
         return LHS;
     }
     
-    LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
