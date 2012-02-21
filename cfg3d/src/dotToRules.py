@@ -61,11 +61,12 @@ def handleRuleLine(ruleLine, idToRule):
     LHSUnique = ''.join([LHSName, LHSId])
 
     RHSName, RHSId = parseToken(RHS)
-    
+
     if idToRule.has_key(LHSUnique):
         idToRule[LHSUnique] = ''.join([idToRule[LHSUnique],',',RHSName])
     else:
         idToRule[LHSUnique] = ''.join([LHSName,',',RHSName])
+    
     return idToRule
 
 def handleLine(line, idToRule):
@@ -86,6 +87,9 @@ def isImproperRule(line):
 
 def uniquefyRHS(RHS):
     return list(set(RHS))
+
+#def uniquefyRHS(RHS):
+#    return sorted(RHS)
 
 def uniquefyRule(LHS, RHS):
     uniqueRule = LHS
@@ -117,6 +121,10 @@ def tallyImproperRuleLine(line, tally):
 def printList(list, file):
     for elem in list:
         file.write(''.join([elem,'\n']));
+
+def printDict(dict, file):
+    for k,v in dict.iteritems():
+        file.write(''.join([k,';',str(v),'\n']));
 
 def uniquefy(fileName,improperUniqueRules):
     tally = {}
@@ -153,7 +161,7 @@ def chooseBestCandidate(candidates, mergeCount):
                 maxCount = mergeCount[pairMerge2]
                 bestCandidate = (second,first)
     
-    print 'BC ', bestCandidate, ' count ', maxCount
+#    print 'BC ', bestCandidate, ' count ', maxCount
     return bestCandidate
 
 def replaceMerge(merge, RHS):
@@ -164,6 +172,16 @@ def replaceMerge(merge, RHS):
     head.extend(RHS)
     
     return head
+
+def objectCounts(tally):
+    tallyCount = {}
+    for key,value in tally.iteritems():
+        keyVect = key.split(',')
+        if not tallyCount.has_key(keyVect[0]):
+            tallyCount[keyVect[0]] = value
+        else:
+            tallyCount[keyVect[0]] += value
+    return tallyCount
 
 def findSecondaryCandidates(RHS):
     candidates = []
@@ -261,7 +279,13 @@ def mergeTwoFiles(first, second, out):
         output.write(line)
     for line in second:
         output.write(line)
-    
+        
+def ratios(tally,objectCounts):
+    ratios = {}
+    for key,value in tally.iteritems():
+        keyVect = key.split(',')
+        ratios[key] = float(value)/objectCounts[keyVect[0]]
+    return ratios
 
 if __name__ == '__main__':
     
@@ -279,11 +303,18 @@ if __name__ == '__main__':
     tallyOut = 'tallyOut'
     # Uniquefy and collapse rules
     tally = uniquefy(improperRules,improperUniqueRules)
+    objectCounts = objectCounts(tally)
+#    pprint.pprint(objectCounts)
+    ratios = ratios(tally,objectCounts)
+    
+    printDict(ratios, getFileWrite('ratios'))
+    pprint.pprint(ratios)
     improperUniqueRules2PlusRHS = 'improperUniqueRules.2PlusRHS'
     properRules1RHS = 'properRules.1RHS'
     filterOutSingles(improperUniqueRules, improperUniqueRules2PlusRHS, properRules1RHS)
     
     properRules, b = properfy(improperUniqueRules2PlusRHS, filterOutDoubles(tally))
+    
     properRules2PlusRHSName = 'properRules.2PlusRHS'
     properRules2PlusRHSFile = getFileWrite(properRules2PlusRHSName)
     
