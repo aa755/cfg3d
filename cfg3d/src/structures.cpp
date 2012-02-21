@@ -477,13 +477,13 @@ public:
 
         assert(features.size()==3); //for safetly. if this fails, change the script which edits color values
         
+        features.push_back(distanceToBoundary);
         // remaining non-color feats
         features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
         features.push_back(centroid.z);
         features.push_back(maxxyz.z);
         features.push_back(minxyz.z);
-        
         
         
         // horizontal convex hull area
@@ -979,7 +979,7 @@ public:
 
     string getName()
     {
-        return boost::lexical_cast<std::string>(index+1);
+        return "Terminal__"+boost::lexical_cast<std::string>(index+1);
     }
     
     /**
