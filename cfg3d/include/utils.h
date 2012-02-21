@@ -18,6 +18,7 @@
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/algorithms/transform.hpp>
 #include <set>
+#include <time.h>
 #include "pcl/common/eigen.h"
 #include <fstream>
 using namespace std;
@@ -328,6 +329,28 @@ public:
 //    }
 //
 
+class TicToc
+{
+    clock_t start_time;
+    
+public:
+    TicToc()
+    {
+        tic();
+    }
+    
+    void tic()
+    {
+       start_time=clock();
+    }
+    
+    long toc()
+    {
+        clock_t elapsed=clock()-start_time;
+        return elapsed /((double)CLOCKS_PER_SEC);        
+    }
+};
+
 class BinningInfo
 {
   float max;
@@ -390,6 +413,8 @@ public:
     return max;
   }
 };
+
+
 
 #endif	/* UTILS_H */
 

@@ -235,12 +235,13 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
 #ifdef GREEDY_OBJECTS
     Scene::COST_THERSHOLD=700;
 #endif
-    
+    TicToc timer;
+    cout<<"statring timer"<<endl;
     
     while (true) {
         min = pq.pop(alreadyExtracted);
 
-        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD)
+        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD || timer.toc()>30)
         {
             //outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
 
