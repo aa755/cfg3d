@@ -1,5 +1,5 @@
 #include "segmentUtils.h"
-//#define COMPUTE_NEIGHBORS
+#define COMPUTE_NEIGHBORS
 #define DISTANCE_BASED_PLANE_MERGE_THRESHOLD
 int** intArrPointer;
 
@@ -590,7 +590,7 @@ int main(int argc, char** argv)
     
     //extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
    // extractRansacClusters(cloud, clusters);
-        SegmentPCDGraph<PointInT> segmenter(0.1,0.04,number_neighbours,0.1,300);
+        SegmentPCDGraph<PointInT> segmenter(0.1,0.04,number_neighbours,0.1,500);
         segmenter.segment(cloud,clusters);
 
     
@@ -656,9 +656,9 @@ int main(int argc, char** argv)
         {
             set<int> ptNbrs;
             tIndex=clusters[i].indices[j];
-//            occupancy.getNeighborSegs(tIndex, ptNbrs, true );// consider occlusion
 #ifdef COMPUTE_NEIGHBORS
-            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
+            occupancy.getNeighborSegs(tIndex, ptNbrs, true );// consider occlusion
+//            occupancy.getNeighborSegs(tIndex, ptNbrs , false ); // wont consider occlusion
             segNbrs.insert(ptNbrs.begin(),ptNbrs.end());
 #endif
         }
