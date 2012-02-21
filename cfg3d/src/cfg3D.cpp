@@ -63,7 +63,7 @@ public:
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
 //                LHS->setAdditionalCost(50*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
-                LHS->setAdditionalCost((NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                LHS->setAdditionalCost(0.2*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 if(bestSceneSoFar==NULL || bestSceneSoFar->getCost() > LHS->getCost() )
                 {

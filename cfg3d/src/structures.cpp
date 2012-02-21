@@ -477,7 +477,7 @@ public:
 
         assert(features.size()==3); //for safetly. if this fails, change the script which edits color values
         
-       // features.push_back(distanceToBoundary);
+        features.push_back(distanceToBoundary);
         // remaining non-color feats
         features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
         features.push_back(maxxyz.z-minxyz.z);
