@@ -157,14 +157,19 @@ void initialize(pcl::PointCloud<PointT> scene) {
     
     }
     
+    dummy.clear();
     for(map<int,Terminal*>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
     {
         Terminal *terminal=it->second;
+        dummy.push_back(terminal);
         terminal->computeFeatures();
         terminal->setNeighbors(Terminal::totalNumTerminals);
-        terminal->declareOptimal();        
+        terminal->declareOptimal();         
     }
     
+    double maxDist[360];
+    getSegmentDistanceToBoundaryOptimized(scene,dummy,maxDist);
+            
     segMinDistances.setZero(Terminal::totalNumTerminals,Terminal::totalNumTerminals);
     
     for(int i1=1;i1<=Terminal::totalNumTerminals;i1++)

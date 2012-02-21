@@ -1809,8 +1809,8 @@ public:
         graphvizFile.close(); // Move to postparse printer
         NTmembershipFile.close();
         labelmapFile.close();
-        string halPCDFileName = fileName + "_hallucinated.pcd";
-        pcl::io::savePCDFile<PointT > (halPCDFileName, scene, true);
+      //  string halPCDFileName = fileName + "_hallucinated.pcd";
+      //  pcl::io::savePCDFile<PointT > (halPCDFileName, scene, true);
         
     }
     
@@ -2041,7 +2041,7 @@ public:
         planeParamsComputed = true;
     }
     
-    static const int NORMAL_Z_INDEX=11;
+    static const int NORMAL_Z_INDEX=12;
     virtual void appendAdditionalFeatures(vector<float> & features)
     {
         //assert(featuresComputed);
@@ -3662,6 +3662,7 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 //    vector<int> directionBins[360];
     getMaxRanges(maxDist,cloud);
     
+    cerr<<"origin used for distance to boundary:\n"<< cloud.sensor_origin_;
     for(int i=0;i<(int)terminals.size();i++)
     {
         double distBoundary=0;
