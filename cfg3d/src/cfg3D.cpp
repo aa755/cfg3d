@@ -50,6 +50,7 @@ public:
     }
 };
 
+Scene *bestSceneSoFar=NULL;
 template<typename SceneType>
 class RScene : public Rule {
 public:
@@ -64,6 +65,10 @@ public:
 //                LHS->setAdditionalCost(50*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
                 LHS->setAdditionalCost((NUMPointsToBeParsed-extractedSym->getNumPoints()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
+                if(bestSceneSoFar==NULL || bestSceneSoFar->getCost() > LHS->getCost() )
+                {
+                    bestSceneSoFar=LHS;
+                }
                 
             
         }
@@ -241,7 +246,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     while (true) {
         min = pq.pop(alreadyExtracted);
 
-        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD || timer.toc()>30)
+        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD )
         {
             //outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
 
@@ -271,12 +276,26 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
         cout << "\n\n\nIteration: " << count++ << " Cost: " << min->getCost() <<" Type: "<<min->getName()<< endl;
 
         Scene *dummyTypeCheck=dynamic_cast<Scene*>(min);
+        
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
             cout << "Goal reached!!" << endl;
             cerr << "Goal reached!! with cost:"<<min->getCost()<< endl;
             min->printData();
             return;
+        }
+        
+        if(timer.toc()>300)
+        {
+            cout << "TimeOut!!" << endl;
+            
+            cerr << "TimeOut!!"<<endl;
+            if(bestSceneSoFar!=NULL)
+            {
+                bestSceneSoFar->printData();
+            }
+            return;
+            
         }
         
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
