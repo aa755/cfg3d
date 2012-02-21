@@ -2605,6 +2605,7 @@ public:
     
     void writeFeaturesToFile()
     {
+        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         vector<float>::iterator it;
         for(it=features.begin();it!=features.end();it++)
         {
@@ -3015,7 +3016,6 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         computeFeatures(RHS);
@@ -3508,7 +3508,6 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-        assert(featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
@@ -3929,7 +3928,7 @@ public:
 //        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
 //    }
     
-    DoubleRuleComplex( vector<string> types, bool learning=false)//:DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >("dummy")
+    DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
     {
         // this->filename=string("SupportComplexDR__")+typeid(SupportType).name()+"__"+typeid(RHS_Type2).name(); // not used : only for tagging
        if (this->isLearned())
