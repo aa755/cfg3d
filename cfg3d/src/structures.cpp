@@ -333,6 +333,12 @@ void printPoint(pcl::PointXYZ point) {
     cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
 }
 
+Vector3d getSceneOrigin()
+{
+    Vector4f orig=scene.sensor_origin_;
+    return Vector3d(orig(0),orig(1),orig(2));
+};
+
 class Symbol {
 protected:
     /** total weight to derive all these leaves
@@ -512,6 +518,18 @@ public:
         colorDiff[1]=(avgColorThis.S - avgColorOther.S);
         colorDiff[2]=(avgColorThis.V - avgColorOther.V);
         
+    }
+    
+    /**
+     * 
+     * @param other
+     * @return +ve if this is infront of other
+     */
+    float inFrontNessof(Symbol * other)
+    {
+        Eigen::Vector3d r1=getCentroidVector()-getSceneOrigin();
+        Eigen::Vector3d r2=other->getCentroidVector()-getSceneOrigin();
+        return (r2.norm()-r1.norm());
     }
     
     float centroidHorizontalDistance(Symbol * other)
@@ -2679,6 +2697,7 @@ public:
             T z1Min_2Min;
             T z1Max_2Max;
             T minDist;
+//            T frontness; // change NUM_FEATS above
            // T colorDiffHSV[3];
         };
     };
@@ -2904,9 +2923,9 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 
 
     minDist=(rhs1->getMinDistance(rhs2));
-
+    
 //    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
-
+    
     //assert((int) features.size() == beginSize + NUM_FEATS_PER_PAIR);
     //get horizontal area ratio
     //area ratio on plane defined by normal
