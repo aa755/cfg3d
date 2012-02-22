@@ -3832,6 +3832,10 @@ public:
         this->filename=string("SingleRuleChoice_")+typeid(LHS_Type).name()+"_"+typeid(RHS_Type).name(); // not used : only for tagging
     }
     
+    virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
+    {
+        
+    }
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
@@ -3839,7 +3843,7 @@ public:
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(this->cost);
-        LHS->base=RHS;
+        additionalProcessing(LHS,RHS);
         LHS->declareOptimal();
         
         return LHS;
@@ -3850,7 +3854,7 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         // to be replace by generic features
-        LHS->base=RHS;
+        additionalProcessing(LHS,RHS);
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
         return LHS;
@@ -3871,6 +3875,11 @@ public:
     SingleRuleComplex()
     {
         this->filename=string("SupportComplex_")+typeid(SupportType).name(); // not used : only for tagging
+    }
+    
+    virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
+    {
+        LHS->base=RHS;        
     }
     
 };
