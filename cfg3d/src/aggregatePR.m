@@ -5,11 +5,14 @@ len=length(names);
 sump=0;
 sumr=0;
 sumc=0;
-!git log | head
-!git diff > tempGit
-!cat tempGit
-precSum=0
-recSum=0
+%!git log | head
+%!git diff > tempGit
+%!cat tempGit
+precSum=0;
+recSum=0;
+lenp=0;
+lenr=0;
+
     fprintf(1,'name \t\t prec \t recal \t count\n');
 for i=1:len
     M=csvread(strcat(names{i},'.out'));
@@ -20,12 +23,17 @@ for i=1:len
     correct{i}=sum(M(:,3));
     sumc=sumc+correct{i};
     fprintf(1,'%10s \t %4.2f \t%4.2f \t%4.2f \n',names{i} ,prec{i},recall{i},correct{i});
-    precSum=precSum+prec{i};
-    recSum=recSum+recall{i};
-    
+    if(sum(M(:,2))~=0)
+        precSum=precSum+prec{i};
+        lenp=lenp+1;
+    end
+    if(sum(M(:,1))~=0)
+        recSum=recSum+recall{i};
+        lenr=lenr+1;
+    end
 end
     fprintf(1,'%10s \t %4.2f \t%4.2f \t%4.2f \n','micro' ,sumc/sump,sumc/sumr,sumc);
-    fprintf(1,'%10s \t %4.2f \t%4.2f \t%4.2f \n','macro' ,precSum/len,recSum/len,sumc);
+    fprintf(1,'%10s \t %4.2f \t%4.2f \t%4.2f \n','macro' ,precSum/lenp,recSum/lenr,sumc);
 
 end
 

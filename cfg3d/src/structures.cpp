@@ -3798,19 +3798,19 @@ public:
     
 };
 
-template<typename SupportType>
-class SingleRuleComplex : public SingleRule<SupportComplex<SupportType> ,SupportType>
+/**
+ * these rules have no feature based weights .. only ratios
+ */
+template<typename LHS_Type,typename RHS_Type>
+class SingleRuleNoFeature : public SingleRule<LHS_Type,RHS_Type>
 {
-
-    typedef SupportComplex<SupportType> LHS_Type;
-    typedef SupportType RHS_Type;
-    
+    float cost;
 public:
     
-    
-    SingleRuleComplex():SingleRule<SupportComplex<SupportType> ,SupportType>("dummy")
+    SingleRuleNoFeature(float ratio=1):SingleRule<LHS_Type,RHS_Type>("dummy")
     {
-        this->filename=string("SupportComplex_")+typeid(SupportType).name(); // not used : only for tagging
+        this->cost=log(ratio);
+        this->filename=string("SingleRuleChoice_")+typeid(LHS_Type).name()+"_"+typeid(RHS_Type).name(); // not used : only for tagging
     }
     
     
@@ -3819,12 +3819,11 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
         computeFeatures(RHS);
-        LHS->setAdditionalCost(0);
+        LHS->setAdditionalCost(this->cost);
         LHS->base=RHS;
         LHS->declareOptimal();
         
         return LHS;
-        
     }
     
     virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
@@ -3836,6 +3835,23 @@ public:
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
         return LHS;
+    }
+    
+};
+
+template<typename SupportType>
+class SingleRuleComplex : public SingleRuleNoFeature<SupportComplex<SupportType> ,SupportType>
+{
+
+    typedef SupportComplex<SupportType> LHS_Type;
+    typedef SupportType RHS_Type;
+    
+public:
+    
+    
+    SingleRuleComplex()
+    {
+        this->filename=string("SupportComplex_")+typeid(SupportType).name(); // not used : only for tagging
     }
     
 };
