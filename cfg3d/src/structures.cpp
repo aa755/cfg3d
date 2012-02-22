@@ -2675,7 +2675,7 @@ class PairInfo
 {
     const static int NUM_OCCLUSION_FEATS = 9;
     const static int NUM_OCCLUSION_FEATS_ASYMMETRIC = 3;
-    const static int NUM_FEATS = 23;
+    const static int NUM_FEATS = 27;
     const static double UNKNOWN_FEATURE_LOG_PROB=5.0;
 public:
 
@@ -2697,8 +2697,8 @@ public:
             T z1Min_2Min;
             T z1Max_2Max;
             T minDist;
-//            T frontness; // change NUM_FEATS above
-           // T colorDiffHSV[3];
+            T frontness; // change NUM_FEATS above
+            T colorDiffHSV[3];
         };
     };
 
@@ -2924,7 +2924,8 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 
     minDist=(rhs1->getMinDistance(rhs2));
     
-//    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
+    frontness=rhs1->inFrontNessof(rhs2);
+    rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
     
     //assert((int) features.size() == beginSize + NUM_FEATS_PER_PAIR);
     //get horizontal area ratio
