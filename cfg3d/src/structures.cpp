@@ -65,6 +65,7 @@ public:
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
     const static int timeLimit=500;
+    const static double doubleRuleDivide=10;
 };
 
 
@@ -3540,7 +3541,7 @@ public:
     
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
-        output->setAdditionalCost(getMinusLogProbability(features));
+        output->setAdditionalCost(getMinusLogProbability(features)/Params::doubleRuleDivide);
         return true;
     }
     
