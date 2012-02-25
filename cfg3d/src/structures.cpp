@@ -57,6 +57,15 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 string rulePath;
+
+class Params
+{
+    const static double missPenalty=1000;
+    const static double onTopPairDivide=5;
+    const static double onTopPairDefaultOnModelMissing=50;
+};
+
+
 /**
  * does in-place set intersection ...O(n) amortized... result is in set_1
  * @param set_1
@@ -136,14 +145,16 @@ class MultiVarGaussian : public MultiVariateProbabilityDistribution
     VectorXd minv;
     VectorXd maxv;
     MatrixXd sigmaInv;
+    double additiveConstant;
 public:
     double minusLogProb(VectorXd & x)
     {
         assert(x.rows()==numFeats);
-        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
+//        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
+        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 ) ;
         assert(value.rows()==1);
         assert(value.cols()==1);
-        double lp=value(0,0);
+        double lp=value(0,0)+ additiveConstant ;
  //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
         assert(lp>=0);
         return lp;
@@ -214,6 +225,8 @@ public:
         }
 
 
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0+10000;
+        additiveConstant=0;
     }
     
     
@@ -4105,7 +4118,7 @@ public:
                 
         }
             
-        LHS->setAdditionalCost(additionalCost);    
+        LHS->setAdditionalCost(additionalCost/5);    
              
              
              

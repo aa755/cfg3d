@@ -62,8 +62,8 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-//                LHS->setAdditionalCost(50*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
-                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                LHS->setAdditionalCost(5000*(NUMTerminalsToBeParsed-extractedSym->getNumTerminals()));
+//                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
                 addToPqueueIfNotDuplicate(LHS,pqueue);
                 if(bestSceneSoFar==NULL || bestSceneSoFar->getCost() > LHS->getCost() )
                 {
@@ -285,7 +285,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
             return;
         }
         
-        if(timer.toc()>2000)
+        if(timer.toc()>300)
         {
             cout << "TimeOut!!" << endl;
             
