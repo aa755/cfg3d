@@ -60,9 +60,11 @@ string rulePath;
 
 class Params
 {
-    const static double missPenalty=1000;
+public:
+    const static double missPenalty=5000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
+    const static int timeLimit=500;
 };
 
 
@@ -4113,12 +4115,12 @@ public:
             }
             else
             {
-                additionalCost+= 50;
+                additionalCost+= Params::onTopPairDefaultOnModelMissing;
             }
                 
         }
             
-        LHS->setAdditionalCost(additionalCost/5);    
+        LHS->setAdditionalCost(additionalCost/Params::onTopPairDivide);    
              
              
              
