@@ -28,12 +28,12 @@ def print2DDict(d, file, labels):
 ##
 ##    file.write('\n')
     for outerLabel in labels:
-        for innerLabel in labels:
-            if d.has_key(outerLabel): 
-                if d[outerLabel].has_key(innerLabel):
-                    file.write(''.join([str(d[outerLabel][innerLabel]),',']))
+            for innerLabel in labels:
+                if d.has_key(outerLabel): 
+                    if d[outerLabel].has_key(innerLabel):
+                        file.write(''.join([str(d[outerLabel][innerLabel]),',']))
     file.write('\n')
-    file.write(','.join(labels))
+#    file.write(','.join(labels))
 #    for row in d.keys():
 #        length = len(row)
 #        spaces = 16 - length
@@ -212,7 +212,7 @@ def main():
     # TPI = Truth/Precision/Intersection triplet
     if len(sys.argv) == 4:
         TPI, labels = generateConfusionMatrix(sys.argv[1], sys.argv[2], sys.argv[3])
-        f = getFileWrite('CFM.txt')
+        f = getFileAppend('CFM.txt')
         print2DDict(TPI, f, labels)
     elif len(sys.argv) == 5 or len(sys.argv) == 6:
         overwrite = False
