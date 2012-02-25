@@ -11,6 +11,7 @@
 #!/usr/bin/env python
 import sys
 import operator
+import pprint
 
 def getFile(name):
     return open(name)
@@ -20,6 +21,35 @@ def getFileAppend(name):
 
 def getFileWrite(name):
     return open(name, 'w')
+
+def print2DDict(d, file, labels):
+##    for l in d.keys():
+##        file.write(''.join([l,'\t']))
+##
+##    file.write('\n')
+    for outerLabel in labels:
+            for innerLabel in labels:
+                if d.has_key(outerLabel): 
+                    if d[outerLabel].has_key(innerLabel):
+                        file.write(''.join([str(d[outerLabel][innerLabel]),',']))
+    file.write('\n')
+#    file.write(','.join(labels))
+#    for row in d.keys():
+#        length = len(row)
+#        spaces = 16 - length
+#        front = row
+#        spaceList = [' ']*spaces
+#        frontList = [front]
+#        frontList.extend(spaceList)
+#        file.write(''.join(frontList))
+#
+#        for col in d[row].keys():
+#            if not col == 'NoPrediction':
+#                file.write(''.join([str(d[row][col]), '\t']))
+#        file.write(''.join([str(d[row]['NoPrediction']), '\n']))
+
+
+
 
 # Creates a dictionary keyed by first token to the tokens after it
 def createDict(fileName,labels):
@@ -36,6 +66,22 @@ def createDict(fileName,labels):
                 mapping[key] = value
     return mapping
 
+def createBackwardsDict(fileName,labels):
+    mapping = {}
+    file = getFile(fileName)
+    for line in file:
+        vector = line.rstrip('\n').split(',')
+        value = vector[0]
+        if not len(vector) == 1:
+            keys = vector[1:]
+            for key in keys:
+                if mapping.has_key(key):
+                    print 'somethings wrong, key encountered already'
+                    mapping[key] = value
+                else:
+                    mapping[key] = value
+    return mapping
+
 def getListOfLabels(fileName):
     labelList = []
     file = getFile(fileName)
@@ -50,10 +96,11 @@ def roundDown(num):
         return 0
 
 def printErr():
-    print '\nMalformed argument inputs!\nUsage: GroundTruth_labelmap Prediction_labelmap labelfile binary? [overwrite_arg]\n'
+    print '\tUsage1 (Precision/Recall): GroundTruth_labelmap Prediction_labelmap labelfile binary?(yes/no) [overwrite_arg]\n'
+    print '\tUsage2 (Confusion Matrix): GroundTruth_labelmap Prediction_labelmap labelfile\n'
 
 # Returns (# times label in file1, # times label in file2, # times file1 and file2 labeled segment with label)
-def compareTwoFiles(file1, file2, file3, binaryStr, fileWrite):
+def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
 
     binary = False
     if binaryStr == 'yes' or binaryStr == 'y':
@@ -92,7 +139,11 @@ def compareTwoFiles(file1, file2, file3, binaryStr, fileWrite):
         totalDict2 = totalDict2 + dict2LabelSetSize
         totalIntersections = totalIntersections + intersectionSize
 
-        strLst = [label,',',str(dict1LabelSetSize),',',str(dict2LabelSetSize),',',str(intersectionSize),'\n']
+        strLst = [str(dict1LabelSetSize),',',str(dict2LabelSetSize),',',str(intersectionSize),'\n']
+        if overwrite:
+            fileWrite = getFileWrite(''.join([label,'.out']))
+        else:
+            fileWrite = getFileAppend(''.join([label,'.out']))
         fileWrite.write(''.join(strLst))
 
     return totalDict1, totalDict2, totalIntersections
@@ -111,7 +162,7 @@ def recall(TPITriplet):
     intersection = TPITriplet[2]
     return float(intersection)/prediction
 
-def printAll():
+def printAll(TPI):
     printTPI(TPI)
     printPrecision(TPI)
     printRecall(TPI)
@@ -133,21 +184,48 @@ def printRecall(TPITriplet):
     print '\t',recall(TPITriplet)
     print '============================================'
 
+def generateConfusionMatrix(file1, file2, file3):
+    confusionMatrix = {}
+
+    labels = getListOfLabels(file3)
+    labelsCopy = labels
+    labelsCopy.append('NoPrediction')
+    labelsPlusColumn = labelsCopy
+    for label in labels:
+        confusionMatrix[label] = {}
+        for label2 in labelsPlusColumn:
+            confusionMatrix[label][label2] = 0
+
+    truthDict = createBackwardsDict(file1, file3)
+    predictedDict = createBackwardsDict(file2, file3)
+
+    for truthKey,truthValue in truthDict.iteritems():
+        if not predictedDict.has_key(truthKey):
+##            print 'truthValue', confusionMatrix[truthValue]['NoPrediction']
+            confusionMatrix[truthValue]['NoPrediction'] = confusionMatrix[truthValue]['NoPrediction'] + 1
+        else:
+            confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
+
+    return confusionMatrix, labelsCopy
+
 def main():
     # TPI = Truth/Precision/Intersection triplet
-    fileWrite = getFileAppend('out')
-    if len(sys.argv) == 6:
-        fileWrite = getFileWrite('out')
-    elif not len(sys.argv) == 5:
-        printErr()
-        exit()
+    if len(sys.argv) == 4:
+        TPI, labels = generateConfusionMatrix(sys.argv[1], sys.argv[2], sys.argv[3])
+        f = getFileAppend('CFM.txt')
+        print2DDict(TPI, f, labels)
+    elif len(sys.argv) == 5 or len(sys.argv) == 6:
+        overwrite = False
+        if len(sys.argv) == 6:
+            overwrite = True
+        TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], overwrite)
 
-    TPI = compareTwoFiles(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], fileWrite)
 
-    print '\nSuccessful Evaluation'
-    printTPI(TPI)
-    printPrecision(TPI)
-    printRecall(TPI)
+
+##    print '\nSuccessful Evaluation'
+##    printTPI(TPI)
+##    printPrecision(TPI)
+##    printRecall(TPI)
     pass
 
 if __name__ == '__main__':
