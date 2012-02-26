@@ -204,7 +204,8 @@ def generateConfusionMatrix(file1, file2, file3):
 ##            print 'truthValue', confusionMatrix[truthValue]['NoPrediction']
             confusionMatrix[truthValue]['NoPrediction'] = confusionMatrix[truthValue]['NoPrediction'] + 1
         else:
-            confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
+            if confusionMatrix[truthValue].has_key(predictedDict[truthKey]):
+                confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
 
     return confusionMatrix, labelsCopy
 
