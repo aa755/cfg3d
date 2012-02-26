@@ -407,6 +407,8 @@ protected:
     
 public:
 
+   virtual int getNumObjectsSpanned()=0;
+    
     virtual Eigen::Vector3d getPlaneNormal() const
     {
         assert(1==2);
@@ -877,6 +879,12 @@ protected:
     }
     bool start;
 public:
+    
+    virtual int getNumObjectsSpanned()
+    {
+        return 0;
+    }
+    
     virtual ~Terminal(){}
     virtual  HallucinatedTerminal * getHalChild()
     {
@@ -1308,6 +1316,7 @@ protected:
      */
     long lastIteration;
     static int id_counter;
+    int numObjectsSpanned;
     
     /**
      * convex hull of this = convex hull of union of points in convex hull of 
@@ -1380,6 +1389,13 @@ protected:
     bool costSet;
 public:
     virtual ~NonTerminal(){}
+    
+    virtual int getNumObjectsSpanned()
+    {
+        assert(isDeclaredOptimal);
+        return numObjectsSpanned;
+    }
+
     // Returns true if both Symbols do not overlap
     bool isSpanExclusive(NonTerminal * nt) {
         return !(spanned_terminals.intersects(nt->spanned_terminals));
@@ -1674,6 +1690,16 @@ public:
         set_membership |= this->spanned_terminals;
     }
 
+    virtual void computeNumSpannedObjects()
+    {
+        numObjectsSpanned=0;
+        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) 
+        {
+            numObjectsSpanned=numObjectsSpanned+(*it)->getNumObjectsSpanned() ;
+        }
+        numObjectsSpanned++;
+    }
+    
     /**
      * do some book-keeping
      * for efficiency it is not done when a new NT is created, but only when it is extracted
@@ -1687,10 +1713,11 @@ public:
      * @return
      */
     bool declareOptimal() {
+        if(isDeclaredOptimal)
+            return true;
         isDeclaredOptimal = true;
-        vector<Symbol*>::iterator it;
-
-        for (it = children.begin(); it != children.end(); it++) {
+        
+        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) {
             (*it)->appendOptimalParents(this);
         }
 
@@ -1698,6 +1725,7 @@ public:
         assert(costSet); // cost must be set before adding it to pq
         computeFeatures();
         additionalFinalize();
+        computeNumSpannedObjects();
         return true;
     }
 
@@ -1784,6 +1812,11 @@ public:
             assert(child!=NULL);
             child->expandIntermediates(nonIntermediateChildren);
         }
+    }
+    
+    virtual void computeNumSpannedObjects()
+    {
+        numObjectsSpanned=0;
     }
 
 };
@@ -2011,6 +2044,11 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Plane() : NonTerminal() {
         planeParamsComputed = false;
+    }
+    
+    virtual void computeNumSpannedObjects()
+    {
+        numObjectsSpanned=0;
     }
 
     void addPointIndices(vector<int> newPointIndices)
