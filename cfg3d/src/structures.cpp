@@ -66,6 +66,7 @@ public:
     const static double onTopPairDefaultOnModelMissing=50;
     const static int timeLimit=500;
     const static double doubleRuleDivide=10;
+    const static double objectCost=30;
 };
 
 
