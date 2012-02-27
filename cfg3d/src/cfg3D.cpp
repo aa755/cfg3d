@@ -82,6 +82,14 @@ bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
     return false;
 }
 
+//    
+//template<typename SupportType, typename RHS_Type2 > 
+//typename boost::disable_if<boost::is_base_of<Floor, SupportType>, bool>::type
+//DoubleRuleComplex<SupportType,RHS_Type2> :: canBaseBeHallucinated()
+//{
+//    return false;
+//}
+
 template<>
 VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2, vector<Terminal*> & terminals)
 {

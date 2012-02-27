@@ -67,6 +67,7 @@ public:
     const static int timeLimit=500;
     const static double doubleRuleDivide=5;
     const static double objectCost=30;
+    const static double maxFloorHeight=100.0;
 };
 
 
@@ -3862,11 +3863,31 @@ public:
 template <typename Support>
 class SupportComplex : public NTComplex
 {
+    bool baseHallucinated;
 public:
+    SupportComplex()
+    {
+        baseHallucinated=false;
+        base=NULL;
+    }
+    
     Support * base;
     NonTerminal * getBase()
     {
+        assert(!baseHallucinated);
+        assert(base!=NULL);
         return base;
+    }
+
+    void setBaseHallucinated(bool baseHallucinated)
+    {
+        this->baseHallucinated = baseHallucinated;
+        assert(base=NULL);
+    }
+
+    bool isBaseHallucinated() const
+    {
+        return baseHallucinated;
     }
 
     vector<NonTerminal*> objectsOnTop;
@@ -3982,6 +4003,7 @@ public:
     }
 
 };
+float overallMinZ;
 
 template<>
 void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
@@ -4008,6 +4030,7 @@ class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , Suppo
     typedef SupportComplex<SupportType> LHS_Type;
     typedef SupportComplex<SupportType> RHS_Type1;
 public:
+    bool canBaseBeHallucinated();
     
     PairType makeSortedPair(string name1, string name2)
     {
@@ -4060,7 +4083,16 @@ public:
     virtual void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         this->features.clear();
-        this->features.push_back(RHS1->base->getMaxZ() - RHS2->getMinZ());
+        double baseMaxZ;
+        if(RHS1->isBaseHallucinated())
+        {
+            baseMaxZ=0;
+        }
+        else
+        {
+            baseMaxZ=RHS1->getBase()->getMaxZ();
+        }
+        this->features.push_back(baseMaxZ - RHS2->getMinZ());
     }
     
     virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
@@ -4079,7 +4111,7 @@ public:
         
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+        assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
@@ -4161,9 +4193,37 @@ public:
         
     }
     
+    
+    virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+
+        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL)
+        {
+            if ( nt->isOfSubClass<RHS_Type1>())
+            {
+                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+        
+        //handle case when floor is occluded 
+        if(canBaseBeHallucinated() && overallMinZ>Params::maxFloorHeight)
+        {
+            SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
+            occFloor->setBaseHallucinated(true);
+                addToPqueueIfNotDuplicate(applyRuleInference(occFloor, RHS_extracted,terminals), pqueue);            
+        }
+        
+    }
+    
 }; 
 
-float overallMinZ;
 
 void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     if(!rule->isModelFileMissing())
