@@ -67,7 +67,9 @@ public:
     const static int timeLimit=500;
     const static double doubleRuleDivide=5;
     const static double objectCost=30;
-    const static double maxFloorHeight=100.0;
+    const static double maxFloorHeight=0.05;
+    const static double floorOcclusionPenalty=10;
+    
 };
 
 
@@ -3864,6 +3866,7 @@ template <typename Support>
 class SupportComplex : public NTComplex
 {
     bool baseHallucinated;
+    Support * base;
 public:
     SupportComplex()
     {
@@ -3871,7 +3874,6 @@ public:
         base=NULL;
     }
     
-    Support * base;
     NonTerminal * getBase()
     {
         assert(!baseHallucinated);
@@ -3882,7 +3884,7 @@ public:
     void setBaseHallucinated(bool baseHallucinated)
     {
         this->baseHallucinated = baseHallucinated;
-        assert(base=NULL);
+        assert(base==NULL);
     }
 
     bool isBaseHallucinated() const
@@ -3890,6 +3892,17 @@ public:
         return baseHallucinated;
     }
 
+    void setBase(Support* base)
+    {
+        this->base = base;
+    }
+
+    void copyBasePtrAndFlags(SupportComplex<Support>* other)
+    {
+        this->base = other->base;
+        this->baseHallucinated=other->baseHallucinated;
+    }
+    
     vector<NonTerminal*> objectsOnTop;
     
 };
@@ -3956,7 +3969,7 @@ public:
     
     virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
     {
-        LHS->base=RHS;        
+        LHS->setBase(RHS);        
     }
     
 };
@@ -4084,7 +4097,7 @@ public:
     {
         this->features.clear();
         double baseMaxZ;
-        if(RHS1->isBaseHallucinated())
+        if(RHS1==NULL || RHS1->isBaseHallucinated())
         {
             baseMaxZ=0;
         }
@@ -4098,10 +4111,18 @@ public:
     virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS1);
+        if(RHS1!=NULL)
+        {
+                LHS->addChild(RHS1);
+                LHS->copyBasePtrAndFlags(RHS1);
+                LHS->objectsOnTop=RHS1->objectsOnTop;
+        }
+        else
+        {
+            LHS->setBaseHallucinated(true);
+        }
+        
         LHS->addChild(RHS2);
-        LHS->base=RHS1->base;
-        LHS->objectsOnTop=RHS1->objectsOnTop;
         LHS->objectsOnTop.push_back(RHS2);
         appendMainFeats(RHS1,RHS2);
         LHS->computeSpannedTerminals();
@@ -4148,51 +4169,58 @@ public:
         
             appendMainFeats(RHS1, RHS2);
              setCost(LHS, RHS1, RHS2, terminals); // set main cost
-             
-            double additionalCost=0;
-        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+
+        if (RHS1 != NULL)
         {
-            PairType sortTypes;
-            string name1=string(typeid(*(*it)).name());
-            string name2=string(typeid(*RHS2).name());
-            
-            sortTypes=makeSortedPair(name1,name2);
-
-            MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
-            if (model != NULL)
+            double additionalCost = 0;
+            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
             {
-                PairInfoSupportComplex<float> feats;
-                if (name1 < name2)
-                    feats.computeInfo((*it), RHS2);
+                PairType sortTypes;
+                string name1 = string(typeid (*(*it)).name());
+                string name2 = string(typeid (*RHS2).name());
+
+                sortTypes = makeSortedPair(name1, name2);
+
+                MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
+                if (model != NULL)
+                {
+                    PairInfoSupportComplex<float> feats;
+                    if (name1 < name2)
+                        feats.computeInfo((*it), RHS2);
+                    else
+                        feats.computeInfo(RHS2, (*it));
+
+
+                    vector<float> featv;
+                    feats.pushToVector(featv);
+                    additionalCost += (model->minusLogProb(featv));
+                }
                 else
-                    feats.computeInfo(RHS2, (*it));
+                {
+                    additionalCost += Params::onTopPairDefaultOnModelMissing;
+                }
 
-
-                vector<float> featv;
-                feats.pushToVector(featv);
-                additionalCost+=(model->minusLogProb(featv));
             }
-            else
+
+            LHS->setAdditionalCost(additionalCost / Params::onTopPairDivide);
+
+
+
+            if (isinf(LHS->getCost()))
             {
-                additionalCost+= Params::onTopPairDefaultOnModelMissing;
+                delete LHS;
+                return NULL;
             }
-                
         }
-            
-        LHS->setAdditionalCost(additionalCost/Params::onTopPairDivide);    
-             
-             
-             
-             if(isinf(LHS->getCost()))
-            {
-                 delete LHS;
-               return NULL;
-            }
-        
          return LHS;
         
     }
     
+    
+    virtual void applyRuleLearningBaseOccluded(RHS_Type2 * RHS_extracted)
+    {
+        
+    }
     
     virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
@@ -4215,9 +4243,11 @@ public:
         //handle case when floor is occluded 
         if(canBaseBeHallucinated() && overallMinZ>Params::maxFloorHeight)
         {
-            SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
-            occFloor->setBaseHallucinated(true);
-                addToPqueueIfNotDuplicate(applyRuleInference(occFloor, RHS_extracted,terminals), pqueue);            
+            //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
+            //occFloor->setBaseHallucinated(true);
+            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted,terminals);
+            lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
+            addToPqueueIfNotDuplicate(lhsOcc, pqueue);            
         }
         
     }

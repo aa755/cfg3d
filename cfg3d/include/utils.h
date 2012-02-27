@@ -268,7 +268,7 @@ public:
     
     bool isRootType()
     {
-        return (type=="FloorComplex");
+        return (type=="FloorComplex" || type=="FloorOccludedComplex");
     }
     
     Node(string fullname)
