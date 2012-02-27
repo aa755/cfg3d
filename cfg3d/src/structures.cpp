@@ -4136,28 +4136,31 @@ public:
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
-        LHS->declareOptimal();        
-        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+        LHS->declareOptimal();
+        if (RHS1 != NULL)
         {
-            PairType sortTypes;
-            string name1=string(typeid(*(*it)).name());
-            string name2=string(typeid(*RHS2).name());
-            
-            sortTypes=makeSortedPair(name1,name2);
-            
-            PairInfoSupportComplex<float> feats;
-            
-            if(name1<name2)
-                feats.computeInfo((*it),RHS2);
-            else
-                feats.computeInfo(RHS2,(*it));
+            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
+            {
+                PairType sortTypes;
+                string name1 = string(typeid (*(*it)).name());
+                string name2 = string(typeid (*RHS2).name());
 
-            cout<<name1<<","<<name2<<endl;
-            ofstream * file= pairWiseFeatFiles[sortTypes];
-            assert(file!=NULL);
-            feats.writeToFile(*file);
-            
-                
+                sortTypes = makeSortedPair(name1, name2);
+
+                PairInfoSupportComplex<float> feats;
+
+                if (name1 < name2)
+                    feats.computeInfo((*it), RHS2);
+                else
+                    feats.computeInfo(RHS2, (*it));
+
+                cout << name1 << "," << name2 << endl;
+                ofstream * file = pairWiseFeatFiles[sortTypes];
+                assert(file != NULL);
+                feats.writeToFile(*file);
+
+
+            }
         }
         return LHS;
     }

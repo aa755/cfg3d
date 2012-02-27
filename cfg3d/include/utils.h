@@ -255,7 +255,7 @@ public:
         }
     }
     
-    bool isOccludedComplexType()
+    bool isOccludedComplexType() const
     {
         return EndsWith(type,"OccludedComplex");
     }
@@ -264,6 +264,12 @@ public:
     {
         assert(isComplexType());
         return type.substr(0,type.length()-7);
+    }
+    
+    string stripOccludedComplexFromType() const
+    {
+        assert(isOccludedComplexType());
+        return type.substr(0,type.length()-15);
     }
     
     bool isRootType()
@@ -308,13 +314,28 @@ public:
         
     }
 
-    string getDecl() const {
+
+    string getDeclSimple() const {
         return type+" *"+fullName+" ";
     }
     
     string getComplexDecl() const {
         return string("SupportComplex<")+stripComplexFromType() +"> *"+fullName+" ";
     }
+    
+    string getOccludedComplexDecl() const {
+        return string("SupportComplex<")+stripOccludedComplexFromType() +"> *"+fullName+" ";
+    }
+    
+    string getDecl() const {
+        if(isOccludedComplexType())
+            return getOccludedComplexDecl();
+        else if(isComplexType())
+            return getComplexDecl();
+        else
+            return getDeclSimple();
+    }
+    
 };
 
 //        

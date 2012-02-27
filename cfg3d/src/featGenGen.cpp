@@ -126,7 +126,7 @@ public:
                 {
                     ofile<<"temp=rulePPG.applyRuleLearning(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
-                ofile<<"\t"<<name.getDecl()<<";\n";
+                ofile<<"\t"<<name.getDeclSimple()<<";\n";
                 ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr(true);\n";
                 ofile<<"\t"<<name.fullName <<"= tr.applyRuleLearning(temp, dummy);\n}\n";
             }
@@ -143,7 +143,7 @@ public:
                         //              typeOrder.push_back((*it)->name.type);
                     }
                     
-                    ofile << "\t" << name.getDecl() << ";\n";
+                    ofile << "\t" << name.getDeclSimple() << ";\n";
                     if (children.size() == 1)
                     {
                         ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
@@ -180,11 +180,14 @@ public:
                 }
                 else
                 {
+                    string support=name.stripComplexFromType();
+                    bool baseOccluded=false;
                     if(name.isOccludedComplexType())
                     {
+                        baseOccluded=true;
                         errFile<<"FloorOccluded"<<dotFile<<endl;
+                        support=name.stripOccludedComplexFromType();// remove occluded too
                     }
-                    string support=name.stripComplexFromType();
                     
                     // move the support to first
                     bool found=false;
@@ -202,9 +205,9 @@ public:
                     }
                     
                     
-                    assert(found);
+                    assert(found||baseOccluded);
                     
-                    ofile<<"\t"<<name.getComplexDecl()<<";\n";
+                    ofile<<"\t"<<name.getDecl()<<";\n";
  
                     ofile<<"{\n\t tempTypeStrs.clear();\n"<<endl;
                     
@@ -213,10 +216,18 @@ public:
                         ofile<<"\ttempTypeStrs.push_back(typeid("<<*it<<").name());\n";
                     }
                     
-                            
+                    if(baseOccluded)
+                    {
+                        ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
+                       // ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
+                        ofile <<"\t"<<  name.fullName << "= tr.applyRuleLearning(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
+                    }
+                    else
+                    {
                         ofile << "{\n\tSingleRuleComplex<" << support << "> tr;\n";                        
                         ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
-            
+                    }
+                    
                         for(int i=1;i<(int)children.size();i++)
                         {
                             ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
