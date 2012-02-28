@@ -100,6 +100,13 @@ class sofa : public NonTerminal{};
 class sofaBackRest_sofaBase_sofaArm : public NonTerminalIntermediate{};
 class sofaBackRest_sofaBase_sofaFrontBelowSeat : public NonTerminalIntermediate{};
 class sofaBackRest_sofaBase_sofaFrontBelowSeat_sofaSide : public NonTerminalIntermediate{};
+
+template<typename SupportType, typename RHS_Type2 > 
+bool DoubleRuleComplex<SupportType,RHS_Type2> :: canBaseBeHallucinated()
+{
+    return typeid(Floor)==typeid(SupportType); // should be replaced by static comparison
+}
+
 void appendLearningRules(vector<RulePtr>& learningRules) {
 vector<string> temp;
 	appendRuleInstance(learningRules,RulePtr(new SingleRule<sofaArm,Plane>()));

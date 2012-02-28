@@ -64,9 +64,12 @@ public:
     const static double missPenalty=5000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=2000;
-    const static double doubleRuleDivide=10;
-    const static double objectCost=60;
+    const static int timeLimit=3000;
+    const static double doubleRuleDivide=20;
+    const static double objectCost=30;
+    const static double maxFloorHeight=10;
+    const static double floorOcclusionPenalty=15;
+    
 };
 
 
@@ -3862,13 +3865,44 @@ public:
 template <typename Support>
 class SupportComplex : public NTComplex
 {
-public:
+    bool baseHallucinated;
     Support * base;
+public:
+    SupportComplex()
+    {
+        baseHallucinated=false;
+        base=NULL;
+    }
+    
     NonTerminal * getBase()
     {
+        assert(!baseHallucinated);
+        assert(base!=NULL);
         return base;
     }
 
+    void setBaseHallucinated(bool baseHallucinated)
+    {
+        this->baseHallucinated = baseHallucinated;
+        assert(base==NULL);
+    }
+
+    bool isBaseHallucinated() const
+    {
+        return baseHallucinated;
+    }
+
+    void setBase(Support* base)
+    {
+        this->base = base;
+    }
+
+    void copyBasePtrAndFlags(SupportComplex<Support>* other)
+    {
+        this->base = other->base;
+        this->baseHallucinated=other->baseHallucinated;
+    }
+    
     vector<NonTerminal*> objectsOnTop;
     
 };
@@ -3935,7 +3969,7 @@ public:
     
     virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
     {
-        LHS->base=RHS;        
+        LHS->setBase(RHS);        
     }
     
 };
@@ -3982,6 +4016,7 @@ public:
     }
 
 };
+float overallMinZ;
 
 template<>
 void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
@@ -4008,6 +4043,7 @@ class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , Suppo
     typedef SupportComplex<SupportType> LHS_Type;
     typedef SupportComplex<SupportType> RHS_Type1;
 public:
+    bool canBaseBeHallucinated();
     
     PairType makeSortedPair(string name1, string name2)
     {
@@ -4026,24 +4062,11 @@ public:
         return out;
     }
     
-//    virtual string getSingleFileName()
-//    {
-//        return string("rule_") +string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type2).name());
-//    }
     
     DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
     {
-        // this->filename=string("SupportComplexDR__")+typeid(SupportType).name()+"__"+typeid(RHS_Type2).name(); // not used : only for tagging
        if (this->isLearned())
         {
-//            if(learning)
-//            {
-//                this->featureFile.open(getSingleFileName().data(),ios::app);
-//            }
-//            else
-//            {
-//                this->readDistribution(rulePath+"/"+(getSingleFileName()));
-//            }
             
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
             {
@@ -4073,16 +4096,33 @@ public:
     virtual void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         this->features.clear();
-        this->features.push_back(RHS1->base->getMaxZ() - RHS2->getMinZ());
+        double baseMaxZ;
+        if(RHS1==NULL || RHS1->isBaseHallucinated())
+        {
+            baseMaxZ=0;
+        }
+        else
+        {
+            baseMaxZ=RHS1->getBase()->getMaxZ();
+        }
+        this->features.push_back(baseMaxZ - RHS2->getMinZ());
     }
     
     virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = new LHS_Type();
-        LHS->addChild(RHS1);
+        if(RHS1!=NULL)
+        {
+                LHS->addChild(RHS1);
+                LHS->copyBasePtrAndFlags(RHS1);
+                LHS->objectsOnTop=RHS1->objectsOnTop;
+        }
+        else
+        {
+            LHS->setBaseHallucinated(true);
+        }
+        
         LHS->addChild(RHS2);
-        LHS->base=RHS1->base;
-        LHS->objectsOnTop=RHS1->objectsOnTop;
         LHS->objectsOnTop.push_back(RHS2);
         appendMainFeats(RHS1,RHS2);
         LHS->computeSpannedTerminals();
@@ -4092,32 +4132,35 @@ public:
         
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-//        assert(featureFile.is_open()); // you need to construct this rule with false for learning
+        assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
-        LHS->declareOptimal();        
-        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+        LHS->declareOptimal();
+        if (RHS1 != NULL)
         {
-            PairType sortTypes;
-            string name1=string(typeid(*(*it)).name());
-            string name2=string(typeid(*RHS2).name());
-            
-            sortTypes=makeSortedPair(name1,name2);
-            
-            PairInfoSupportComplex<float> feats;
-            
-            if(name1<name2)
-                feats.computeInfo((*it),RHS2);
-            else
-                feats.computeInfo(RHS2,(*it));
+            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
+            {
+                PairType sortTypes;
+                string name1 = string(typeid (*(*it)).name());
+                string name2 = string(typeid (*RHS2).name());
 
-            cout<<name1<<","<<name2<<endl;
-            ofstream * file= pairWiseFeatFiles[sortTypes];
-            assert(file!=NULL);
-            feats.writeToFile(*file);
-            
-                
+                sortTypes = makeSortedPair(name1, name2);
+
+                PairInfoSupportComplex<float> feats;
+
+                if (name1 < name2)
+                    feats.computeInfo((*it), RHS2);
+                else
+                    feats.computeInfo(RHS2, (*it));
+
+                cout << name1 << "," << name2 << endl;
+                ofstream * file = pairWiseFeatFiles[sortTypes];
+                assert(file != NULL);
+                feats.writeToFile(*file);
+
+
+            }
         }
         return LHS;
     }
@@ -4129,54 +4172,91 @@ public:
         
             appendMainFeats(RHS1, RHS2);
              setCost(LHS, RHS1, RHS2, terminals); // set main cost
-             
-            double additionalCost=0;
-        for(vector<NonTerminal*>::iterator it=RHS1->objectsOnTop.begin();it!=RHS1->objectsOnTop.end();it++)
+
+        if (RHS1 != NULL)
         {
-            PairType sortTypes;
-            string name1=string(typeid(*(*it)).name());
-            string name2=string(typeid(*RHS2).name());
-            
-            sortTypes=makeSortedPair(name1,name2);
-
-            MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
-            if (model != NULL)
+            double additionalCost = 0;
+            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
             {
-                PairInfoSupportComplex<float> feats;
-                if (name1 < name2)
-                    feats.computeInfo((*it), RHS2);
+                PairType sortTypes;
+                string name1 = string(typeid (*(*it)).name());
+                string name2 = string(typeid (*RHS2).name());
+
+                sortTypes = makeSortedPair(name1, name2);
+
+                MultiVariateProbabilityDistribution * model = pairWiseModels[sortTypes];
+                if (model != NULL)
+                {
+                    PairInfoSupportComplex<float> feats;
+                    if (name1 < name2)
+                        feats.computeInfo((*it), RHS2);
+                    else
+                        feats.computeInfo(RHS2, (*it));
+
+
+                    vector<float> featv;
+                    feats.pushToVector(featv);
+                    additionalCost += (model->minusLogProb(featv));
+                }
                 else
-                    feats.computeInfo(RHS2, (*it));
+                {
+                    additionalCost += Params::onTopPairDefaultOnModelMissing;
+                }
 
-
-                vector<float> featv;
-                feats.pushToVector(featv);
-                additionalCost+=(model->minusLogProb(featv));
             }
-            else
+
+            LHS->setAdditionalCost(additionalCost / Params::onTopPairDivide);
+
+
+
+            if (isinf(LHS->getCost()))
             {
-                additionalCost+= Params::onTopPairDefaultOnModelMissing;
+                delete LHS;
+                return NULL;
             }
-                
         }
-            
-        LHS->setAdditionalCost(additionalCost/Params::onTopPairDivide);    
-             
-             
-             
-             if(isinf(LHS->getCost()))
-            {
-                 delete LHS;
-               return NULL;
-            }
-        
          return LHS;
+        
+    }
+    
+    
+    virtual void applyRuleLearningBaseOccluded(RHS_Type2 * RHS_extracted)
+    {
+        
+    }
+    
+    virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    {
+
+        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
+        NonTerminal * nt = finder.nextEligibleNT();
+
+        //int count=0;
+        while (nt != NULL)
+        {
+            if ( nt->isOfSubClass<RHS_Type1>())
+            {
+                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+            }
+            nt = finder.nextEligibleNT();
+        }
+        
+        //handle case when floor is occluded 
+        if(canBaseBeHallucinated() && overallMinZ>Params::maxFloorHeight)
+        {
+            //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
+            //occFloor->setBaseHallucinated(true);
+            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted,terminals);
+            lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
+            addToPqueueIfNotDuplicate(lhsOcc, pqueue);            
+        }
         
     }
     
 }; 
 
-float overallMinZ;
 
 void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     if(!rule->isModelFileMissing())
