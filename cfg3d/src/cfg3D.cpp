@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
     
     if(argc!=3&&argc!=4)
     {
-        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> [gtLabelfile]"<<endl;
+        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> [FoldNum]"<<endl;
         exit(-1);
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
@@ -365,12 +365,16 @@ int main(int argc, char** argv) {
     cout<<"Scene has "<<scene.size()<<" points."<<endl;
     
     char *gtLableFileName=NULL;
-    if(argc==4)
-        gtLableFileName=argv[3];
+//    if(argc==4)
+//        gtLableFileName=argv[3];
     
     string command="rospack find cfg3d";
     rulePath=exec(command.data());
     rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
+    
+    if(argc==4)
+        rulePath=rulePath+string(argv[3]);
+    
     runParse(neighbors, maxSegIndex,gtLableFileName);
 
     return 0;
