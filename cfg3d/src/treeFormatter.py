@@ -79,6 +79,6 @@ if __name__ == '__main__':
     fileName = sys.argv[1]
     d = handleFile(fileName)
     newD,encountered = cleanDict(d)
-    dictToDot(newD,getFileWrite('dot.out'),encountered)
+    dictToDot(newD,getFileWrite(sys.argv[1]),encountered)
 #    str = 'SupportComplexI5FloorE__15722__106'
     pass
