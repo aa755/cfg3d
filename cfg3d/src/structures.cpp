@@ -61,10 +61,10 @@ string rulePath;
 class Params
 {
 public:
-    const static double missPenalty=5000;
+    const static double missPenalty=9000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=300;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=10;
     const static double objectCost=60;
     const static double maxFloorHeight=0.05;
