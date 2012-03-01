@@ -64,19 +64,11 @@ public:
     const static double missPenalty=5000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-<<<<<<< HEAD
-    const static int timeLimit=3000;
-    const static double doubleRuleDivide=20;
-    const static double objectCost=30;
-    const static double maxFloorHeight=10;
-    const static double floorOcclusionPenalty=15;
-=======
     const static int timeLimit=300;
     const static double doubleRuleDivide=10;
     const static double objectCost=60;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
->>>>>>> 2bade113d033caca64655a640c2dc80d974a2ced
     
 };
 
