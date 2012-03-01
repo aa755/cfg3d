@@ -191,6 +191,7 @@ def generateConfusionMatrix(file1, file2, file3):
     labelsCopy = labels
     labelsCopy.append('NoPrediction')
     labelsPlusColumn = labelsCopy
+    
     for label in labels:
         confusionMatrix[label] = {}
         for label2 in labelsPlusColumn:
@@ -199,13 +200,14 @@ def generateConfusionMatrix(file1, file2, file3):
     truthDict = createBackwardsDict(file1, file3)
     predictedDict = createBackwardsDict(file2, file3)
 
+
     for truthKey,truthValue in truthDict.iteritems():
-        if not predictedDict.has_key(truthKey):
-##            print 'truthValue', confusionMatrix[truthValue]['NoPrediction']
-            confusionMatrix[truthValue]['NoPrediction'] = confusionMatrix[truthValue]['NoPrediction'] + 1
-        else:
-            if confusionMatrix[truthValue].has_key(predictedDict[truthKey]):
-                confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
+        if confusionMatrix.has_key(truthValue):
+            if not predictedDict.has_key(truthKey):
+                confusionMatrix[truthValue]['NoPrediction'] = confusionMatrix[truthValue]['NoPrediction'] + 1
+            else:
+                if confusionMatrix[truthValue].has_key(predictedDict[truthKey]):
+                    confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
 
     return confusionMatrix, labelsCopy
 
