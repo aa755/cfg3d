@@ -64,9 +64,9 @@ public:
     const static double missPenalty=5000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=50;
+    const static int timeLimit=300;
     const static double doubleRuleDivide=10;
-    const static double objectCost=0;
+    const static double objectCost=60;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
     
@@ -2642,7 +2642,7 @@ public:
         ifstream file(filename.data(), std::ios::in);
         if(!file.is_open())
         {
-            cerr<<"no mainmodel found for rule:"<<typeid(*this).name()<<endl;
+           // cerr<<"no mainmodel found for rule:"<<typeid(*this).name()<<endl;
             modelFileMissing=true;
             return;
         }
