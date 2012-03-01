@@ -64,7 +64,7 @@ public:
     const static double missPenalty=5000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=1500;
+    const static int timeLimit=50;
     const static double doubleRuleDivide=10;
     const static double objectCost=0;
     const static double maxFloorHeight=0.05;
@@ -410,6 +410,8 @@ protected:
     }
     
 public:
+
+    virtual void reFormatSubTree(NonTerminal * parent /* = 0 */){} // do nothing
 
    virtual int getNumObjectsSpanned()=0;
     
@@ -1394,6 +1396,9 @@ protected:
 public:
     virtual ~NonTerminal(){}
     
+    
+    void reFormatSubTree(NonTerminal * parent /* = 0 */);
+    
     virtual int getNumObjectsSpanned()
     {
         assert(isDeclaredOptimal);
@@ -1628,6 +1633,10 @@ public:
         children.push_back(child);
     }
 
+    virtual void addChildNoCheck(Symbol * child) {
+        children.push_back(child);
+    }
+    
     void computeSpannedTerminals() {
         spanned_terminals.resize(Terminal::totalNumTerminals, false);
         for (size_t i = 0; i < children.size(); i++) {
@@ -1901,10 +1910,19 @@ public:
     {
         initFiles();
         printData(this);
+        graphvizFile << "}\n"; // Move to postparse printer        
+        graphvizFile.close();
+        
+        string prunedTreeFileName = fileName + "_pruned.dot";        
+        graphvizFile.open(prunedTreeFileName.data(), ios::out);
+        graphvizFile << "digraph g{\n"; // Move to postparse printer
+        reFormatSubTree(NULL);
+        printData(this,true); // pruned parse tree        
+        
         closeFiles();
     }
     
-    static void printData(NonTerminal * root)
+    static void printData(NonTerminal * root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut = scene;
@@ -1922,7 +1940,12 @@ public:
             NonTerminal *curNode = parseTreeNodes.top();
             string curName = curNode->getName();
             parseTreeNodes.pop();
-            printNodeData(NTmembershipFile, labelmapFile, curNode);
+            
+            if(!onlyGraphVis)
+            {
+                printNodeData(NTmembershipFile, labelmapFile, curNode);
+            }
+            
             for (size_t i = 0; i < curNode->getNumChildren(); i++)
             {
                 Symbol * childs = curNode->getChild(i);
@@ -3861,6 +3884,43 @@ class NTComplex : public NonTerminal
 public:
     virtual NonTerminal * getBase()=0;
 };
+
+void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
+{
+        vector<Symbol*> childrenCopy=children; // children may change in this process so make a copy
+    if (isOfSubClass<NTComplex>() && parent!=NULL && typeid(*this)==typeid(*parent))
+    {
+        for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
+        {
+            if(typeid(*this)==typeid(*(*it)))
+            {
+                (*it)->reFormatSubTree(parent);
+            }
+            else
+            {
+                (*it)->reFormatSubTree(this);
+                parent->addChildNoCheck(*it);
+            }
+                
+        }
+        //assert(typeid(*this)!=typeid(*(parent->getChild(1))));
+ //       parent->getChild(1)->reFormatSubTree(this);// guaranteed not to add any child to this
+        // parent need not call reFormat on child1 now(on newly added children)
+//        getChild(0)->reFormatSubTree(parent);
+        if(parent->getChild(0)==this)
+        {
+            parent->children.erase(parent->children.begin());
+        }
+    }
+    else
+    {
+        vector<Symbol*> childrenCopy=children; // children may change in this process so make a copy
+        for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
+        {
+            (*it)->reFormatSubTree(this);
+        }
+    }
+}
 
 template <typename Support>
 class SupportComplex : public NTComplex
