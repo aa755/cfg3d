@@ -69,11 +69,13 @@ def createDict(fileName,labels):
 def createBackwardsDict(fileName,labels):
     mapping = {}
     file = getFile(fileName)
+    count = 0
     for line in file:
         vector = line.rstrip('\n').split(',')
         value = vector[0]
         if not len(vector) == 1:
             keys = vector[1:]
+            count = count + len(keys)
             for key in keys:
                 if mapping.has_key(key):
                     print 'somethings wrong, key encountered already'
@@ -112,8 +114,8 @@ def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
         exit()
 
     labels = getListOfLabels(file3)
-    dict1 = createDict(file1,labels)
-    dict2 = createDict(file2,labels)
+    gt = createDict(file1,labels)
+    pred = createDict(file2,labels)
 
     totalDict1 = 0
     totalDict2 = 0
@@ -121,10 +123,10 @@ def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
     for label in labels:
         dict1LabelSet = set([])
         dict2LabelSet = set([])
-        if dict1.has_key(label):
-            dict1LabelSet = set(dict1[label])
-        if dict2.has_key(label):
-            dict2LabelSet = set(dict2[label])
+        if gt.has_key(label):
+            dict1LabelSet = set(gt[label])
+        if pred.has_key(label):
+            dict2LabelSet = set(pred[label])
 
         dict1LabelSetSize = len(dict1LabelSet)
         dict2LabelSetSize = len(dict2LabelSet)
@@ -184,32 +186,72 @@ def printRecall(TPITriplet):
     print '\t',recall(TPITriplet)
     print '============================================'
 
+def count(dict):
+    count = 0
+    for key,value in dict.iteritems():
+        for key1,value1 in value.iteritems():
+            count = count + value1
+    return count
+
+def dictMax(dict1, dict2):
+    maxSoFar = 0
+    for key1,value in dict1.iteritems():
+        key = int(key1)
+        if key > maxSoFar:
+            maxSoFar = key
+            
+    for key2,value in dict2.iteritems():
+        key = int(key2)
+        if key > maxSoFar:
+            maxSoFar = key
+            
+    return maxSoFar
+
 def generateConfusionMatrix(file1, file2, file3):
     confusionMatrix = {}
 
     labels = getListOfLabels(file3)
     labelsCopy = labels
-    labelsCopy.append('NoPrediction')
+    labelsCopy.append('other')
     labelsPlusColumn = labelsCopy
     
-    for label in labels:
+    for label in labelsPlusColumn:
         confusionMatrix[label] = {}
         for label2 in labelsPlusColumn:
             confusionMatrix[label][label2] = 0
 
-    truthDict = createBackwardsDict(file1, file3)
-    predictedDict = createBackwardsDict(file2, file3)
-
-
-    for truthKey,truthValue in truthDict.iteritems():
-        if confusionMatrix.has_key(truthValue):
-            if not predictedDict.has_key(truthKey):
-                confusionMatrix[truthValue]['NoPrediction'] = confusionMatrix[truthValue]['NoPrediction'] + 1
-            else:
-                if confusionMatrix[truthValue].has_key(predictedDict[truthKey]):
-                    confusionMatrix[truthValue][predictedDict[truthKey]] = confusionMatrix[truthValue][predictedDict[truthKey]] + 1
-
+    print 'truth'
+    truthSegToLabel = createBackwardsDict(file1, file3)
+    truthLabelToSegs = createDict(file1, file3)
+#    pprint.pprint(truthDict)
+    print 'predicted'
+    predictedSegToLabel = createBackwardsDict(file2, file3)
+    predictedLabelToSegs = createDict(file2, file3)
+#    pprint.pprint(predictedDict)
+    
+    
+    for j in range(1,int(dictMax(truthSegToLabel, predictedSegToLabel))+1):
+        i = str(j)
+        if truthSegToLabel.has_key(i) and not predictedSegToLabel.has_key(i):
+            if truthSegToLabel[i] in labels:
+                confusionMatrix[truthSegToLabel[i]]['other'] += 1
+        elif not truthSegToLabel.has_key(i) and predictedSegToLabel.has_key(i):
+            if predictedSegToLabel[i] in labels:
+                confusionMatrix['other'][predictedSegToLabel[i]] += 1
+        elif truthSegToLabel.has_key(i) and predictedSegToLabel.has_key(i):
+            if predictedSegToLabel[i] in labels and truthSegToLabel[i] in labels:
+                confusionMatrix[truthSegToLabel[i]][predictedSegToLabel[i]] += 1
+            
+            elif predictedSegToLabel[i] in labels and not truthSegToLabel[i] in labels:            
+                confusionMatrix['other'][predictedSegToLabel[i]] += 1
+                
+            elif not predictedSegToLabel[i] in labels and truthSegToLabel[i] in labels:
+                confusionMatrix[truthSegToLabel[i]]['other'] += 1
+    
     return confusionMatrix, labelsCopy
+
+
+
 
 def main():
     # TPI = Truth/Precision/Intersection triplet
@@ -217,6 +259,8 @@ def main():
         TPI, labels = generateConfusionMatrix(sys.argv[1], sys.argv[2], sys.argv[3])
         f = getFileAppend('CFM.txt')
         print2DDict(TPI, f, labels)
+        print 'count = ', count(TPI)
+        pprint.pprint(TPI)
     elif len(sys.argv) == 5 or len(sys.argv) == 6:
         overwrite = False
         if len(sys.argv) == 6:
