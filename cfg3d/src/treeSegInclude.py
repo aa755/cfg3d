@@ -3,7 +3,7 @@ Created on Feb 26, 2012
 
 @author: lisherwin
 '''
-
+ 
 import pprint
 import sys
 
@@ -29,18 +29,28 @@ def handleNeighborFile(neighborFile):
         for elem in vect:
             segs.add(elem.rstrip('\n'))
     return segs
+#
+def getSegFromTreeLine(line):
+    vect = line.split('Terminal__')
+    if len(vect) >= 2:
+        if '__' in vect[1]:
+            return vect[1].split('__')[0]
+        else:
+            return vect[1].split(' ')[0]
+    else:
+        return None
+    
+         
 
 def getTreeSegs(treeFileName):
     treeFile = getFile(treeFileName)
     treeSegs = set()
     for line in treeFile:
-        print line
-        vect = line.split('__')
-        if 'Terminal' in vect and not '->' in vect:
-            treeSegs.add(vect[1].rstrip('\n').rstrip(' ;'))
-        elif 'Terminal' in vect and '->' in vect:
-            treeSegs.add(vect[2].rstrip('\n').rstrip(' ;'))
+        treeSeg = getSegFromTreeLine(line)
+        if not treeSeg is None:
+            treeSegs.add(treeSeg)
     return treeSegs
+
 
 def handleFiles(treeFileName, neighborFileName):
     neighborFile = getFile(neighborFileName)
@@ -50,8 +60,6 @@ def handleFiles(treeFileName, neighborFileName):
     handleTreeFile(treeFile, out)
     allSegs = handleNeighborFile(neighborFile)
     treeSegs = getTreeSegs(treeFileName)
-    
-    pprint.pprint(treeSegs)
     
     unincludedSegs = allSegs.difference(treeSegs)
     for seg in unincludedSegs:
