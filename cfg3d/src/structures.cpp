@@ -68,8 +68,8 @@ public:
     const static double objectCost=60;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
-    const static double costPruningThresh=40;
-    const static double costPruningThreshNonComplex=20;
+    const static double costPruningThresh=80;
+    const static double costPruningThreshNonComplex=30;
         
 };
 
@@ -1395,6 +1395,12 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    
+    virtual bool isPrunable()
+    {
+        return getCost()>Params::costPruningThresh;
+    }
+    
     virtual ~NonTerminal(){}
     
     
@@ -2524,9 +2530,9 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-//        if (sym->getCost() >= Params::costPruningThresh ) {
-//            return false;
-//        }
+        if (sym->isPrunable() ) {
+            return false;
+        }
         
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
@@ -3884,6 +3890,12 @@ class NTComplex : public NonTerminal
 {
 public:
     virtual NonTerminal * getBase()=0;
+    
+    virtual bool isPrunable()
+    {
+        return getCost()>Params::costPruningThreshNonComplex;
+    }
+    
 };
 
 void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
