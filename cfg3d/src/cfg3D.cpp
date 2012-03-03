@@ -65,12 +65,13 @@ public:
                 int numTerminalsNotExplained=NUMTerminalsToBeParsed-extractedSym->getNumTerminals();
                 LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
 //                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-                addToPqueueIfNotDuplicate(LHS,pqueue);
-                if(bestSceneSoFar==NULL || bestSceneSoFar->getCost() > LHS->getCost() )
+            if (addToPqueueIfNotDuplicate(LHS, pqueue))
+            {
+                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
                 {
-                    bestSceneSoFar=LHS;
+                    bestSceneSoFar = LHS;
                 }
-                
+            }
             
         }
     }

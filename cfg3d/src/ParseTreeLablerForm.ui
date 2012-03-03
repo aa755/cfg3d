@@ -428,6 +428,19 @@
     <string>thresh</string>
    </property>
   </widget>
+  <widget class="QLabel" name="filenameLabel">
+   <property name="geometry">
+    <rect>
+     <x>16</x>
+     <y>10</y>
+     <width>271</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>filename:</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

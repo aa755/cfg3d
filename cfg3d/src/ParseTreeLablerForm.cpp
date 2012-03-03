@@ -12,6 +12,7 @@
 #include <queue>
 #include"segmentUtils.h"
 #include <algorithm>
+#include <qt4/QtGui/qlabel.h>
 //#include "structures.cpp"
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
@@ -589,7 +590,8 @@ void ParseTreeLablerForm::init(int argc, char** argv)
              this, SLOT(addNodeFromTree(const QModelIndex &)));
      
      widget.comboBox->setEditable(true);
-                    widget.comboBox->setDuplicatesEnabled(false);
+     widget.comboBox->setDuplicatesEnabled(false);
+     widget.filenameLabel->setText(argv[1]);
  
     // Convert to the templated message type
   //  pcl::fromROSMsg(cloud_blob_orig, cloud_orig);
