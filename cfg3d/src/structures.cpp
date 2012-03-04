@@ -68,7 +68,7 @@ public:
     const static double objectCost=60;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
-    const static double costPruningThresh=80;
+    const static double costPruningThresh=90;
     const static double costPruningThreshNonComplex=30;
         
 };
@@ -1398,7 +1398,7 @@ public:
     
     virtual bool isPrunable()
     {
-        return getCost()>Params::costPruningThresh;
+        return getCost()>Params::costPruningThreshNonComplex;
     }
     
     virtual ~NonTerminal(){}
@@ -1874,6 +1874,11 @@ class Scene : virtual public NonTerminal
     
     // the printData below should be used only for the Goal NT type
 public:
+    
+    virtual bool isPrunable()
+    {
+        return false;
+    }
 
     static double COST_THERSHOLD;
     
@@ -3893,7 +3898,7 @@ public:
     
     virtual bool isPrunable()
     {
-        return getCost()>Params::costPruningThreshNonComplex;
+        return getCost()>Params::costPruningThreshComplex;
     }
     
 };
