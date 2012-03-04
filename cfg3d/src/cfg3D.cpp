@@ -65,12 +65,13 @@ public:
                 int numTerminalsNotExplained=NUMTerminalsToBeParsed-extractedSym->getNumTerminals();
                 LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
 //                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-                addToPqueueIfNotDuplicate(LHS,pqueue);
-                if(bestSceneSoFar==NULL || bestSceneSoFar->getCost() > LHS->getCost() )
+            if (addToPqueueIfNotDuplicate(LHS, pqueue))
+            {
+                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
                 {
-                    bestSceneSoFar=LHS;
+                    bestSceneSoFar = LHS;
                 }
-                
+            }
             
         }
     }
@@ -255,18 +256,26 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     while (true) {
         min = pq.pop(alreadyExtracted);
 
-        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD )
+//        if (min == NULL || min->getCost() > Scene::COST_THERSHOLD )
+        if (min == NULL )
         {
             //outputOnBothStreams("parsing failed. goal is not derivable from the given rules ... fix the rules or PQ insertion threshold ... or rules' thershold\n");
 
-            if (identifiedScenes.size() == 0)
+            if(bestSceneSoFar!=NULL)
             {
-                outputOnBothStreams("Parsing failed. Goal is not derivable from the given rules. Fix the neighbor map.\n");
+                cerr<<"parsing completed ... PQ empty"<<endl;
+                bestSceneSoFar->printData();
             }
-            else
-            {
-                Scene::printAllScenes(identifiedScenes);
-            }
+//            exit(0);
+            
+//            if (identifiedScenes.size() == 0)
+//            {
+//                outputOnBothStreams("Parsing failed. Goal is not derivable from the given rules. Fix the neighbor map.\n");
+//            }
+//            else
+//            {
+//                Scene::printAllScenes(identifiedScenes);
+//            }
             exit(-1);
         }
         
@@ -288,7 +297,7 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
         
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
-            cout << "Goal reached!!" << endl;
+            cout << "Goal reached!! in time "<< timer.toc() << endl;
             cerr << "Goal reached!! with cost:"<<min->getCost()<< endl;
             min->printData();
             return;

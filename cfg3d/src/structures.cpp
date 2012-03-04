@@ -31,7 +31,6 @@
 #include <time.h>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .73
-#define HIGH_COST 100
 #include <stack> 
 #include "utils.h"
 #include "point_struct.h"
@@ -64,12 +63,14 @@ public:
     const static double missPenalty=9000;
     const static double onTopPairDivide=5;
     const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=500;
+    const static int timeLimit=15000;
     const static double doubleRuleDivide=10;
     const static double objectCost=60;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
-    
+    const static double costPruningThresh=90;
+    const static double costPruningThreshNonComplex=30;
+        
 };
 
 
@@ -1394,6 +1395,12 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    
+    virtual bool isPrunable()
+    {
+        return getCost()>Params::costPruningThreshNonComplex;
+    }
+    
     virtual ~NonTerminal(){}
     
     
@@ -1867,6 +1874,11 @@ class Scene : virtual public NonTerminal
     
     // the printData below should be used only for the Goal NT type
 public:
+    
+    virtual bool isPrunable()
+    {
+        return false;
+    }
 
     static double COST_THERSHOLD;
     
@@ -2290,7 +2302,7 @@ public:
     }
 
     bool isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .03) {
+        if (costOfAddingPoint(p) > .1) {
             return false;
         } else {
             return true;
@@ -2523,9 +2535,9 @@ public:
      * @return true if inserted
      */
     bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
-//        if (sym->getCost() >= HIGH_COST) {
-//            return false;
-//        }
+        if (sym->isPrunable() ) {
+            return false;
+        }
         
         if (CheckIfBetterDuplicateWasExtracted(sym))
             return false;
@@ -3883,12 +3895,18 @@ class NTComplex : public NonTerminal
 {
 public:
     virtual NonTerminal * getBase()=0;
+    
+    virtual bool isPrunable()
+    {
+        return getCost()>Params::costPruningThresh;
+    }
+    
 };
 
 void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
 {
         vector<Symbol*> childrenCopy=children; // children may change in this process so make a copy
-    if (isOfSubClass<NTComplex>() && parent!=NULL && typeid(*this)==typeid(*parent))
+    if ((isOfSubClass<NTComplex>()||isOfSubClass<Plane>()) && parent!=NULL && typeid(*this)==typeid(*parent))
     {
         for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
         {
@@ -3903,10 +3921,6 @@ void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
             }
                 
         }
-        //assert(typeid(*this)!=typeid(*(parent->getChild(1))));
- //       parent->getChild(1)->reFormatSubTree(this);// guaranteed not to add any child to this
-        // parent need not call reFormat on child1 now(on newly added children)
-//        getChild(0)->reFormatSubTree(parent);
         if(parent->getChild(0)==this)
         {
             parent->children.erase(parent->children.begin());
@@ -3914,7 +3928,6 @@ void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
     }
     else
     {
-        vector<Symbol*> childrenCopy=children; // children may change in this process so make a copy
         for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
         {
             (*it)->reFormatSubTree(this);

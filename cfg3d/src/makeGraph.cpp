@@ -567,7 +567,7 @@ int main(int argc, char** argv)
         pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
 
 
-    int number_neighbours = 200;
+    int number_neighbours = 50;
     
     std::vector<pcl::PointIndices> clusters;
     //enable for old seg
