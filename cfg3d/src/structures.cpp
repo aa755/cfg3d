@@ -3898,7 +3898,7 @@ public:
     
     virtual bool isPrunable()
     {
-        return getCost()>Params::costPruningThreshComplex;
+        return getCost()>Params::costPruningThresh;
     }
     
 };
