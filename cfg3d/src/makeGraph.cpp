@@ -567,7 +567,7 @@ int main(int argc, char** argv)
         pcl::PointCloud<PointInT>::Ptr cloud_ptr = createStaticShared<pcl::PointCloud<PointInT> >(&cloud);
 
 
-    int number_neighbours = 50;
+    int number_neighbours = 30;
     
     std::vector<pcl::PointIndices> clusters;
     //enable for old seg
@@ -590,7 +590,7 @@ int main(int argc, char** argv)
     
     //extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
    // extractRansacClusters(cloud, clusters);
-        SegmentPCDGraph<PointInT> segmenter(0.1,0.04,number_neighbours,0.1,500);
+        SegmentPCDGraph<PointInT> segmenter(0.05,0.04,number_neighbours,0.1,500);
         segmenter.segment(cloud,clusters);
 
     
