@@ -62,14 +62,14 @@ class Params
 public:
     const static double missPenalty=9000;
     const static double onTopPairDivide=5;
-    const static double onTopPairDefaultOnModelMissing=50;
+    const static double onTopPairDefaultOnModelMissing=60;
     const static int timeLimit=4000;
     const static double doubleRuleDivide=10;
-    const static double objectCost=60;
+    const static double objectCost=80;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20;
-    const static double costPruningThresh=130;
-    const static double costPruningThreshNonComplex=30;
+    const static double costPruningThresh=150;
+    const static double costPruningThreshNonComplex=45;
         
 };
 
