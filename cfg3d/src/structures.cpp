@@ -60,16 +60,16 @@ string rulePath;
 class Params
 {
 public:
-    const static double missPenalty=9000;
+    const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=5;
-    const static double onTopPairDefaultOnModelMissing=50;
-    const static int timeLimit=4000;
+    const static double onTopPairDefaultOnModelMissing=500000000000.0;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=10;
-    const static double objectCost=60;
+    const static double objectCost=600;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=20;
-    const static double costPruningThresh=130;
-    const static double costPruningThreshNonComplex=30;
+    const static double floorOcclusionPenalty=20000000000000000000000000.0;
+    const static double costPruningThresh=          30000000000000000000.0;
+    const static double costPruningThreshNonComplex=3000000000000000000.0;
     const static double featScale=1000;
         
 };
@@ -165,7 +165,10 @@ public:
         assert(value.cols()==1);
         double lp=value(0,0)+ additiveConstant ;
  //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
-        assert(lp>=0);
+        if(lp<0)
+        {
+            cerr<<"lpn:"<<lp<<endl;
+        }
         return lp;
     }
 
@@ -233,9 +236,19 @@ public:
             assert(c == numFeats);
         }
 
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            double SigInvDetLogMin;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                SigInvDetLogMin = boost::lexical_cast<double > (t);
+            }
 
-//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0+10000;
-        additiveConstant=0;
+            cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+//        additiveConstant=0;
+//        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
     
@@ -1606,11 +1619,19 @@ public:
 
     void setAdditionalCost(double additionalCost) {
         assert(!isDeclaredOptimal);
-        assert(additionalCost >= 0);
+        //assert(additionalCost >= 0);
         cost = 0;
         for (size_t i = 0; i < children.size(); i++)
             cost += children[i]->getCost();
         cost += additionalCost;
+        
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            if(cost < children[i]->getCost())
+            {
+                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+            }
+        }
         costSet = true;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
     }
