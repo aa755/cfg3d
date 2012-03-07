@@ -61,11 +61,11 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=5;
+    const static double onTopPairDivide=10;
     const static double onTopPairDefaultOnModelMissing=500000000000.0;
     const static int timeLimit=500;
-    const static double doubleRuleDivide=10;
-    const static double objectCost=600;
+    const static double doubleRuleDivide=20;
+    const static double objectCost=6000;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20000000000000000000000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
@@ -4072,7 +4072,7 @@ public:
 template<typename T>
 class PairInfoSupportComplex
 {
-    const static int NUM_FEATS = 8;
+    const static int NUM_FEATS = 9;
 public:
 
     union
@@ -4090,6 +4090,7 @@ public:
             T z1Min_2Min;
             T z1Max_2Max;
             T minDist;
+            T frontness; // change NUM_FEATS above
         };
     };
     
@@ -4126,6 +4127,8 @@ void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
     z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
 
     minDist=(rhs1->getMinDistance(rhs2))*Params::featScale;
+    frontness=rhs1->inFrontNessof(rhs2)*Params::featScale;
+    
 }
 
 template<typename SupportType, typename RHS_Type2 >
