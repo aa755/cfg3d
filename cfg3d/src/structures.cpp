@@ -60,16 +60,17 @@ string rulePath;
 class Params
 {
 public:
-    const static double missPenalty=9000;
+    const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=5;
-    const static double onTopPairDefaultOnModelMissing=60;
-    const static int timeLimit=4000;
+    const static double onTopPairDefaultOnModelMissing=500000000000.0;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=10;
-    const static double objectCost=80;
+    const static double objectCost=600;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=20;
-    const static double costPruningThresh=150;
-    const static double costPruningThreshNonComplex=45;
+    const static double floorOcclusionPenalty=20000000000000000000000000.0;
+    const static double costPruningThresh=          30000000000000000000.0;
+    const static double costPruningThreshNonComplex=3000000000000000000.0;
+    const static double featScale=1000;
         
 };
 
@@ -164,7 +165,10 @@ public:
         assert(value.cols()==1);
         double lp=value(0,0)+ additiveConstant ;
  //       double lp= sqr(x-mean)/(2*sqr(sigma)) ;//+ log(variance) + (log(2*boost::math::constants::pi<double>()))/2;
-        assert(lp>=0);
+        if(lp<0)
+        {
+            cerr<<"lpn:"<<lp<<endl;
+        }
         return lp;
     }
 
@@ -232,9 +236,19 @@ public:
             assert(c == numFeats);
         }
 
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            double SigInvDetLogMin;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                SigInvDetLogMin = boost::lexical_cast<double > (t);
+            }
 
-//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0+10000;
-        additiveConstant=0;
+            cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+//        additiveConstant=0;
+//        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
     
@@ -502,23 +516,23 @@ public:
         ColorRGB avgColorO(avgColor);
         
         // the color feats go first
-        features.push_back(avgColorO.H);
-        features.push_back(avgColorO.S);
-        features.push_back(avgColorO.V);
+        features.push_back(avgColorO.H*Params::featScale/256.0);
+        features.push_back(avgColorO.S*Params::featScale);
+        features.push_back(avgColorO.V*Params::featScale);
 
         assert(features.size()==3); //for safetly. if this fails, change the script which edits color values
         
-        features.push_back(distanceToBoundary);
+        features.push_back(distanceToBoundary*Params::featScale);
         // remaining non-color feats
-        features.push_back(zSquaredSum/(float)numPoints-sqr(centroid.z)); // variance along z
-        features.push_back(maxxyz.z-minxyz.z);
-        features.push_back(centroid.z);
-        features.push_back(maxxyz.z);
-        features.push_back(minxyz.z);
+        features.push_back(Params::featScale*(zSquaredSum/(float)numPoints-sqr(centroid.z))); // variance along z
+        features.push_back(Params::featScale*(maxxyz.z-minxyz.z));
+        features.push_back(centroid.z*Params::featScale);
+        features.push_back(maxxyz.z*Params::featScale);
+        features.push_back(minxyz.z*Params::featScale);
         
         
         // horizontal convex hull area
-        features.push_back(horzArea);
+        features.push_back(horzArea*Params::featScale);
         
         // move eigen vector code to here
         // linearness, planarness, scatter
@@ -539,9 +553,9 @@ public:
     {
         ColorRGB avgColorThis(avgColor);
         ColorRGB avgColorOther(other->avgColor);
-        colorDiff[0]=(avgColorThis.H - avgColorOther.H);
-        colorDiff[1]=(avgColorThis.S - avgColorOther.S);
-        colorDiff[2]=(avgColorThis.V - avgColorOther.V);
+        colorDiff[0]=(avgColorThis.H - avgColorOther.H)*Params::featScale;
+        colorDiff[1]=(avgColorThis.S - avgColorOther.S)*Params::featScale;
+        colorDiff[2]=(avgColorThis.V - avgColorOther.V)*Params::featScale;
         
     }
     
@@ -1605,11 +1619,19 @@ public:
 
     void setAdditionalCost(double additionalCost) {
         assert(!isDeclaredOptimal);
-        assert(additionalCost >= 0);
+        //assert(additionalCost >= 0);
         cost = 0;
         for (size_t i = 0; i < children.size(); i++)
             cost += children[i]->getCost();
         cost += additionalCost;
+        
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            if(cost < children[i]->getCost())
+            {
+                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+            }
+        }
         costSet = true;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
     }
@@ -2156,12 +2178,12 @@ public:
     virtual void appendAdditionalFeatures(vector<float> & features)
     {
         //assert(featuresComputed);
-        features.push_back(getLength());
-        features.push_back(getWidth());
+        features.push_back(getLength()*Params::featScale);
+        features.push_back(getWidth()*Params::featScale);
 #ifndef DISABLE_HALLUCINATION
         assert(NORMAL_Z_INDEX==(int)features.size()); 
 #endif
-        features.push_back(getZNormal());
+        features.push_back(getZNormal()*Params::featScale);
     }
     
     bool checkSize(NonTerminal * candidate)
@@ -2964,9 +2986,9 @@ template<>
 void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
 {
     //centroid related features
-    centDist=(rhs1->centroidDistance(rhs2));
-    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
-    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z);
+    centDist=(rhs1->centroidDistance(rhs2)*Params::featScale);
+    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2)*Params::featScale);
+    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z)*Params::featScale;
 
     Eigen::Vector3d c1 = rhs1->getCentroidVector();
     Eigen::Vector3d c2 = rhs2->getCentroidVector();
@@ -2981,7 +3003,7 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     if(plane1!=NULL) 
     {
         for (int i = 0; i < 3; i++)
-            distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getPlaneChild()->getEigenVector(i))));
+            distOfC2AlongEV1[i]=(fabs(c12.dot(plane1->getPlaneChild()->getEigenVector(i))))*Params::featScale;
         type1Hal=false;
         
     }   
@@ -2990,34 +3012,34 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     if(plane2!=NULL) 
     {
         for (int i = 0; i < 3; i++)
-            distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getPlaneChild()->getEigenVector(i))));
+            distOfC1AlongEV2[i]=(fabs(c12.dot(plane2->getPlaneChild()->getEigenVector(i))))*Params::featScale;
         type2Hal=false;
     }
 
         if(type1Hal||type2Hal)
         {
-            EVdots12[0]=(rhs1->getPlaneNormal().dot(rhs2->getPlaneNormal()));            
+            EVdots12[0]=(rhs1->getPlaneNormal().dot(rhs2->getPlaneNormal()))*Params::featScale;            
             return;
         }
 
         assert(plane1 != NULL && plane2 != NULL);
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                EVdots12[i*3+j]=(fabs(plane1->getPlaneChild()->getEigenVector(i).dot(plane2->getPlaneChild()->getEigenVector(j))));
+                EVdots12[i*3+j]=(fabs(plane1->getPlaneChild()->getEigenVector(i).dot(plane2->getPlaneChild()->getEigenVector(j))))*Params::featScale;
 
 
-    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
-    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
-    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
-    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ())*Params::featScale;
+    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
+    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
+    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
 
 
 
 
 
-    minDist=(rhs1->getMinDistance(rhs2));
+    minDist=(rhs1->getMinDistance(rhs2))*Params::featScale;
     
-    frontness=rhs1->inFrontNessof(rhs2);
+    frontness=rhs1->inFrontNessof(rhs2)*Params::featScale;
     rhs1->computeColorDiffFeatures(colorDiffHSV, rhs2);
     
     //assert((int) features.size() == beginSize + NUM_FEATS_PER_PAIR);
@@ -4094,16 +4116,16 @@ float overallMinZ;
 template<>
 void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
 {
-    centDist=(rhs1->centroidDistance(rhs2));
-    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2));
-    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z);
+    centDist=(rhs1->centroidDistance(rhs2))*Params::featScale;
+    centDistHorz=(rhs1->centroidHorizontalDistance(rhs2))*Params::featScale;
+    centZDiff12=(rhs1->getCentroid().z - rhs2->getCentroid().z)*Params::featScale;
 
-    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ());
-    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
-    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ());
-    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ());
+    z1Min_2Max=(rhs1->getMinZ() - rhs2->getMaxZ())*Params::featScale;
+    z1Max_2Min=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
+    z1Min_2Min=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
+    z1Max_2Max=(rhs1->getMaxZ() - rhs2->getMinZ())*Params::featScale;
 
-    minDist=(rhs1->getMinDistance(rhs2));
+    minDist=(rhs1->getMinDistance(rhs2))*Params::featScale;
 }
 
 template<typename SupportType, typename RHS_Type2 >
@@ -4178,7 +4200,7 @@ public:
         {
             baseMaxZ=RHS1->getBase()->getMaxZ();
         }
-        this->features.push_back(baseMaxZ - RHS2->getMinZ());
+        this->features.push_back((baseMaxZ - RHS2->getMinZ())*Params::featScale);
     }
     
     virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)

@@ -35,11 +35,16 @@ function [] = writeModels(outputFileName,matrix)
     numFeats=length(covar);
     rankm=rank(covar);
     fprintf(1,'%d,%d\n',rankm,numFeats);
-    if(rankm<numFeats)
-        covar=covar+0.0001*eye(numFeats);
-    end
+    %if(rankm<numFeats)
+    covar=covar+eye(numFeats);
+    %end
     assert(rank(covar)==numFeats);
-    outmat=[meanv;minv;maxv;inv(covar)];   
+    sigmaInv=inv(covar);
+    const=(-log(det(sigmaInv)));
+    constV=ones(1,numFeats)*const;
+    outmat=[meanv;minv;maxv;sigmaInv;constV];   
+    (-log(det(inv(covar))))
+    assert((-log(det(inv(covar))))>0);
     
     %colMin = min(matrix(:,i));
     %colMax = max(matrix(:,i));
