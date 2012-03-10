@@ -3,6 +3,7 @@
 
 //options
 #define MAX_SEG_INDEX 100000
+#define DIVIDE_BY_SIGMA
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -61,17 +62,29 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=1;
+    const static double onTopPairDivide=20;
     const static double onTopPairDefaultOnModelMissing=500000000000.0;
     const static int timeLimit=500;
-    const static double doubleRuleDivide=2;
+    const static double doubleRuleDivide=50;
     const static double objectCost=2;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=200000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
+    const static double additionalCostThreshold=300;
     const static double featScale=1000;
-        
+    
+//    const static double missPenalty=9000;
+//    const static double onTopPairDivide=5;
+//    const static double onTopPairDefaultOnModelMissing=50;
+//    const static int timeLimit=2000;
+//    const static double doubleRuleDivide=10;
+//    const static double objectCost=60;
+//    const static double maxFloorHeight=0.05;
+//    const static double floorOcclusionPenalty=20;
+//    const static double costPruningThresh=150;
+//    const static double costPruningThreshNonComplex=45;
+//    const static double featScale=1000;        
 };
 
 
@@ -246,8 +259,10 @@ public:
 
             cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+        additiveConstant=0;
+#ifdef DIVIDE_BY_SIGMA        
         additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
-//        additiveConstant=0;
+#endif
 //        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
@@ -2729,7 +2744,16 @@ public:
      * @return 
      */
     double getMinusLogProbability(vector<float> & x) {
-        return pdist->minusLogProb(x);
+        double ret= pdist->minusLogProb(x);
+        
+        if(ret>Params::additionalCostThreshold)
+        {
+            return infinity();
+        }
+        else
+        {
+            return ret;
+        }
     }
     
     const vector<float> & getFeatures() const
@@ -3640,8 +3664,13 @@ public:
     
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
-        output->setAdditionalCost(getMinusLogProbability(features)/Params::doubleRuleDivide - log(Params::objectCost));
-        return true;
+        double cost=getMinusLogProbability(features);
+        output->setAdditionalCost(cost/Params::doubleRuleDivide - - log(Params::objectCost));
+        
+        if(isinf(cost))
+            return false;
+        else
+            return true;
     }
     
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
@@ -4269,7 +4298,11 @@ public:
         
         
             appendMainFeats(RHS1, RHS2);
-             setCost(LHS, RHS1, RHS2, terminals); // set main cost
+             if(!setCost(LHS, RHS1, RHS2, terminals)) // set main cost
+             {
+                delete LHS;
+                return NULL;                 
+             }
 
         if (RHS1 != NULL)
         {
@@ -4307,7 +4340,7 @@ public:
 
 
 
-            if (isinf(LHS->getCost()))
+            if (isinf(additionalCost))
             {
                 delete LHS;
                 return NULL;
