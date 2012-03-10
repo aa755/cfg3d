@@ -63,7 +63,8 @@ public:
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
                 int numTerminalsNotExplained=NUMTerminalsToBeParsed-extractedSym->getNumTerminals();
-                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
 //                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
             if (addToPqueueIfNotDuplicate(LHS, pqueue))
             {

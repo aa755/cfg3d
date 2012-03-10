@@ -66,13 +66,13 @@ public:
     const static double onTopPairDefaultOnModelMissing=500000000000.0;
     const static int timeLimit=500;
     const static double doubleRuleDivide=90;
-    const static double objectCost=6000;
+    const static double objectCost=4;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=20000000000000000000000000.0;
+    const static double floorOcclusionPenalty=200000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
     const static double additionalCostThreshold=300;
-    const static double featScale=500;
+    const static double featScale=1000;
     
 //    const static double missPenalty=9000;
 //    const static double onTopPairDivide=5;
@@ -3670,7 +3670,7 @@ public:
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
-        output->setAdditionalCost(cost/Params::doubleRuleDivide);
+        output->setAdditionalCost(cost/Params::doubleRuleDivide - - log(Params::objectCost));
         
         if(isinf(cost))
             return false;
@@ -3742,7 +3742,7 @@ public:
                 delete LHS;
                 return NULL;
             }
-            
+            cost=cost-log(Params::objectCost); 
             LHS->setAdditionalCost(cost);
             
 
@@ -4341,7 +4341,7 @@ public:
 
             }
 
-            LHS->setAdditionalCost(additionalCost / Params::onTopPairDivide);
+            LHS->setAdditionalCost(additionalCost / Params::onTopPairDivide - log(Params::objectCost));
 
 
 
