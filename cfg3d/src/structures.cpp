@@ -3,7 +3,7 @@
 
 //options
 #define MAX_SEG_INDEX 100000
-//#define DIVIDE_BY_SIGMA
+#define DIVIDE_BY_SIGMA
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -62,17 +62,17 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=10;
+    const static double onTopPairDivide=30;
     const static double onTopPairDefaultOnModelMissing=500000000000.0;
     const static int timeLimit=500;
-    const static double doubleRuleDivide=20;
+    const static double doubleRuleDivide=90;
     const static double objectCost=6000;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=20000000000000000000000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
-    const static double additionalCostThreshold=1000;
-    const static double featScale=1000;
+    const static double additionalCostThreshold=300;
+    const static double featScale=500;
     
 //    const static double missPenalty=9000;
 //    const static double onTopPairDivide=5;
@@ -252,16 +252,21 @@ public:
             getline(file, line);
             boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
             double SigInvDetLogMin;
+            int c = 0;
             BOOST_FOREACH(std::string t, tokens1)
             {
                 SigInvDetLogMin = boost::lexical_cast<double > (t);
+                c++;
             }
+            assert(c == numFeats);
 
             cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
         additiveConstant=0;
 #ifdef DIVIDE_BY_SIGMA        
-        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+        additiveConstant= SigInvDetLogMin/2.0;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+
 #endif
 //        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
