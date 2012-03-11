@@ -63,15 +63,15 @@ class Params
 public:
     const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=30;
-    const static double onTopPairDefaultOnModelMissing=500000000000.0;
+    const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=500;
     const static double doubleRuleDivide=90;
     const static double objectCost=4;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=200000.0;
+    const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
-    const static double additionalCostThreshold=300;
+    const static double additionalCostThreshold=100;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -143,7 +143,17 @@ public:
         {
             feats(i)=x.at(i);
         }
-        return minusLogProb(feats);
+        double ret= minusLogProb(feats);
+        
+        if(ret>Params::additionalCostThreshold)
+        {
+            return infinity();
+        }
+        else
+        {
+            return ret;
+        }
+        
     }
 
     int getNumFeats() const
@@ -2749,16 +2759,8 @@ public:
      * @return 
      */
     double getMinusLogProbability(vector<float> & x) {
-        double ret= pdist->minusLogProb(x);
+        return pdist->minusLogProb(x);
         
-        if(ret>Params::additionalCostThreshold)
-        {
-            return infinity();
-        }
-        else
-        {
-            return ret;
-        }
     }
     
     const vector<float> & getFeatures() const
