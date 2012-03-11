@@ -62,16 +62,16 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=30;
+    const static double onTopPairDivide=40;
     const static double onTopPairDefaultOnModelMissing=500000000000.0;
-    const static int timeLimit=500;
-    const static double doubleRuleDivide=90;
+    const static int timeLimit=3000;
+    const static double doubleRuleDivide=100;
     const static double objectCost=4;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=200000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
-    const static double additionalCostThreshold=300;
+    const static double additionalCostThreshold=200;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
