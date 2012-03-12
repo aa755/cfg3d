@@ -265,7 +265,14 @@ public:
             int c = 0;
             BOOST_FOREACH(std::string t, tokens1)
             {
-                SigInvDetLogMin = boost::lexical_cast<double > (t);
+                if(c==0)
+                {
+                        SigInvDetLogMin = boost::lexical_cast<double > (t);
+                }
+                else
+                {
+                        assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
+                }
                 c++;
             }
             assert(c == numFeats);
@@ -2354,7 +2361,7 @@ public:
     }
 
     bool isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .1) {
+        if (costOfAddingPoint(p) > .05) {
             return false;
         } else {
             return true;
@@ -3692,6 +3699,8 @@ public:
     
     virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
+        if(RHS1->getMinDistance(RHS2)>0.4)
+            return NULL;
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
         // below to be replaced by generic learned rules

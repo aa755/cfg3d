@@ -27,8 +27,8 @@ protected:
     pcl::PointCloud<pcl::PointXYZ> xyzcloud;
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
-    static const float nearThresh=0.05;
-    static const float nearOccThresh=2.0;
+    static const float nearThresh=0.07;
+    static const float nearOccThresh=1;
     static const float step = 0.005;
     bool maxDistReady;
 public:
