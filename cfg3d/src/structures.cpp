@@ -1666,6 +1666,7 @@ public:
         {
             if(cost < children[i]->getCost())
             {
+                cost = children[i]->getCost();
                 cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
             }
         }
@@ -1687,7 +1688,8 @@ public:
         }
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); it++) {
-            assert(absoluteCost >= (*it)->getCost());
+            if(absoluteCost < (*it)->getCost())
+                absoluteCost=(*it)->getCost();
         }
         cost = absoluteCost;
         costSet = true;
@@ -3679,7 +3681,7 @@ public:
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
-        output->setAdditionalCost(cost/Params::doubleRuleDivide - - log(Params::objectCost));
+        output->setAdditionalCost(cost/Params::doubleRuleDivide - log(Params::objectCost));
         
         if(isinf(cost))
             return false;
