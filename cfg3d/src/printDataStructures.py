@@ -7,6 +7,7 @@ Created on Feb 5, 2012
 import pprint
 import sys
 import itertools
+import pickle
 
 def getFile(name):
     return open(name)
@@ -27,17 +28,47 @@ def printImports(dataStructuresFile):
 def isSupportElem(supportElem, supportedElem):
     return supportElem.replace('Complex','') == supportedElem 
 
-def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText):
+###
+def isImproperRule(line):
+    vect = line.split(',')
+    return len(vect) > 1
+
+def uniquefyRHS(RHS):
+    return sorted(RHS)
+
+def uniquefyRule(LHS, RHS):
+    uniqueRule = LHS
+    
+    if RHS[0].rstrip('\n') == "Terminal":
+        return ''.join([LHS, ',', 'Plane'])
+    else:
+        for RHSElem in RHS:
+            uniqueRule = ''.join([uniqueRule,',',RHSElem.rstrip('\n')]) 
+        return uniqueRule
+    
+def parseImproperRuleLine(line):
+    vect = line.split(',')
+    return vect[0], vect[1:]
+
+def getRuleRatio(line, ratios):
+    LHS, RHS = parseImproperRuleLine(line)
+    
+    RHS = uniquefyRHS(RHS)
+    uniqueRule = uniquefyRule(LHS, RHS)
+    return str(ratios[uniqueRule])
+###
+
+#def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText):
+def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText, ratios):
     currentDeclarations = set()
     currentRules = set()
     for line in singleRuleFile:
         vect = line.split(',')
         if not isNotComplex(line):
-            print vect[0], vect[1]
+            #print vect[0], vect[1]
             LHS = vect[0]
             LHS = LHS[:-7]
             RHS = vect[1].rstrip('\n')
-            print LHS, RHS
             complexDeclaration = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRuleComplex<',LHS,'>()));\n'])
             if not complexDeclaration in currentRules:     
                 addingSingleRuleText = mergeStrings([addingSingleRuleText, complexDeclaration])
@@ -68,8 +99,8 @@ def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText)
             if not declaration in currentDeclarations:
                 dataStructuresFile.write(declaration)
                 currentDeclarations.add(declaration)
-            
-            addRule = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRule<', vect[0], ',',vect[1].rstrip('\n'),'>()));\n'])
+            ratio = getRuleRatio(line.replace(';', ',').rstrip('\n'), ratios)
+            addRule = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<', vect[0], ',',vect[1].rstrip('\n'),'>(', ratio, ')));\n'])
             addingSingleRuleText = mergeStrings([addingSingleRuleText, addRule])
     return addingSingleRuleText, currentDeclarations, currentRules
 
@@ -119,17 +150,16 @@ def isNotComplex(rule):
 def isGood(rule):
     return rule.find("Occluded") == -1 and rule.find("WallComplexH") == -1 
 
-def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems):
+def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems, ratios):
     for line in doubleRuleFile:
-        print line
         if isGood(line):
             if isNotComplex(line):
                 addingDoubleRuleText, currentDeclarations, currentRules = handleDoubleRuleNTLine(line, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules)
                 LHS,RHS = line.split(';')
                 RHS = RHS.split(',')
 #                addRule = doubleRuleString(LHS, RHS[0], RHS[1].rstrip('\n'))
-                addRule = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRule<',LHS,',','_'.join(RHS).rstrip('\n'),'>()));\n'])
-                print addRule
+                ratio = getRuleRatio(line.replace(';',',').rstrip('\n'), ratios)
+                addRule = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<',LHS,',','_'.join(RHS).rstrip('\n'),'>(', ratio, ')));\n'])
                 if not addRule in currentRules:     
                     addingDoubleRuleText = mergeStrings([addingDoubleRuleText, addRule])
                     currentRules.add(addRule)
@@ -153,13 +183,12 @@ def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText,
                     if not isSupportElem(LHS,elem.rstrip('\n')):
                         addRule = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<',LHSSupport,',',elem.rstrip('\n'),'>(temp)));\n'])
                         if not addRule in currentRules:
-                            print tempInitialized
                             if not tempInitialized:
                                 addingDoubleRuleText = mergeStrings([addingDoubleRuleText, buildVect, addRule])
-                                print 'builtVect'
+                                # print 'builtVect'
                                 tempInitialized = True
                             else:
-                                print 'did not build vect'
+                                # print 'did not build vect'
                                 addingDoubleRuleText = mergeStrings([addingDoubleRuleText, addRule])
                                 tempInitialized = True
                         currentRules.add(addRule)
@@ -182,6 +211,12 @@ def complexRuleParse(file):
     return complexToElems
 
 if __name__ == '__main__':
+    #list1 = ['chairBack','CPUSide','CPUFront']
+    ##list2 = ['CPUFront','chairBack','CPUSide']
+    #print set(list1)
+    #print set(list2)
+    ratios = pickle.load(getFile('ratios.pickle'))
+    pprint.pprint(ratios)
     doubleRuleFile = getFile('properRules.2PlusRHS')
     singleRuleFile = getFile('properRules.1RHS')
     complexRuleFile = getFile('complex')
@@ -193,8 +228,8 @@ if __name__ == '__main__':
     
     addingSingleRuleText = ''
     addingDoubleRuleText = ''
-    addingSingleRuleText, currentDeclarations, currentRules = printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText)
-    addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems)
+    addingSingleRuleText, currentDeclarations, currentRules = printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText, ratios)
+    addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems, ratios)
     
     dataStructuresFile.write(functionOpen)   
     dataStructuresFile.write(temp)   
