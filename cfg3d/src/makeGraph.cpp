@@ -608,14 +608,14 @@ int main(int argc, char** argv)
     }
 
     // Scene initialized
-//    vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
-//    cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
-//    pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
-//    //assert(cameraOrigin.z!=0);
-//    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
-//    cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
-//    clusters = clusterFromTerminals(mergedTerminals);
-//    cout<<"Cluster Size = "<<clusters.size()<<endl;
+    vector<Terminal> unmergedTerminals = getTerminalsFromClusters(clusters);
+    cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
+    pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
+    //assert(cameraOrigin.z!=0);
+    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
+    cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
+    clusters = clusterFromTerminals(mergedTerminals);
+    cout<<"Cluster Size = "<<clusters.size()<<endl;
 
     int total = 0;
 

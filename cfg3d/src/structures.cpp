@@ -62,11 +62,11 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=30;
+    const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=500;
-    const static double doubleRuleDivide=90;
-    const static double objectCost=4;
+    const static int timeLimit=2000;
+    const static double doubleRuleDivide=2;
+    const static double objectCost=100000000;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
@@ -195,7 +195,7 @@ public:
         return lp;
     }
 
-    MultiVarGaussian(std::ifstream & file)
+    MultiVarGaussian(std::ifstream & file, string filename)
     {
         std::string line;
         string separator=",";
@@ -277,7 +277,7 @@ public:
             }
             assert(c == numFeats);
 
-            cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
+            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
         additiveConstant=0;
 #ifdef DIVIDE_BY_SIGMA        
@@ -1616,7 +1616,7 @@ public:
     }
 
     int getId() {
-        return id;
+        return id; 
     }
 
     NonTerminal() : Symbol()
@@ -1671,7 +1671,9 @@ public:
             }
         }
         costSet = true;
+                cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
+
     }
 
     /**
@@ -1693,6 +1695,7 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
+                cout<<"st:"<<getName()<<endl;
         cout << "absc " << cost << endl;
     }
 
@@ -2719,7 +2722,7 @@ public:
             modelFileMissing=true;
             return;
         }
-        pdist=new MultiVarGaussian(file);
+        pdist=new MultiVarGaussian(file,filename);
         file.close();
     }
     
@@ -3113,7 +3116,7 @@ class SingleRule : public Rule
     virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleInference(RHS_extracted,terminals);
         
         if(newNT!=NULL)
         {
@@ -3186,6 +3189,8 @@ public:
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
+//        if(learning) // learning for meta-params
+        
         if(isinf(cost))
             return false;
         else
@@ -3205,7 +3210,7 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -3868,7 +3873,7 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 class RPlaneSeg : public Rule {
 public:
 
-    Plane * applyRule(Symbol * extractedSym)
+    Plane * applyRuleInference(Symbol * extractedSym)
     {
         Plane * LHS = new Plane();
         LHS->addChild(extractedSym);
@@ -3895,7 +3900,7 @@ public:
         if (typeid (*extractedSym) != typeid (Terminal))
             return;
         
-        addToPqueueIfNotDuplicate(applyRule(extractedSym),pqueue); //TODO: duplicate check is not required
+        addToPqueueIfNotDuplicate(applyRuleInference(extractedSym),pqueue); //TODO: duplicate check is not required
     }
 };
 
@@ -3912,7 +3917,7 @@ public:
         names.push_back(typeid (Terminal).name());
     }
     
-    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
+    Plane* applyRuleInference(Plane * RHS_plane, Terminal *RHS_seg) {
         if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
             return NULL;
         }
@@ -3953,7 +3958,7 @@ public:
             while (extractedSym->nextNeighborIndex(index))
             {
                 Plane * plane=dynamic_cast<Plane*> (extractedSym);
-                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
+                NonTerminal *newNT=applyRuleInference(plane,terminals[index]);
                 addToPqueueIfNotDuplicate(newNT,pqueue);
             }
         }
@@ -4081,7 +4086,7 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -4229,7 +4234,7 @@ public:
                     ifstream file(fnamep.data(), std::ios::in);
                     if(file.is_open())
                     {
-                        pairWiseModels[typeSt]=new MultiVarGaussian(file);
+                        pairWiseModels[typeSt]=new MultiVarGaussian(file,fname);
                         file.close();
                     }
 

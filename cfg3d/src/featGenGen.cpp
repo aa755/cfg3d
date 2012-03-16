@@ -12,6 +12,8 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
+bool metaLearning=false;
+string functionName;
 
 class TreeNode
 {
@@ -388,6 +390,11 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
 int main(int argc, char** argv)
 {
 
+        functionName="applyRuleLearning";
+        if(metaLearning)
+        {
+            functionName="applyRuleInference";
+        }
 
     TreeNode::errFile.open("errTrees.txt",ios::app);
     
