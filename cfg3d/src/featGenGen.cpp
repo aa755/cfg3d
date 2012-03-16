@@ -12,8 +12,9 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
-bool metaLearning=false;
+bool metaLearning=true;
 string functionName;
+string learning;
 
 class TreeNode
 {
@@ -133,7 +134,7 @@ public:
                     ofile<<"temp=rulePPG."+functionName+"(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
                 ofile<<"\t"<<name.getDeclSimple()<<";\n";
-                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr(true);\n";
+                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr("+learning+");\n";
                 ofile<<"\t"<<name.fullName <<"= tr."+functionName+"(temp, dummy);\n}\n";
             }
             else
@@ -152,7 +153,7 @@ public:
                     ofile << "\t" << name.getDeclSimple() << ";\n";
                     if (children.size() == 1)
                     {
-                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
+                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr("+learning+");\n";
                         ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else if (children.size() >= 2)
@@ -176,11 +177,11 @@ public:
                             names.append(name2child[typeOrder.at(i)]->name.fullName);
                             ofile << interType<<" *"<< names<<";\n";
                             
-                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr(true);\n";
+                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr("+learning+");\n";
                                                         
                             ofile <<"\t"<<  names<< "= tr."+functionName+"(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
                         }
-                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr(true);\n";
+                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr("+learning+");\n";
                         ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << names << ", dummy);\n}\n";
                         
                     }
@@ -225,7 +226,7 @@ public:
                     
                     if(baseOccluded)
                     {
-                        ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
+                        ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
                        // ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
                         ofile <<"\t"<<  name.fullName << "= tr."+functionName+"(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
@@ -237,7 +238,7 @@ public:
                     
                         for(int i=1;i<(int)children.size();i++)
                         {
-                            ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
+                            ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
                             ofile <<"\t\t"<<  name.fullName << "= tr."+functionName+"(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
                         }
        
@@ -395,9 +396,11 @@ int main(int argc, char** argv)
 {
 
         functionName="applyRuleLearning";
+        learning="true";
         if(metaLearning)
         {
             functionName="applyRuleInference";
+            learning="false";
         }
 
     TreeNode::errFile.open("errTrees.txt",ios::app);
