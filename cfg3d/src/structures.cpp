@@ -4213,7 +4213,7 @@ public:
     }
     
     
-    DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
+    DoubleRuleComplex( vector<string> types, bool learning=false,vector<double> ratios=vector<double>() ):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
     {
        if (this->isLearned())
         {
