@@ -16,6 +16,7 @@
 //#define FILTER_LABELS
 // Manual rules that we need.
     vector<VisualObject*> identifiedScenes;
+bool Rule::META_LEARNING=false;    
     
 class RGreedyScene : public Rule {
 public:

@@ -4,6 +4,7 @@
 //options
 #define MAX_SEG_INDEX 100000
 #define DIVIDE_BY_SIGMA
+//#define META_LEARNING
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -2686,6 +2687,7 @@ protected:
     ofstream featureFile;
     bool modelFileMissing;
 public:
+    static bool META_LEARNING;
     string filename;
     /**
      * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
@@ -3150,7 +3152,7 @@ public:
                 featureFile.open(filename.data(),ios::app); // append to file
         }else {
             readDistribution(rulePath+"/"+filename);
-        }
+        }        
     }
     
     virtual void computeFeatures(RHS_Type* input)
