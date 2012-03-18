@@ -44,7 +44,7 @@ function [] = writeModels(outputFileName,matrix)
     constV=ones(1,numFeats)*const;
     outmat=[meanv;minv;maxv;sigmaInv;constV];   
     (-log(det(inv(covar))))
-    assert((-log(det(inv(covar))))>0);
+    assert((-log(det(inv(covar))))>=0);
     
     %colMin = min(matrix(:,i));
     %colMax = max(matrix(:,i));

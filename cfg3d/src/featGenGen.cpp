@@ -382,6 +382,7 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"if(argc!=2)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile>\"<<endl;\n exit(-1);\n}\n";        
+    outputLearnerCode<<"    fileName = string(argv[1]);"<<endl;
 
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
     outputLearnerCode<<"    runLearn(scene);"<<endl;
@@ -418,7 +419,7 @@ int main(int argc, char** argv)
     root->featGenGen(ofile);
     if(metaLearning)
     {
-        ofile<<"\nScene::printData("<<root->getFullName()<<");\n";
+        ofile<<"\nScene::printOnlyScene("<<root->getFullName()<<");\n";
     }
     
     createRunLearnBack(ofile);

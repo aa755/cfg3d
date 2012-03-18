@@ -66,13 +66,14 @@ public:
     const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=2000;
-    const static double doubleRuleDivide=2;
-    const static double objectCost=100000000;
+    const static double doubleRuleDivide=1;
+    const static double objectCost=1;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
-    const static double additionalCostThreshold=100;
+//    const static double additionalCostThreshold=100;
+    const static double additionalCostThreshold=1000000000000000000000000000000000000.0;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -464,6 +465,10 @@ protected:
     
 public:
 
+    void undeclareOptimal()
+    {
+        isDeclaredOptimal=false;
+    }
     virtual void reFormatSubTree(NonTerminal * parent /* = 0 */){} // do nothing
 
    virtual int getNumObjectsSpanned()=0;
@@ -1999,6 +2004,12 @@ public:
         closeFiles();
     }
     
+    static void printOnlyScene(NonTerminal * root)
+    {
+        initFiles();
+        printData(root);
+        closeFiles();
+    }
     static void printData(NonTerminal * root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
@@ -2366,13 +2377,7 @@ public:
             return ret;
     }
 
-    bool isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .05) {
-            return false;
-        } else {
-            return true;
-        }
-    }
+    bool isCloseEnough(PointT& p);
     
     bool isAllCloseEnough(Terminal* terminal) {
         vector<int>& termPointIndices = terminal->getPointIndices();
@@ -2831,6 +2836,13 @@ public:
  * also, using union, lets us access info by name and also as array
  */
 bool Rule::META_LEARNING;    
+    bool Plane::isCloseEnough(PointT& p) {
+        if (costOfAddingPoint(p) > .05 && !Rule::META_LEARNING) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 
 template<typename T>
 class PairInfo
@@ -3195,7 +3207,11 @@ public:
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
-//        if(learning) // learning for meta-params
+       if(Rule::META_LEARNING)
+       {
+           featureFile<<cost<<endl;
+           output->declareOptimal();
+       }
         
         if(isinf(cost))
             return false;
@@ -3693,6 +3709,11 @@ public:
         // Initialize features.
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost/Params::doubleRuleDivide - log(Params::objectCost));
+       if(Rule::META_LEARNING)
+       {
+           featureFile<<cost<<endl;
+           output->declareOptimal();
+       }
         
         if(isinf(cost))
             return false;
@@ -3885,6 +3906,11 @@ public:
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndSetCost();
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
         return LHS;
         
     }
@@ -3934,6 +3960,10 @@ public:
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndSetCost();
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
         return LHS;
     }
 
@@ -4100,6 +4130,11 @@ public:
         additionalProcessing(LHS,RHS);
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
         return LHS;
     }
     
@@ -4332,6 +4367,7 @@ public:
                 delete LHS;
                 return NULL;                 
              }
+            LHS->undeclareOptimal();
 
         if (RHS1 != NULL)
         {
@@ -4356,7 +4392,14 @@ public:
 
                     vector<float> featv;
                     feats.pushToVector(featv);
-                    additionalCost += (model->minusLogProb(featv));
+                    double pairCost=(model->minusLogProb(featv));
+                    additionalCost += pairCost;
+                    
+       if(Rule::META_LEARNING)
+       {
+           (*pairWiseFeatFiles[sortTypes])<<pairCost<<endl;
+       }
+                    
                 }
                 else
                 {
@@ -4375,6 +4418,10 @@ public:
                 return NULL;
             }
         }
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
          return LHS;
         
     }
