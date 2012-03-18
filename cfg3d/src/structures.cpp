@@ -2830,6 +2830,8 @@ public:
  *  models for corresponding features(T=ProbabilityDistribution *)
  * also, using union, lets us access info by name and also as array
  */
+bool Rule::META_LEARNING;    
+
 template<typename T>
 class PairInfo
 {
@@ -3147,10 +3149,12 @@ public:
     {
         this->learning=learning;
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
-        if(learning)
+        if(learning||Rule::META_LEARNING)
         {
                 featureFile.open(filename.data(),ios::app); // append to file
-        }else {
+        }
+        if(!learning)
+        {
             readDistribution(rulePath+"/"+filename);
         }        
     }
@@ -3620,12 +3624,12 @@ public:
         if (isLearned())
         {
             string filename = string(string("rule_") + typeid (LHS_Type).name()) + "__" + string(typeid (RHS_Type1).name()) + "_" + string(typeid (RHS_Type2).name());
-            if (learning)
+            if(learning||Rule::META_LEARNING)
             {
                 // LHS__RHS1_RHS2
                 featureFile.open(filename.data(), ios::app); // append to file
             }
-            else
+            if(!learning)
             {
                 readDistribution(rulePath+"/"+filename);
             }
@@ -4225,12 +4229,12 @@ public:
                 PairType typeSt=makeSortedPair(*it,string(typeid(RHS_Type2).name()));
                 string fname = getFileName(typeSt);
                 
-                if (learning)
+                if (learning||Rule::META_LEARNING)
                 {
                     ofstream * temp =new ofstream(fname.data(), ios::app); // append to file
                     pairWiseFeatFiles[typeSt]=temp;
                 }
-                else
+                if(!learning)
                 {
                     string fnamep=rulePath+"/"+fname+".model";
                     ifstream file(fnamep.data(), std::ios::in);

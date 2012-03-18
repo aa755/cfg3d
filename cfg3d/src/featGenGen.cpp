@@ -413,7 +413,7 @@ int main(int argc, char** argv)
 
     createRunLearnFront(ofile);
     
-    ofile<<"\nbool Rule::META_LEARNING=!"<<learning<<";\n";
+    ofile<<"\n Rule::META_LEARNING=!"<<learning<<";\n";
     
     root->featGenGen(ofile);
     if(metaLearning)
