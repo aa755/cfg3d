@@ -6,6 +6,7 @@ Created on Feb 5, 2012
 import pprint
 import sys
 import itertools
+import pickle
 
 def getFile(name):
     return open(name)
@@ -85,11 +86,11 @@ def isImproperRule(line):
     vect = line.split(',')
     return len(vect) > 1
 
-def uniquefyRHS(RHS):
-    return list(set(RHS))
-
 #def uniquefyRHS(RHS):
-#    return sorted(RHS)
+#    return list(set(RHS))
+
+def uniquefyRHS(RHS):
+    return sorted(RHS)
 
 def uniquefyRule(LHS, RHS):
     uniqueRule = LHS
@@ -103,6 +104,8 @@ def uniquefyRule(LHS, RHS):
 
 def parseImproperRuleLine(line):
     vect = line.split(',')
+    if vect[0] == 'CPU':
+        print line.rstrip('\n')
     return vect[0], vect[1:]
 
 def tallyImproperRuleLine(line, tally):
@@ -110,6 +113,8 @@ def tallyImproperRuleLine(line, tally):
     
     RHS = uniquefyRHS(RHS)
     uniqueRule = uniquefyRule(LHS, RHS)
+    if LHS == 'CPU':
+        print uniqueRule.rstrip('\n')
     
     if tally.has_key(uniqueRule):
         tally[uniqueRule] += 1
@@ -304,15 +309,15 @@ if __name__ == '__main__':
     # Uniquefy and collapse rules
     tally = uniquefy(improperRules,improperUniqueRules)
     objectCounts = objectCounts(tally)
-#    pprint.pprint(objectCounts)
     ratios = ratios(tally,objectCounts)
+    pickle.dump(ratios, getFileWrite('ratios.pickle'))
     
     printDict(ratios, getFileWrite('ratios'))
-    pprint.pprint(ratios)
     improperUniqueRules2PlusRHS = 'improperUniqueRules.2PlusRHS'
     properRules1RHS = 'properRules.1RHS'
     filterOutSingles(improperUniqueRules, improperUniqueRules2PlusRHS, properRules1RHS)
     
+    # Here we choose merge order based on counts and properfy
     properRules, b = properfy(improperUniqueRules2PlusRHS, filterOutDoubles(tally))
     
     properRules2PlusRHSName = 'properRules.2PlusRHS'
@@ -347,7 +352,7 @@ if __name__ == '__main__':
         elem = elem.replace('_', ',')
         properRules2PlusRHSFile.write(mergeStrings([elem, '\n']))
 
-    
+    #python dotToRules.py scene*.dot
     pass
         
     

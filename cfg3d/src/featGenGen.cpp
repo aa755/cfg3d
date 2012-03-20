@@ -12,6 +12,9 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
+bool metaLearning=true;
+string functionName;
+string learning;
 
 class TreeNode
 {
@@ -24,6 +27,10 @@ class TreeNode
     
     
 public:
+    string getFullName()
+    {
+        return name.fullName;
+    }
     typedef pair<string,set<string> > RuleType;
     typedef  shared_ptr<TreeNode> Ptr;
     typedef  weak_ptr<TreeNode> WPtr;
@@ -121,14 +128,14 @@ public:
             {
                 primitivePart=true;
                 object=false;
-                ofile<<"temp= rulePG.applyRuleLearning(getTerminalSafe("<< children.at(0)->name.id << "));\n";
+                ofile<<"temp= rulePG."+functionName+"(getTerminalSafe("<< children.at(0)->name.id << "));\n";
                 for(int i=1;i<(int)children.size();i++)
                 {
-                    ofile<<"temp=rulePPG.applyRuleLearning(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
+                    ofile<<"temp=rulePPG."+functionName+"(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
                 ofile<<"\t"<<name.getDeclSimple()<<";\n";
-                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr(true);\n";
-                ofile<<"\t"<<name.fullName <<"= tr.applyRuleLearning(temp, dummy);\n}\n";
+                ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr("+learning+");\n";
+                ofile<<"\t"<<name.fullName <<"= tr."+functionName+"(temp, dummy);\n}\n";
             }
             else
             {
@@ -146,8 +153,8 @@ public:
                     ofile << "\t" << name.getDeclSimple() << ";\n";
                     if (children.size() == 1)
                     {
-                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr(true);\n";
-                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr("+learning+");\n";
+                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else if (children.size() >= 2)
                     {
@@ -170,12 +177,12 @@ public:
                             names.append(name2child[typeOrder.at(i)]->name.fullName);
                             ofile << interType<<" *"<< names<<";\n";
                             
-                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr(true);\n";
+                            ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr("+learning+");\n";
                                                         
-                            ofile <<"\t"<<  names<< "= tr.applyRuleLearning(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
+                            ofile <<"\t"<<  names<< "= tr."+functionName+"(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
                         }
-                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr(true);\n";
-                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << names << ", dummy);\n}\n";
+                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr("+learning+");\n";
+                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << names << ", dummy);\n}\n";
                         
                     }
                 }
@@ -219,20 +226,20 @@ public:
                     
                     if(baseOccluded)
                     {
-                        ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
-                       // ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
-                        ofile <<"\t"<<  name.fullName << "= tr.applyRuleLearning(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
+                       // ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
+                        ofile <<"\t"<<  name.fullName << "= tr."+functionName+"(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else
                     {
                         ofile << "{\n\tSingleRuleComplex<" << support << "> tr;\n";                        
-                        ofile <<"\t"<< name.fullName << "= tr.applyRuleLearning(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     
                         for(int i=1;i<(int)children.size();i++)
                         {
-                            ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,true);\n";
-                            ofile <<"\t\t"<<  name.fullName << "= tr.applyRuleLearning(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
+                            ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
+                            ofile <<"\t\t"<<  name.fullName << "= tr."+functionName+"(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
                         }
        
                         ofile<<"}\n";
@@ -375,6 +382,7 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"if(argc!=2)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile>\"<<endl;\n exit(-1);\n}\n";        
+    outputLearnerCode<<"    fileName = string(argv[1]);"<<endl;
 
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
     outputLearnerCode<<"    runLearn(scene);"<<endl;
@@ -388,6 +396,13 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
 int main(int argc, char** argv)
 {
 
+        functionName="applyRuleLearning";
+        learning="true";
+        if(metaLearning)
+        {
+            functionName="applyRuleInference";
+            learning="false";
+        }
 
     TreeNode::errFile.open("errTrees.txt",ios::app);
     
@@ -399,7 +414,14 @@ int main(int argc, char** argv)
 
     createRunLearnFront(ofile);
     
+    ofile<<"\n Rule::META_LEARNING=!"<<learning<<";\n";
+    
     root->featGenGen(ofile);
+    if(metaLearning)
+    {
+        ofile<<"\nScene::printOnlyScene("<<root->getFullName()<<");\n";
+    }
+    
     createRunLearnBack(ofile);
     ofile.close();
     TreeNode::errFile.close();

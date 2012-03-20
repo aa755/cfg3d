@@ -4,6 +4,7 @@
 //options
 #define MAX_SEG_INDEX 100000
 #define DIVIDE_BY_SIGMA
+//#define META_LEARNING
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -62,16 +63,17 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=40;
+    const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=800;
-    const static double doubleRuleDivide=100;
-    const static double objectCost=4;
+    const static int timeLimit=2000;
+    const static double doubleRuleDivide=1;
+    const static double objectCost=1;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
-    const static double additionalCostThreshold=100;
+//    const static double additionalCostThreshold=100;
+    const static double additionalCostThreshold=150.0;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -195,7 +197,7 @@ public:
         return lp;
     }
 
-    MultiVarGaussian(std::ifstream & file)
+    MultiVarGaussian(std::ifstream & file, string filename)
     {
         std::string line;
         string separator=",";
@@ -277,7 +279,7 @@ public:
             }
             assert(c == numFeats);
 
-            cerr<<"logd:"<<fileName<<SigInvDetLogMin<<endl;
+            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
         additiveConstant=0;
 #ifdef DIVIDE_BY_SIGMA        
@@ -463,6 +465,10 @@ protected:
     
 public:
 
+    void undeclareOptimal()
+    {
+        isDeclaredOptimal=false;
+    }
     virtual void reFormatSubTree(NonTerminal * parent /* = 0 */){} // do nothing
 
    virtual int getNumObjectsSpanned()=0;
@@ -1616,7 +1622,7 @@ public:
     }
 
     int getId() {
-        return id;
+        return id; 
     }
 
     NonTerminal() : Symbol()
@@ -1671,7 +1677,9 @@ public:
             }
         }
         costSet = true;
+                cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
+
     }
 
     /**
@@ -1693,6 +1701,7 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
+                cout<<"st:"<<getName()<<endl;
         cout << "absc " << cost << endl;
     }
 
@@ -1995,6 +2004,12 @@ public:
         closeFiles();
     }
     
+    static void printOnlyScene(NonTerminal * root)
+    {
+        initFiles();
+        printData(root);
+        closeFiles();
+    }
     static void printData(NonTerminal * root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
@@ -2362,13 +2377,7 @@ public:
             return ret;
     }
 
-    bool isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .05) {
-            return false;
-        } else {
-            return true;
-        }
-    }
+    bool isCloseEnough(PointT& p);
     
     bool isAllCloseEnough(Terminal* terminal) {
         vector<int>& termPointIndices = terminal->getPointIndices();
@@ -2683,6 +2692,7 @@ protected:
     ofstream featureFile;
     bool modelFileMissing;
 public:
+    static bool META_LEARNING;
     string filename;
     /**
      * @param extractedSym : the extracted Symbol, guaranteed not to be a duplicate of anything was already extracted ... 
@@ -2719,7 +2729,7 @@ public:
             modelFileMissing=true;
             return;
         }
-        pdist=new MultiVarGaussian(file);
+        pdist=new MultiVarGaussian(file,filename);
         file.close();
     }
     
@@ -2825,6 +2835,15 @@ public:
  *  models for corresponding features(T=ProbabilityDistribution *)
  * also, using union, lets us access info by name and also as array
  */
+bool Rule::META_LEARNING;    
+    bool Plane::isCloseEnough(PointT& p) {
+        if (costOfAddingPoint(p) > .05 && !Rule::META_LEARNING) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 template<typename T>
 class PairInfo
 {
@@ -3113,7 +3132,7 @@ class SingleRule : public Rule
     virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleinference(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleInference(RHS_extracted,terminals);
         
         if(newNT!=NULL)
         {
@@ -3142,12 +3161,14 @@ public:
     {
         this->learning=learning;
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
-        if(learning)
+        if(learning||Rule::META_LEARNING)
         {
                 featureFile.open(filename.data(),ios::app); // append to file
-        }else {
-            readDistribution(rulePath+"/"+filename);
         }
+        if(!learning)
+        {
+            readDistribution(rulePath+"/"+filename);
+        }        
     }
     
     virtual void computeFeatures(RHS_Type* input)
@@ -3186,6 +3207,12 @@ public:
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
+       if(Rule::META_LEARNING)
+       {
+           featureFile<<cost<<endl;
+           output->declareOptimal();
+       }
+        
         if(isinf(cost))
             return false;
         else
@@ -3205,7 +3232,7 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -3613,12 +3640,12 @@ public:
         if (isLearned())
         {
             string filename = string(string("rule_") + typeid (LHS_Type).name()) + "__" + string(typeid (RHS_Type1).name()) + "_" + string(typeid (RHS_Type2).name());
-            if (learning)
+            if(learning||Rule::META_LEARNING)
             {
                 // LHS__RHS1_RHS2
                 featureFile.open(filename.data(), ios::app); // append to file
             }
-            else
+            if(!learning)
             {
                 readDistribution(rulePath+"/"+filename);
             }
@@ -3682,6 +3709,11 @@ public:
         // Initialize features.
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost/Params::doubleRuleDivide - log(Params::objectCost));
+       if(Rule::META_LEARNING)
+       {
+           featureFile<<cost<<endl;
+           output->declareOptimal();
+       }
         
         if(isinf(cost))
             return false;
@@ -3868,12 +3900,17 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 class RPlaneSeg : public Rule {
 public:
 
-    Plane * applyRule(Symbol * extractedSym)
+    Plane * applyRuleInference(Symbol * extractedSym)
     {
         Plane * LHS = new Plane();
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndSetCost();
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
         return LHS;
         
     }
@@ -3895,7 +3932,7 @@ public:
         if (typeid (*extractedSym) != typeid (Terminal))
             return;
         
-        addToPqueueIfNotDuplicate(applyRule(extractedSym),pqueue); //TODO: duplicate check is not required
+        addToPqueueIfNotDuplicate(applyRuleInference(extractedSym),pqueue); //TODO: duplicate check is not required
     }
 };
 
@@ -3912,7 +3949,7 @@ public:
         names.push_back(typeid (Terminal).name());
     }
     
-    NonTerminal* applyRule(Plane * RHS_plane, Terminal *RHS_seg, vector<Terminal*> & terminals) {
+    Plane* applyRuleInference(Plane * RHS_plane, Terminal *RHS_seg) {
         if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
             return NULL;
         }
@@ -3923,6 +3960,10 @@ public:
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndSetCost();
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
         return LHS;
     }
 
@@ -3953,7 +3994,7 @@ public:
             while (extractedSym->nextNeighborIndex(index))
             {
                 Plane * plane=dynamic_cast<Plane*> (extractedSym);
-                NonTerminal *newNT=applyRule(plane,terminals[index],terminals);
+                NonTerminal *newNT=applyRuleInference(plane,terminals[index]);
                 addToPqueueIfNotDuplicate(newNT,pqueue);
             }
         }
@@ -4081,7 +4122,7 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleinference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
         
@@ -4089,6 +4130,11 @@ public:
         additionalProcessing(LHS,RHS);
         computeFeatures(RHS);
         LHS->setAdditionalCost(0);
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
         return LHS;
     }
     
@@ -4208,7 +4254,7 @@ public:
     }
     
     
-    DoubleRuleComplex( vector<string> types, bool learning=false):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
+    DoubleRuleComplex( vector<string> types, bool learning=false,vector<double> ratios=vector<double>() ):DoubleRule< SupportComplex<SupportType> , SupportComplex<SupportType> , RHS_Type2 >(learning)
     {
        if (this->isLearned())
         {
@@ -4218,18 +4264,18 @@ public:
                 PairType typeSt=makeSortedPair(*it,string(typeid(RHS_Type2).name()));
                 string fname = getFileName(typeSt);
                 
-                if (learning)
+                if (learning||Rule::META_LEARNING)
                 {
                     ofstream * temp =new ofstream(fname.data(), ios::app); // append to file
                     pairWiseFeatFiles[typeSt]=temp;
                 }
-                else
+                if(!learning)
                 {
                     string fnamep=rulePath+"/"+fname+".model";
                     ifstream file(fnamep.data(), std::ios::in);
                     if(file.is_open())
                     {
-                        pairWiseModels[typeSt]=new MultiVarGaussian(file);
+                        pairWiseModels[typeSt]=new MultiVarGaussian(file,fname);
                         file.close();
                     }
 
@@ -4321,6 +4367,7 @@ public:
                 delete LHS;
                 return NULL;                 
              }
+            LHS->undeclareOptimal();
 
         if (RHS1 != NULL)
         {
@@ -4345,7 +4392,14 @@ public:
 
                     vector<float> featv;
                     feats.pushToVector(featv);
-                    additionalCost += (model->minusLogProb(featv));
+                    double pairCost = (model->minusLogProb(featv));
+                    additionalCost += pairCost;
+
+                    if (Rule::META_LEARNING)
+                    {
+                        (*pairWiseFeatFiles[sortTypes]) << pairCost << endl;
+                    }
+
                 }
                 else
                 {
@@ -4364,6 +4418,10 @@ public:
                 return NULL;
             }
         }
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
          return LHS;
         
     }

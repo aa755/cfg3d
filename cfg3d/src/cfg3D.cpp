@@ -356,7 +356,8 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 }
 
 int main(int argc, char** argv) {
-    assert(isinf(infinity()));
+//    assert(isinf(infinity()));
+    Rule::META_LEARNING=false;
     
     if(argc!=3&&argc!=4)
     {

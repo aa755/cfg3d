@@ -132,7 +132,9 @@ void initialize(pcl::PointCloud<PointT> scene) {
 
     overallMinZ=infinity();
     Terminal::totalNumTerminals=0;
-   
+    string command="rospack find cfg3d";
+    rulePath=exec(command.data());
+    rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";   
     for(unsigned int i = 0; i < scene.size(); i++)
     {
         int currentSegNum = scene.points[i].segment;
