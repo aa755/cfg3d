@@ -73,7 +73,7 @@ public:
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
 //    const static double additionalCostThreshold=100;
-    const static double additionalCostThreshold=1000000000000000000000000000000000000.0;
+    const static double additionalCostThreshold=150.0;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -4392,14 +4392,14 @@ public:
 
                     vector<float> featv;
                     feats.pushToVector(featv);
-                    double pairCost=(model->minusLogProb(featv));
+                    double pairCost = (model->minusLogProb(featv));
                     additionalCost += pairCost;
-                    
-       if(Rule::META_LEARNING)
-       {
-           (*pairWiseFeatFiles[sortTypes])<<pairCost<<endl;
-       }
-                    
+
+                    if (Rule::META_LEARNING)
+                    {
+                        (*pairWiseFeatFiles[sortTypes]) << pairCost << endl;
+                    }
+
                 }
                 else
                 {
