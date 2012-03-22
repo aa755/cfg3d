@@ -186,8 +186,8 @@ void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapF
     overallMinZ=infinity();
     for(unsigned int i=0;i<scene.size();i++)
     {
-        if(rand()%10 != 1)
-            continue;
+        //if(rand()%10 != 1)
+          //  continue;
         int segIndex=scene.points[i].segment;
         if(segIndex>0 && segIndex<=maxSegIndex)
         {
