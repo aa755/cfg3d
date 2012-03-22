@@ -73,7 +73,7 @@ public:
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
 //    const static double additionalCostThreshold=100;
-    const static double additionalCostThreshold=150.0;
+    const static double additionalCostThreshold=DBL_MAX;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -141,12 +141,14 @@ public:
 
     double minusLogProb(vector<float> & x) {
         VectorXd feats(x.size());
+        cout<<"fts:";
         for(int i=0;i<(int)x.size();i++)
         {
             feats(i)=x.at(i);
+            cout<<feats(i)<<",";
         }
         double ret= minusLogProb(feats);
-        
+        cout<<endl;
         if(ret>Params::additionalCostThreshold)
         {
             return infinity();
@@ -3235,6 +3237,12 @@ public:
     virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
         LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        if (Rule::META_LEARNING && this->pdist == NULL)
+        {
+            LHS->setAdditionalCost(0);
+            LHS->declareOptimal();
+            return LHS;
+        }
         
         // to be replace by generic features
         computeFeatures(RHS);
@@ -3741,6 +3749,13 @@ public:
         
 #ifdef DISABLE_HALLUCINATION
         {
+            if (Rule::META_LEARNING && this->pdist == NULL)
+            {
+                LHS->setAdditionalCost(0);
+                LHS->declareOptimal();
+                return LHS;
+            }
+            
             appendAllFeatures(LHS, RHS1, RHS2, terminals);
             if (setCost(LHS, RHS1, RHS2, terminals))
             {
@@ -4360,6 +4375,12 @@ public:
     {
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
         
+        if(Rule::META_LEARNING && this->pdist==NULL)
+        {
+            LHS->setAdditionalCost(0);
+            LHS->declareOptimal();
+            return LHS;
+        }
         
             appendMainFeats(RHS1, RHS2);
              if(!setCost(LHS, RHS1, RHS2, terminals)) // set main cost
