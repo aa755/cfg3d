@@ -184,7 +184,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.5);
 	temp.push_back(typeid(SupportComplex<CPU>).name());
 	tempratio.push_back(0.5);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<CPU,paper>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<CPU,paper>(temp,true,tempratio)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<chairArmRest_chairBack,chairArmRest,chairBack>()));
 	appendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<Chair,chairArmRest_chairBack>(0.0222222222222)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<chairArmRest_chairBackRest,chairArmRest,chairBackRest>()));
@@ -239,11 +239,11 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Wall>(temp)));
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,ACVent>(temp)));
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,pillar>(temp)));
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,sofa>(temp)));
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Chair>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Wall>(temp,true,tempratio)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,ACVent>(temp,true,tempratio)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,pillar>(temp,true,tempratio)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,sofa>(temp,true,tempratio)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Chair>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -276,7 +276,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,window>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,window>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -309,7 +309,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Sofa>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Sofa>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -342,7 +342,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Table>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,Table>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -375,7 +375,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,SupportComplex<Table> >(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,SupportComplex<Table> >(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -408,7 +408,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,CPU>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,CPU>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -441,7 +441,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,door>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,door>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -474,7 +474,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,printer>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,printer>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -507,8 +507,8 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0422960725076);
 	temp.push_back(typeid(Chair).name());
 	tempratio.push_back(0.126888217523);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,cupboard>(temp)));
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,dustbin>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,cupboard>(temp,true,tempratio)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,dustbin>(temp,true,tempratio)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<FridgeDoor_FridgeSide,FridgeDoor,FridgeSide>()));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<FridgeDoor_FridgeSide_FridgeTop,FridgeDoor_FridgeSide,FridgeTop>()));
 	appendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<Fridge,FridgeDoor_FridgeSide_FridgeTop>(1.0)));
@@ -577,7 +577,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,CPU>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,CPU>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -598,7 +598,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,keyboard>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,keyboard>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -619,7 +619,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,keyboardTray>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,keyboardTray>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -640,7 +640,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,monitor>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,monitor>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -661,7 +661,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,SupportComplex<CPU> >(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,SupportComplex<CPU> >(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -682,7 +682,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,paper>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,paper>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -703,7 +703,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,mug>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,mug>(temp,true,tempratio)));
 	temp.clear();
 	tempratio.clear();
 	temp.push_back(typeid(printer).name());
@@ -724,7 +724,7 @@ void appendLearningRules(vector<RulePtr>& learningRules) {
 	tempratio.push_back(0.0168067226891);
 	temp.push_back(typeid(CPU).name());
 	tempratio.push_back(0.0924369747899);
-	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,printer>(temp)));
+	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Table,printer>(temp,true,tempratio)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<cupboardFront_cupboardSide,cupboardFront,cupboardSide>()));
 	appendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<cupboard,cupboardFront_cupboardSide>(1.0)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<dustbinNarrow_dustbinWide,dustbinNarrow,dustbinWide>()));
