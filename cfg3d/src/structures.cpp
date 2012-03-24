@@ -65,9 +65,9 @@ public:
     const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=2000;
+    const static int timeLimit=3000;
     const static double doubleRuleDivide=1;
-    const static double objectCost=100;
+    const static double objectCost=1;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
@@ -1042,7 +1042,7 @@ public:
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
-        avgColor/=numPoints;
+        avg/=numPoints;
         avgColor=avg.getFloatRep();
     }
     
