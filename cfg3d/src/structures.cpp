@@ -9,7 +9,7 @@
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 #define DISABLE_HALLUCINATION
-
+#define IGNORE_COMPLEX_MODEL_MISSING
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -67,13 +67,13 @@ public:
     const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=2000;
     const static double doubleRuleDivide=1;
-    const static double objectCost=1;
+    const static double objectCost=100;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
 //    const static double additionalCostThreshold=100;
-    const static double additionalCostThreshold=DBL_MAX;
+    const static double additionalCostThreshold=300;
     const static double featScale=1000;
     
 //    const static double missPenalty=9000;
@@ -141,14 +141,14 @@ public:
 
     double minusLogProb(vector<float> & x) {
         VectorXd feats(x.size());
-        cout<<"fts:";
+      //  cout<<"fts:";
         for(int i=0;i<(int)x.size();i++)
         {
             feats(i)=x.at(i);
-            cout<<feats(i)<<",";
+        //    cout<<feats(i)<<",";
         }
         double ret= minusLogProb(feats);
-        cout<<endl;
+       // cout<<endl;
         if(ret>Params::additionalCostThreshold)
         {
             return infinity();
@@ -2322,7 +2322,11 @@ public:
 //        // Serious bug. This is called after setting the real cost.
         computePlaneParamsAndEigens();
         double sumSquaredDistances = eigenValsAscending(0);
-        setAbsoluteCost(sumSquaredDistances);
+        if(sumSquaredDistances<0)
+        {
+            cerr<<"negEig:"<<sumSquaredDistances<<endl;
+        }
+        setAbsoluteCost(0);
     }
     
     /**
@@ -4425,6 +4429,10 @@ public:
                 else
                 {
                     additionalCost += Params::onTopPairDefaultOnModelMissing;
+#ifdef IGNORE_COMPLEX_MODEL_MISSING
+                    delete LHS;
+                    return NULL;                 
+#endif
                 }
 
             }
@@ -4433,7 +4441,7 @@ public:
 
 
 
-            if (isinf(additionalCost))
+            if (isinf(additionalCost) && !Rule::META_LEARNING)
             {
                 delete LHS;
                 return NULL;
