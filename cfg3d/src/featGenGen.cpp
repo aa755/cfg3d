@@ -12,7 +12,7 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
-bool metaLearning=true;
+bool metaLearning=false;
 string functionName;
 string learning;
 
