@@ -19,8 +19,16 @@ def mergeStrings(lst):
     return ''.join(lst)
 
 functionOpen = 'void appendLearningRules(vector<RulePtr>& learningRules) {\n'
-temp = 'vector<string> temp;\n'
+temp = '\tvector<string> temp;\n\tvector<double> tempratio;\n'
 functionClose = '}\n'
+
+def printBeforeAppend(dataStructuresFile):
+    dataStructuresFile.write('\ntemplate<typename SupportType, typename RHS_Type2 >\n')
+    dataStructuresFile.write('bool DoubleRuleComplex<SupportType,RHS_Type2> :: canBaseBeHallucinated()\n')
+    dataStructuresFile.write('{\n')
+    dataStructuresFile.write('return typeid(Floor)==typeid(SupportType); // should be replaced by static comparison\n')
+    dataStructuresFile.write('}\n\n')
+    
 
 def printImports(dataStructuresFile):
     dataStructuresFile.write('#include "structures.cpp"\n\n')
@@ -58,7 +66,6 @@ def getRuleRatio(line, ratios):
     return str(ratios[uniqueRule])
 ###
 
-#def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText):
 def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText, ratios):
     currentDeclarations = set()
     currentRules = set()
@@ -66,8 +73,11 @@ def printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText,
         vect = line.split(',')
         if not isNotComplex(line):
             #print vect[0], vect[1]
+            
             LHS = vect[0]
-            LHS = LHS[:-7]
+            LHS = LHS.replace('Complex','')
+            #LHS = LHS[:-7]
+            #print LHS
             RHS = vect[1].rstrip('\n')
             complexDeclaration = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRuleComplex<',LHS,'>()));\n'])
             if not complexDeclaration in currentRules:     
@@ -165,6 +175,7 @@ def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText,
                     currentRules.add(addRule)
             else:
                 LHS,RHS = line.split(';')
+                
                 LHSSupport = LHS.replace('Complex','')
                 
                 complexDeclaration = mergeStrings(['\tappendRuleInstance(learningRules,RulePtr(new SingleRuleComplex<',LHSSupport,'>()));\n'])
@@ -172,8 +183,8 @@ def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText,
                     addingDoubleRuleText = mergeStrings([addingDoubleRuleText, complexDeclaration])
                     currentRules.add(complexDeclaration)
                 
-                complexVect = complexToElems[LHS]
-                buildVect = '\ttemp.clear();\n'
+                complexVect = complexToElems[LHS]                
+                buildVect = '\ttemp.clear();\n\ttempratio.clear();\n'
                 buildVect = mergeStrings([buildVect, complexVect])
                 tempInitialized = False
                 
@@ -194,7 +205,7 @@ def printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText,
                         currentRules.add(addRule)
     return addingDoubleRuleText
 
-def complexRuleParse(file):
+def complexRuleParse(file, ratios):
     complexToElems = {}
     buildingVectString = ''
     for line in file:
@@ -203,9 +214,12 @@ def complexRuleParse(file):
         for supportedElem in supported:
             if isNotComplex(supportedElem) and not isSupportElem(LHS, supportedElem):                
                 buildingVectString = ''.join([buildingVectString, '\ttemp.push_back(typeid(',supportedElem,').name());\n'])
+                buildingVectString = ''.join([buildingVectString, '\ttempratio.push_back(',str(ratios[''.join([LHS,'Objects,',supportedElem])]),');\n'])
             else:
                 if isGood(supportedElem):
                     buildingVectString = ''.join([buildingVectString, '\ttemp.push_back(typeid(SupportComplex<',supportedElem.replace('Complex',''),'>).name());\n'])
+                    buildingVectString = ''.join([buildingVectString, '\ttempratio.push_back(',str(ratios[''.join([LHS,'Objects,',supportedElem])]),');\n'])            
+            #print buildingVectString
         complexToElems[LHS] = buildingVectString  
         buildingVectString = ''
     return complexToElems
@@ -220,7 +234,7 @@ if __name__ == '__main__':
     doubleRuleFile = getFile('properRules.2PlusRHS')
     singleRuleFile = getFile('properRules.1RHS')
     complexRuleFile = getFile('complex')
-    complexToElems = complexRuleParse(complexRuleFile)
+    complexToElems = complexRuleParse(complexRuleFile,ratios)
     
     dataStructuresFile = getFileWrite('generatedDataStructures.cpp')
     
@@ -231,6 +245,7 @@ if __name__ == '__main__':
     addingSingleRuleText, currentDeclarations, currentRules = printSingleRuleNTs(singleRuleFile, dataStructuresFile, addingSingleRuleText, ratios)
     addingDoubleRuleText = printDoubleRuleNTs(doubleRuleFile, dataStructuresFile, addingDoubleRuleText, currentDeclarations, currentRules, complexToElems, ratios)
     
+    printBeforeAppend(dataStructuresFile)
     dataStructuresFile.write(functionOpen)   
     dataStructuresFile.write(temp)   
     dataStructuresFile.write(addingSingleRuleText)

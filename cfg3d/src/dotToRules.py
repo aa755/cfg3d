@@ -27,6 +27,9 @@ def is_number(s):
 allFileImproperRules = set([])
 allFileProperRules = set([])
 
+def isNotComplex(rule):
+    return rule.find("Complex") == -1
+
 def parseToken(token):
     vect = token.split('__')
     tokenName = None
@@ -113,8 +116,6 @@ def tallyImproperRuleLine(line, tally):
     
     RHS = uniquefyRHS(RHS)
     uniqueRule = uniquefyRule(LHS, RHS)
-    if LHS == 'CPU':
-        print uniqueRule.rstrip('\n')
     
     if tally.has_key(uniqueRule):
         tally[uniqueRule] += 1
@@ -131,12 +132,25 @@ def printDict(dict, file):
     for k,v in dict.iteritems():
         file.write(''.join([k,';',str(v),'\n']));
 
+def tallyComplexObjects(line, tally):
+    LHS, RHS = parseImproperRuleLine(line)
+    for elem in RHS:
+        elem = elem.rstrip('\n')
+        XObject = ''.join([LHS,'Objects',',',elem])
+        if tally.has_key(XObject):
+            tally[XObject] += 1
+        else:
+            tally[XObject] = 1
+    return tally
+
 def uniquefy(fileName,improperUniqueRules):
     tally = {}
     f = getFile(fileName)
     for line in f:
         if isImproperRule(line):
             tally = tallyImproperRuleLine(line, tally)
+        if not isNotComplex(line):
+            tally = tallyComplexObjects(line, tally)
     out = getFileWrite(improperUniqueRules)
     
     rules = tally.keys()
@@ -225,15 +239,19 @@ def clean(strLst):
         cleaned.append(str.rstrip('\n'))
     return cleaned
 
+def isNotObj(rule):
+    return rule.find("Objects") == -1
+
 def filterOutSingles(improperUniqueRules, nonDouble, double):
     improperUniqueRulesFile = getFile(improperUniqueRules)
     nonDoubleFile = getFileWrite(nonDouble)
     doubleFile = getFileWrite(double)
     for line in improperUniqueRulesFile:
-        if len(line.split(',')) != 2:
-            nonDoubleFile.write(line)
-        else:
-            doubleFile.write(line)
+        if isNotObj(line):
+            if len(line.split(',')) != 2:
+                nonDoubleFile.write(line)
+            else:
+                doubleFile.write(line)
     
 def removeLHSFromKeys(tally):
     newTally = {}
@@ -245,6 +263,7 @@ def removeLHSFromKeys(tally):
         newTally[newKey] = value
     return newTally
     
+# Returns a tally for SingleRules
 def filterOutDoubles(tally):
     newTally = {}
     tally = removeLHSFromKeys(tally)
@@ -261,20 +280,11 @@ def properfy(file, mergeCount):
     finals = []
     
     for line in readFile:
-#        if isNotComplex(line):
-#            rule = clean(line.split(','))
-#            RHS, mergeCount = chooseMergePair(rule[1:], mergeCount)
-#            finals.append(mergeStrings([rule[0], ';', RHS[0]]))
         rule = clean(line.split(','))
         RHS, mergeCount = chooseMergePair(rule[1:], mergeCount)
         finals.append(mergeStrings([rule[0], ';', RHS[0]]))
     
     return finals, mergeCount
-
-def isNotComplex(rule):
-#    vect = rule.split('_')
-#    return vect[0].find("Complex") == -1
-    return rule.find("Complex") == -1
 
 def mergeTwoFiles(first, second, out):
     first = getFile(first)
@@ -301,13 +311,14 @@ if __name__ == '__main__':
         idToRule = handleFile(arg)
         fileRules = [value for value in idToRule.values()]
         allRules.extend(fileRules)
+        
     improperRules = 'improperRules'
     printList(allRules, getFileWrite(improperRules))
     
     improperUniqueRules = 'improperUniqueRules'
-    tallyOut = 'tallyOut'
     # Uniquefy and collapse rules
     tally = uniquefy(improperRules,improperUniqueRules)
+    
     objectCounts = objectCounts(tally)
     ratios = ratios(tally,objectCounts)
     pickle.dump(ratios, getFileWrite('ratios.pickle'))
@@ -318,7 +329,9 @@ if __name__ == '__main__':
     filterOutSingles(improperUniqueRules, improperUniqueRules2PlusRHS, properRules1RHS)
     
     # Here we choose merge order based on counts and properfy
+    pprint.pprint(ratios)
     properRules, b = properfy(improperUniqueRules2PlusRHS, filterOutDoubles(tally))
+    
     
     properRules2PlusRHSName = 'properRules.2PlusRHS'
     properRules2PlusRHSFile = getFileWrite(properRules2PlusRHSName)
