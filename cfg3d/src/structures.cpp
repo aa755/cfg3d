@@ -63,10 +63,10 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=2;
+    const static double onTopPairDivide=200;
     const static double onTopPairDefaultOnModelMissing=200.0;
-    const static int timeLimit=4000;
-    const static double doubleRuleDivide=5;
+    const static int timeLimit=500;
+    const static double doubleRuleDivide=500;
     const static double objectCost=10000000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
