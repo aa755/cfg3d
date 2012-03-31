@@ -9,7 +9,7 @@
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
 #define DISABLE_HALLUCINATION
-#define IGNORE_COMPLEX_MODEL_MISSING
+//#define IGNORE_COMPLEX_MODEL_MISSING
 #include <boost/type_traits.hpp>
 #include <boost/utility.hpp>
 
@@ -63,17 +63,16 @@ class Params
 {
 public:
     const static double missPenalty=                900000000000000000000000000.0;
-    const static double onTopPairDivide=1;
-    const static double onTopPairDefaultOnModelMissing=500.0;
+    const static double onTopPairDivide=200;
+    const static double onTopPairDefaultOnModelMissing=200.0;
     const static int timeLimit=500;
-    const static double doubleRuleDivide=1;
-    const static double objectCost=1;
+    const static double doubleRuleDivide=500;
+    const static double objectCost=10000000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
-    const static double costPruningThresh=          30000000000000000000.0;
-    const static double costPruningThreshNonComplex=3000000000000000000.0;
-//    const static double additionalCostThreshold=100;
-    const static double additionalCostThreshold=DBL_MAX;
+    const static double costPruningThresh=          6000.0;
+    const static double costPruningThreshNonComplex=1000.0;
+    const static double additionalCostThreshold=300;
     const static double featScale=1000;
     const static double closeEnoughThresh=0.1;
     
