@@ -4,7 +4,7 @@
 //options
 #define MAX_SEG_INDEX 100000
 #define DIVIDE_BY_SIGMA
-//#define META_LEARNING
+
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -65,7 +65,7 @@ public:
     const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=3000;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=1;
     const static double objectCost=1;
     const static double maxFloorHeight=0.05;
@@ -73,8 +73,9 @@ public:
     const static double costPruningThresh=          30000000000000000000.0;
     const static double costPruningThreshNonComplex=3000000000000000000.0;
 //    const static double additionalCostThreshold=100;
-    const static double additionalCostThreshold=300;
+    const static double additionalCostThreshold=DBL_MAX;
     const static double featScale=1000;
+    const static double closeEnoughThresh=0.1;
     
 //    const static double missPenalty=9000;
 //    const static double onTopPairDivide=5;
@@ -2843,7 +2844,7 @@ public:
  */
 bool Rule::META_LEARNING;    
     bool Plane::isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .05 && !Rule::META_LEARNING) {
+        if (costOfAddingPoint(p) > Params::closeEnoughThresh && !Rule::META_LEARNING) {
             return false;
         } else {
             return true;
@@ -4430,8 +4431,11 @@ public:
                 {
                     additionalCost += Params::onTopPairDefaultOnModelMissing;
 #ifdef IGNORE_COMPLEX_MODEL_MISSING
-                    delete LHS;
-                    return NULL;                 
+                    if(!Rule::META_LEARNING)
+                    {
+                        delete LHS;
+                        return NULL;                 
+                    }
 #endif
                 }
 
