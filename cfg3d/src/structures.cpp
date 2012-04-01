@@ -175,18 +175,30 @@ public:
 //    }
 };
 
-class MultiVarGaussian : public MultiVariateProbabilityDistribution
+class MultiVarGaussianComponent : public MultiVariateProbabilityDistribution
 {
+protected:
     VectorXd mean;
-    VectorXd minv;
-    VectorXd maxv;
     MatrixXd sigmaInv;
     double additiveConstant;
+    double mixingProb;
 public:
-    double minusLogProb(VectorXd & x)
+    MultiVarGaussianComponent()
+    {
+        mixingProb=1.0;
+    }
+    
+    MultiVarGaussianComponent(VectorXd mean,MatrixXd sigmaInv,double additiveConstant,double mixingProb)
+    {
+        this->mean=mean;
+        this->sigmaInv=sigmaInv;
+        this->additiveConstant=additiveConstant;
+        this->mixingProb=mixingProb;
+    }
+    
+    virtual double minusLogProb(VectorXd & x)
     {
         assert(x.rows()==numFeats);
-//        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
         MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 ) ;
         assert(value.rows()==1);
         assert(value.cols()==1);
@@ -198,6 +210,19 @@ public:
         }
         return lp;
     }
+    
+    virtual double getProb(VectorXd & x)
+    {
+        double mlp=minusLogProb(x);
+        return exp(-mlp)*mixingProb;
+    }
+};
+
+class MultiVarGaussian : public MultiVarGaussianComponent
+{
+    VectorXd minv;
+    VectorXd maxv;
+public:
 
     MultiVarGaussian(std::ifstream & file, string filename)
     {
@@ -290,6 +315,119 @@ public:
 
 #endif
 //        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
+    }
+    
+    
+};
+class MultiVarMixtureOfGaussian : public MultiVariateProbabilityDistribution
+{
+    VectorXd minv;
+    VectorXd maxv;
+    vector<MultiVarGaussianComponent> gaussians;
+    typedef vector<MultiVarGaussianComponent>::iterator CompItr;
+public:
+    virtual double minusLogProb(VectorXd & x)
+    {
+        double sum=0;
+        for(CompItr it=gaussians.begin();it!=gaussians.end();it++)
+        {
+            sum+=it->getProb(x);
+        }
+        double mlp=-log(sum);
+        return mlp;
+    }
+
+    MultiVarMixtureOfGaussian(std::ifstream & file, string filename)
+    {
+//        std::string line;
+//        string separator=",";
+//        boost::char_separator<char> sep(separator.data());
+//        numFeats=0;
+//        {        
+//            getline(file, line);
+//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                numFeats++;
+//            }
+//            mean.resize(numFeats);
+//         //   cerr<<filename<<","<<numFeats<<endl;
+//            int c=0;
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                mean(c)=boost::lexical_cast<double > (t);
+//                c++;
+//            }
+//            assert(c==numFeats);
+//        }
+//        
+//        {        
+//            getline(file, line);
+//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+//            minv.resize(numFeats);
+//            int c=0;
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                minv(c)=boost::lexical_cast<double > (t);
+//                c++;
+//            }
+//            assert(c==numFeats);
+//        }
+//        
+//        {        
+//            getline(file, line);
+//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+//            maxv.resize(numFeats);
+//            int c=0;
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                maxv(c)=boost::lexical_cast<double > (t);
+//                c++;
+//            }
+//            assert(c==numFeats);
+//        }   
+//        sigmaInv.resize(numFeats,numFeats);
+//        for (int r = 0; r < numFeats; r++)
+//        {
+//            getline(file, line);
+//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+//            int c = 0;
+//
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                sigmaInv(r, c) = boost::lexical_cast<double > (t);
+//                c++;
+//            }
+//            assert(c == numFeats);
+//        }
+//
+//            getline(file, line);
+//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+//            double SigInvDetLogMin;
+//            int c = 0;
+//            BOOST_FOREACH(std::string t, tokens1)
+//            {
+//                if(c==0)
+//                {
+//                        SigInvDetLogMin = boost::lexical_cast<double > (t);
+//                }
+//                else
+//                {
+//                        assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
+//                }
+//                c++;
+//            }
+//            assert(c == numFeats);
+//
+//            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
+////        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+//        additiveConstant=0;
+//#ifdef DIVIDE_BY_SIGMA        
+//        additiveConstant= SigInvDetLogMin/2.0;
+////        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+//
+//#endif
+////        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
     
