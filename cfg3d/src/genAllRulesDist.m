@@ -1,6 +1,6 @@
 function [  ] = genAllRulesDist()
+delete *.model;
 files = dir('rule_*');
-
 num_files = length(files)
 
 for i=1:num_files

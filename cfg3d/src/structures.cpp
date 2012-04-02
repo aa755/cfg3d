@@ -188,7 +188,7 @@ public:
         mixingProb=1.0;
     }
     
-    MultiVarGaussianComponent(VectorXd mean,MatrixXd sigmaInv,double additiveConstant,double mixingProb)
+    MultiVarGaussianComponent(VectorXd & mean,MatrixXd & sigmaInv,double additiveConstant,double mixingProb)
     {
         this->mean=mean;
         this->sigmaInv=sigmaInv;
@@ -339,95 +339,134 @@ public:
 
     MultiVarMixtureOfGaussian(std::ifstream & file, string filename)
     {
-//        std::string line;
-//        string separator=",";
-//        boost::char_separator<char> sep(separator.data());
-//        numFeats=0;
-//        {        
-//            getline(file, line);
-//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                numFeats++;
-//            }
-//            mean.resize(numFeats);
-//         //   cerr<<filename<<","<<numFeats<<endl;
-//            int c=0;
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                mean(c)=boost::lexical_cast<double > (t);
-//                c++;
-//            }
-//            assert(c==numFeats);
-//        }
-//        
-//        {        
-//            getline(file, line);
-//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
-//            minv.resize(numFeats);
-//            int c=0;
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                minv(c)=boost::lexical_cast<double > (t);
-//                c++;
-//            }
-//            assert(c==numFeats);
-//        }
-//        
-//        {        
-//            getline(file, line);
-//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
-//            maxv.resize(numFeats);
-//            int c=0;
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                maxv(c)=boost::lexical_cast<double > (t);
-//                c++;
-//            }
-//            assert(c==numFeats);
-//        }   
-//        sigmaInv.resize(numFeats,numFeats);
-//        for (int r = 0; r < numFeats; r++)
-//        {
-//            getline(file, line);
-//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
-//            int c = 0;
-//
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                sigmaInv(r, c) = boost::lexical_cast<double > (t);
-//                c++;
-//            }
-//            assert(c == numFeats);
-//        }
-//
-//            getline(file, line);
-//            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
-//            double SigInvDetLogMin;
-//            int c = 0;
-//            BOOST_FOREACH(std::string t, tokens1)
-//            {
-//                if(c==0)
-//                {
-//                        SigInvDetLogMin = boost::lexical_cast<double > (t);
-//                }
-//                else
-//                {
-//                        assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
-//                }
-//                c++;
-//            }
-//            assert(c == numFeats);
-//
-//            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
-////        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
-//        additiveConstant=0;
-//#ifdef DIVIDE_BY_SIGMA        
-//        additiveConstant= SigInvDetLogMin/2.0;
-////        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
-//
-//#endif
-////        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
+        std::string line;
+        string separator=",";
+        boost::char_separator<char> sep(separator.data());
+        numFeats=0;
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            // dry run to estimate the number of dimensions
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                numFeats++;
+            }
+            minv.resize(numFeats);
+         //   cerr<<filename<<","<<numFeats<<endl;
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                minv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }
+        
+        
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            maxv.resize(numFeats);
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                maxv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }   
+    MatrixXd sigmaInv;
+    double additiveConstant;
+        
+        sigmaInv.resize(numFeats,numFeats);
+        for (int r = 0; r < numFeats; r++)
+        {
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            int c = 0;
+
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                sigmaInv(r, c) = boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c == numFeats);
+        }
+
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            double SigInvDetLogMin;
+            int c = 0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                if(c==0)
+                {
+                        SigInvDetLogMin = boost::lexical_cast<double > (t);
+                }
+                else
+                {
+                        assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
+                }
+                c++;
+            }
+            assert(c == numFeats);
+
+            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+        additiveConstant=0;
+#ifdef DIVIDE_BY_SIGMA        
+        additiveConstant= SigInvDetLogMin/2.0;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+        
+        while (file.good()) 
+        {
+            getline(file, line); //each line is a label
+            if (line.size() == 0)
+            {
+                assert(gaussians.size()>=1);
+                break;
+            }
+            
+            c=0;
+            VectorXd meanv;
+            meanv.resize(numFeats);            
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                meanv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            
+            assert(c==numFeats);
+            
+            getline(file, line); 
+            assert (line.size() > 0);
+            
+            c = 0;
+            double mixP;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                if(c==0)
+                {
+                       mixP = boost::lexical_cast<double > (t);
+                }
+                else
+                {
+                        assert(mixP == boost::lexical_cast<double > (t));                    
+                }
+                c++;
+            }
+            assert(c == numFeats);
+            
+            gaussians.push_back(MultiVarGaussianComponent(meanv,sigmaInv,additiveConstant,mixP));
+            
+        }
+
+            
+
+        
+#endif
+        
+//        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
     
