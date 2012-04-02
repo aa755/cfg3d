@@ -12,7 +12,7 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
-bool metaLearning=false;
+bool metaLearning=true;
 string functionName;
 string learning;
 
@@ -390,7 +390,7 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
 
 }
 
-/*
+/**
  * 
  */
 int main(int argc, char** argv)

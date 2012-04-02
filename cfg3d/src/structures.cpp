@@ -4,7 +4,7 @@
 //options
 #define MAX_SEG_INDEX 100000
 #define DIVIDE_BY_SIGMA
-//#define META_LEARNING
+
 //#define COST_THRESHOLD 2000
 //#define OCCLUSION_SHOW_HEATMAP
 //#define PROPABILITY_RANGE_CHECK
@@ -72,11 +72,9 @@ public:
     const static double floorOcclusionPenalty=2000000.0;
     const static double costPruningThresh=          6000.0;
     const static double costPruningThreshNonComplex=1000.0;
-//    const static double costPruningThresh=          30000000000000000000.0;
-  //  const static double costPruningThreshNonComplex=3000000000000000000.0;
-//    const static double additionalCostThreshold=100;
     const static double additionalCostThreshold=300;
     const static double featScale=1000;
+    const static double closeEnoughThresh=0.1;
     
 //    const static double missPenalty=9000;
 //    const static double onTopPairDivide=5;
@@ -177,18 +175,35 @@ public:
 //    }
 };
 
-class MultiVarGaussian : public MultiVariateProbabilityDistribution
+class MultiVarGaussianComponent : public MultiVariateProbabilityDistribution
 {
+protected:
     VectorXd mean;
-    VectorXd minv;
-    VectorXd maxv;
     MatrixXd sigmaInv;
     double additiveConstant;
+    double mixingProb;
 public:
-    double minusLogProb(VectorXd & x)
+    MultiVarGaussianComponent()
+    {
+        mixingProb=1.0;
+    }
+    
+    MultiVarGaussianComponent(VectorXd & mean,MatrixXd & sigmaInv,double additiveConstant,double mixingProb)
+    {
+        numFeats=mean.rows();
+        this->mean=mean;
+        this->sigmaInv=sigmaInv;
+        assert(sigmaInv.cols()==numFeats);
+        assert(sigmaInv.rows()==numFeats);
+        
+        this->additiveConstant=additiveConstant;
+        this->mixingProb=mixingProb;
+        
+    }
+    
+    virtual double minusLogProb(VectorXd & x)
     {
         assert(x.rows()==numFeats);
-//        MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 );
         MatrixXd value= ((x-mean).transpose()*sigmaInv*(x-mean)/2.0 ) ;
         assert(value.rows()==1);
         assert(value.cols()==1);
@@ -200,6 +215,19 @@ public:
         }
         return lp;
     }
+    
+    virtual double getProb(VectorXd & x)
+    {
+        double mlp=minusLogProb(x);
+        return exp(-mlp)*mixingProb;
+    }
+};
+
+class MultiVarGaussian : public MultiVarGaussianComponent
+{
+    VectorXd minv;
+    VectorXd maxv;
+public:
 
     MultiVarGaussian(std::ifstream & file, string filename)
     {
@@ -291,6 +319,165 @@ public:
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
 
 #endif
+//        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
+    }
+    
+    
+};
+class MultiVarMixtureOfGaussian : public MultiVariateProbabilityDistribution
+{
+    VectorXd minv;
+    VectorXd maxv;
+    vector<MultiVarGaussianComponent> gaussians;
+    typedef vector<MultiVarGaussianComponent>::iterator CompItr;
+public:
+    virtual double minusLogProb(VectorXd & x)
+    {
+        double sum=0;
+        for(CompItr it=gaussians.begin();it!=gaussians.end();it++)
+        {
+            sum+=it->getProb(x);
+        }
+        double mlp=-log(sum);
+        return mlp;
+    }
+
+    MultiVarMixtureOfGaussian(std::ifstream & file, string filename)
+    {
+        std::string line;
+        string separator=",";
+        boost::char_separator<char> sep(separator.data());
+        numFeats=0;
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            // dry run to estimate the number of dimensions
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                numFeats++;
+            }
+            minv.resize(numFeats);
+         //   cerr<<filename<<","<<numFeats<<endl;
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                minv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }
+        
+        
+        {        
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            maxv.resize(numFeats);
+            int c=0;
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                maxv(c)=boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c==numFeats);
+        }   
+    MatrixXd sigmaInv;
+    double additiveConstant;
+        
+        sigmaInv.resize(numFeats,numFeats);
+        for (int r = 0; r < numFeats; r++)
+        {
+            getline(file, line);
+            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            int c = 0;
+
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                sigmaInv(r, c) = boost::lexical_cast<double > (t);
+                c++;
+            }
+            assert(c == numFeats);
+        }
+
+            double SigInvDetLogMin;
+            
+            {
+                getline(file, line);
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+                int c = 0;
+                BOOST_FOREACH(std::string t, tokens1)
+                {
+                    if(c==0)
+                    {
+                            SigInvDetLogMin = boost::lexical_cast<double > (t);
+                    }
+                    else
+                    {
+                            assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
+                    }
+                    c++;
+                }
+                assert(c == numFeats);
+            }
+            
+            cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
+        additiveConstant=0;
+#ifdef DIVIDE_BY_SIGMA        
+        additiveConstant= SigInvDetLogMin/2.0;
+//        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+#endif
+        
+        while (file.good()) 
+        {
+            getline(file, line); //each line is a label
+            if (line.size() == 0)
+            {
+                assert(gaussians.size()>=1);
+                break;
+            }
+            
+            int c=0;
+            VectorXd meanv;
+            meanv.resize(numFeats);   
+            {
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+
+                BOOST_FOREACH(std::string t, tokens1)
+                {
+                    meanv(c)=boost::lexical_cast<double > (t);
+                    c++;
+                }
+            }
+            assert(c==numFeats);
+            
+            getline(file, line); 
+            assert (line.size() > 0);
+            
+            c = 0;
+            double mixP;
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+            BOOST_FOREACH(std::string t, tokens1)
+            {
+                if(c==0)
+                {
+                       mixP = boost::lexical_cast<double > (t);
+                }
+                else
+                {
+                        assert(mixP == boost::lexical_cast<double > (t));                    
+                }
+                c++;
+            }
+            assert(c == numFeats);
+            
+            gaussians.push_back(MultiVarGaussianComponent(meanv,sigmaInv,additiveConstant,mixP));
+            
+        }
+
+            
+
+        if(gaussians.size()>1)
+                cerr<<filename<<":mult"<<gaussians.size()<<endl;
 //        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
@@ -2737,7 +2924,7 @@ public:
             modelFileMissing=true;
             return;
         }
-        pdist=new MultiVarGaussian(file,filename);
+        pdist=new MultiVarMixtureOfGaussian(file,filename);
         file.close();
     }
     
@@ -2845,7 +3032,7 @@ public:
  */
 bool Rule::META_LEARNING;    
     bool Plane::isCloseEnough(PointT& p) {
-        if (costOfAddingPoint(p) > .05 && !Rule::META_LEARNING) {
+        if (costOfAddingPoint(p) > Params::closeEnoughThresh && !Rule::META_LEARNING) {
             return false;
         } else {
             return true;
@@ -4296,7 +4483,7 @@ public:
                     ifstream file(fnamep.data(), std::ios::in);
                     if(file.is_open())
                     {
-                        pairWiseModels[typeSt]=new MultiVarGaussian(file,fname);
+                        pairWiseModels[typeSt]=new MultiVarMixtureOfGaussian(file,fname);
                         file.close();
                     }
 
@@ -4432,8 +4619,11 @@ public:
                 {
                     additionalCost += Params::onTopPairDefaultOnModelMissing;
 #ifdef IGNORE_COMPLEX_MODEL_MISSING
-                    delete LHS;
-                    return NULL;                 
+                    if(!Rule::META_LEARNING)
+                    {
+                        delete LHS;
+                        return NULL;                 
+                    }
 #endif
                 }
 
