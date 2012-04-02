@@ -190,10 +190,15 @@ public:
     
     MultiVarGaussianComponent(VectorXd & mean,MatrixXd & sigmaInv,double additiveConstant,double mixingProb)
     {
+        numFeats=mean.rows();
         this->mean=mean;
         this->sigmaInv=sigmaInv;
+        assert(sigmaInv.cols()==numFeats);
+        assert(sigmaInv.rows()==numFeats);
+        
         this->additiveConstant=additiveConstant;
         this->mixingProb=mixingProb;
+        
     }
     
     virtual double minusLogProb(VectorXd & x)
@@ -393,30 +398,34 @@ public:
             assert(c == numFeats);
         }
 
-            getline(file, line);
-            boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
             double SigInvDetLogMin;
-            int c = 0;
-            BOOST_FOREACH(std::string t, tokens1)
+            
             {
-                if(c==0)
+                getline(file, line);
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+                int c = 0;
+                BOOST_FOREACH(std::string t, tokens1)
                 {
-                        SigInvDetLogMin = boost::lexical_cast<double > (t);
+                    if(c==0)
+                    {
+                            SigInvDetLogMin = boost::lexical_cast<double > (t);
+                    }
+                    else
+                    {
+                            assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
+                    }
+                    c++;
                 }
-                else
-                {
-                        assert(SigInvDetLogMin == boost::lexical_cast<double > (t));                    
-                }
-                c++;
+                assert(c == numFeats);
             }
-            assert(c == numFeats);
-
+            
             cerr<<"logd:"<<filename<<SigInvDetLogMin<<endl;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 - log(sigmaInv.determinant())/2.0;
         additiveConstant=0;
 #ifdef DIVIDE_BY_SIGMA        
         additiveConstant= SigInvDetLogMin/2.0;
 //        additiveConstant=(log(2*boost::math::constants::pi<double>()))*numFeats/2.0 +SigInvDetLogMin/2.0;
+#endif
         
         while (file.good()) 
         {
@@ -427,15 +436,18 @@ public:
                 break;
             }
             
-            c=0;
+            int c=0;
             VectorXd meanv;
-            meanv.resize(numFeats);            
-            BOOST_FOREACH(std::string t, tokens1)
+            meanv.resize(numFeats);   
             {
-                meanv(c)=boost::lexical_cast<double > (t);
-                c++;
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
+
+                BOOST_FOREACH(std::string t, tokens1)
+                {
+                    meanv(c)=boost::lexical_cast<double > (t);
+                    c++;
+                }
             }
-            
             assert(c==numFeats);
             
             getline(file, line); 
@@ -443,6 +455,7 @@ public:
             
             c = 0;
             double mixP;
+                boost::tokenizer<boost::char_separator<char> > tokens1(line, sep);
             BOOST_FOREACH(std::string t, tokens1)
             {
                 if(c==0)
@@ -463,9 +476,8 @@ public:
 
             
 
-        
-#endif
-        
+        if(gaussians.size()>1)
+                cerr<<filename<<":mult"<<gaussians.size()<<endl;
 //        cerr<<"-logdet:"<<sigmaInv.determinant()<<","<<- log(sigmaInv.determinant())<<endl;
     }
     
@@ -2912,7 +2924,7 @@ public:
             modelFileMissing=true;
             return;
         }
-        pdist=new MultiVarGaussian(file,filename);
+        pdist=new MultiVarMixtureOfGaussian(file,filename);
         file.close();
     }
     
@@ -4471,7 +4483,7 @@ public:
                     ifstream file(fnamep.data(), std::ios::in);
                     if(file.is_open())
                     {
-                        pairWiseModels[typeSt]=new MultiVarGaussian(file,fname);
+                        pairWiseModels[typeSt]=new MultiVarMixtureOfGaussian(file,fname);
                         file.close();
                     }
 

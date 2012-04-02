@@ -68,7 +68,7 @@ function [] = writeMoGs(outputFileName,matrix)
         sigmaInv=inv(covar);
         const=(-log(det(sigmaInv)));
         constV=ones(1,numFeats)*const;
-        outmat=[meanv;minv;maxv;sigmaInv;constV];   
+        outmat=[minv;maxv;sigmaInv;constV;meanv;ones(1,numFeats)];   
         (-log(det(inv(covar))))
         assert((-log(det(inv(covar))))>=0);
     else
