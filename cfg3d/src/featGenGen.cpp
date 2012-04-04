@@ -12,7 +12,7 @@ using namespace std;
 using namespace boost;
 
 char * dotFile;
-bool metaLearning=true;
+bool metaLearning=false;
 string functionName;
 string learning;
 
@@ -369,8 +369,8 @@ ofstream TreeNode::errFile;
 void createRunLearnFront(ofstream & outputLearnerCode) {
     outputLearnerCode << "#include\"helper.cpp\"\n";
     outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
-    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn) {"<<endl;
-    outputLearnerCode<<"    initialize(sceneToLearn);"<<endl;
+    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> & sceneToLearn,pcl::PointCloud<PointT> & originalScene) {"<<endl;
+    outputLearnerCode<<"    initialize(sceneToLearn,originalScene);"<<endl;
     outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
     outputLearnerCode<<"RPlaneSeg rulePG;\n";
     outputLearnerCode<<"Plane *temp;\n";
@@ -381,11 +381,12 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     outputLearnerCode<<"}"<<endl<<endl;
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
-    outputLearnerCode<<"if(argc!=2)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile>\"<<endl;\n exit(-1);\n}\n";        
+    outputLearnerCode<<"if(argc!=3)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile> <origPCDFileWithNaNs>\"<<endl;\n exit(-1);\n}\n";        
     outputLearnerCode<<"    fileName = string(argv[1]);"<<endl;
 
     outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
-    outputLearnerCode<<"    runLearn(scene);"<<endl;
+    outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[2], originalScene);"<<endl;
+    outputLearnerCode<<"    runLearn(scene,originalScene);"<<endl;
     outputLearnerCode<<"}"<<endl;
 
 }

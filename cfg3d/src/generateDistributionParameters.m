@@ -77,8 +77,8 @@ function [] = writeMoGs(outputFileName,matrix)
         bestBIC=inf;
         try
             for i=1:3
-                model=gmdistribution.fit(matrix,i,'SharedCov',true,'CovType','diagonal');
-%                model=gmdistribution.fit(matrix,i,'SharedCov',true);
+%                model=gmdistribution.fit(matrix,i,'SharedCov',true,'CovType','diagonal');
+                model=gmdistribution.fit(matrix,i,'SharedCov',true);
                 if(bestBIC>model.BIC)
                     bestBIC=model.BIC
                     bestModel=model;
@@ -87,8 +87,8 @@ function [] = writeMoGs(outputFileName,matrix)
         catch err
             assert(i>1);
         end
-        covar=diag(bestModel.Sigma);
-%        covar=bestModel.Sigma;
+%        covar=diag(bestModel.Sigma);
+        covar=bestModel.Sigma;
         %if(rankm<numFeats)
         covar=covar+eye(numFeats);
         %end

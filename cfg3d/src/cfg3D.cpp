@@ -361,10 +361,12 @@ int main(int argc, char** argv) {
     
     if(argc!=3&&argc!=4)
     {
-        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> [FoldNum]"<<endl;
+        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    pcl::io::loadPCDFile<PointT>(argv[2], originalScene);
+    
     fileName = string(argv[1]);
     fileName = fileName.substr(0, fileName.length()-4);
 
@@ -385,8 +387,8 @@ int main(int argc, char** argv) {
     rulePath=exec(command.data());
     rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
     
-    if(argc==4)
-        rulePath=rulePath+string(argv[3]);
+    if(argc==5)
+        rulePath=rulePath+string(argv[4]);
     
     runParse(neighbors, maxSegIndex,gtLableFileName);
 

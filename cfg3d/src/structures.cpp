@@ -72,12 +72,12 @@ public:
     const static double objectCost=10000000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
-    const static double costPruningThresh=2000.0;
-    const static double costPruningThreshNonComplex=500;
-//    const static double costPruningThresh=          DBL_MAX;
-//  const static double costPruningThreshNonComplex=DBL_MAX;
-    const static double additionalCostThreshold=220;
-//    const static double additionalCostThreshold=DBL_MAX;
+//    const static double costPruningThresh=2000.0;
+//    const static double costPruningThreshNonComplex=500;
+    const static double costPruningThresh=          DBL_MAX;
+  const static double costPruningThreshNonComplex=DBL_MAX;
+//    const static double additionalCostThreshold=220;
+    const static double additionalCostThreshold=DBL_MAX;
     const static double featScale=1000;
     const static double closeEnoughThresh=0.1;
     
@@ -588,6 +588,7 @@ Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+pcl::PointCloud<PointT> originalScene;
 
 PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
     return fromScene.points[pointIndex];
@@ -1642,6 +1643,8 @@ protected:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+        hogFeats/=numPoints;
+
         distanceToBoundary/=numPoints;
     }
     
@@ -4716,5 +4719,43 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
+map<int,int> filteredIndexToNonFiltered;
+void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
+{
+    {//braces to restrict scope of iterators .. to prevent accidental use
+        
+         
+        pcl::PointCloud<PointT>::iterator itSrc = src.begin();
+        pcl::PointCloud<PointT>::iterator itDst = dst.begin();
+        for (;(itSrc!=src.end()&&itDst!=dst.end()) ;)
+        {
+            if (isnan((*itSrc).x))
+            {
+                itSrc++;
+                continue;
+            }
+            if (isnan((*itDst).x))
+            {
+                itDst++;
+                continue;
+            }
 
+            int srcIndex=itSrc-src.begin();
+            int dstIndex=itDst-dst.begin();
+            filteredIndexToNonFiltered[srcIndex]=dstIndex;
+            itSrc++;
+            itDst++;
+        }
+        // the remaining part in this scope is only for safety check
+            while (itSrc!=src.points.end() && isnan((*itSrc).x))
+                itSrc++;
+        
+            while (itDst!=dst.points.end() && isnan((*itDst).x))
+                itDst++;
+        
+        assert(itSrc==src.points.end()&&itDst==dst.points.end()); // both src and dst must have same number of nonNans
+        
+        
+    }    
+}
 #endif
