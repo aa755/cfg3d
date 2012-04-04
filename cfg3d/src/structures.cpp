@@ -48,6 +48,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
+#include "HOG.cpp"
 using boost::math::normal;
 string fileName;
 class NonTerminal;
@@ -70,7 +71,7 @@ public:
     const static double objectCost=10000000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
-    const static double costPruningThresh=          2000.0;
+    const static double costPruningThresh=2000.0;
     const static double costPruningThreshNonComplex=500;
 //    const static double costPruningThresh=          DBL_MAX;
 //  const static double costPruningThreshNonComplex=DBL_MAX;
@@ -4702,5 +4703,6 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
+HOGPCD hogpcd;
 
 #endif
