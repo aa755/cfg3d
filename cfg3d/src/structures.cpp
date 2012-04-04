@@ -65,14 +65,17 @@ public:
     const static double missPenalty=                9000.0;
     const static double onTopPairDivide=99;
     const static double onTopPairDefaultOnModelMissing=300.0;
-    const static int timeLimit=4000;
+    const static int timeLimit=5000;
     const static double doubleRuleDivide=30;
     const static double objectCost=10000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
-    const static double costPruningThresh=          6000.0;
-    const static double costPruningThreshNonComplex=1000.0;
-    const static double additionalCostThreshold=300;
+    const static double costPruningThresh=          2000.0;
+    const static double costPruningThreshNonComplex=900;
+//    const static double costPruningThresh=          DBL_MAX;
+//  const static double costPruningThreshNonComplex=DBL_MAX;
+    const static double additionalCostThreshold=120;
+//    const static double additionalCostThreshold=DBL_MAX;
     const static double featScale=1000;
     const static double closeEnoughThresh=0.1;
     
@@ -3914,6 +3917,7 @@ public:
        {
            featureFile<<cost<<endl;
            output->declareOptimal();
+           return true;
        }
         
         if(isinf(cost))
