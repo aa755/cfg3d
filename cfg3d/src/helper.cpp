@@ -129,6 +129,8 @@ Terminal * getTerminalSafe(int segmentNum)
 }
 vector<Terminal*> dummy;
 void initialize(pcl::PointCloud<PointT> scene) {
+    pcl::PointCloud<PointT>::Ptr scenePtr=createStaticShared<pcl::PointCloud<PointT> >(&scene);
+    hogpcd.init(scenePtr);
 
     overallMinZ=infinity();
     Terminal::totalNumTerminals=0;

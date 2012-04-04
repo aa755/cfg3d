@@ -369,6 +369,8 @@ int main(int argc, char** argv) {
     fileName = fileName.substr(0, fileName.length()-4);
 
     occlusionChecker = new OccupancyMap<PointT>(scene);
+    pcl::PointCloud<PointT>::Ptr scenePtr=createStaticShared<pcl::PointCloud<PointT> >(&scene);
+    hogpcd.init(scenePtr);
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     map<int, set<int> > neighbors;

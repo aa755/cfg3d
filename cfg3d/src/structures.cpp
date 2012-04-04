@@ -59,6 +59,7 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 string rulePath;
+HOGPCD hogpcd;
 
 class Params
 {
@@ -624,6 +625,7 @@ protected:
     pcl::PointXYZ minxyz;
     pcl::PointXYZ maxxyz;
     double distanceToBoundary;
+    HOGFeaturesOfBlock hogFeats;
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
@@ -772,6 +774,7 @@ public:
         // horizontal convex hull area
         features.push_back(horzArea*Params::featScale);
         
+        hogFeats.pushTextureFeats(features);
         // move eigen vector code to here
         // linearness, planarness, scatter
         
@@ -1058,6 +1061,11 @@ public:
     {
         return distanceToBoundary;
     }
+
+    const HOGFeaturesOfBlock & getHogFeats() const
+    {
+        return hogFeats;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -1237,6 +1245,8 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+        hogpcd.findHog(pointIndices,hogFeats);
+        
     }
     
     vector<int> & getPointIndices() {
@@ -1607,6 +1617,7 @@ protected:
     
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
+        hogFeats.initZeros();
         ColorRGB avg(0,0,0);
         numPoints=0;
         centroid.x = 0;
@@ -1614,7 +1625,8 @@ protected:
         centroid.z = 0;
         distanceToBoundary=0;
         
-        for (size_t i = 0; i < children.size(); i++) {
+        for (size_t i = 0; i < children.size(); i++) 
+        {
             children.at(i)->getCentroid(childCent);
             long numPointsInChild=children.at(i)->getNumPoints();
             numPoints+=numPointsInChild;
@@ -1623,6 +1635,7 @@ protected:
             centroid.z += numPointsInChild*childCent.z;
             avg+=(children.at(i)->getAvgColor()*numPointsInChild);
             distanceToBoundary += numPointsInChild * (children.at(i)->getDistanceToBoundary());
+            hogFeats+=(children.at(i)->getHogFeats());
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
@@ -4703,6 +4716,5 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
-HOGPCD hogpcd;
 
 #endif

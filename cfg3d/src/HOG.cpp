@@ -31,6 +31,23 @@ public:
   static int const numDirections=9;
   static int const numFeats=27+4+1;
   double feats[numFeats];
+  
+  HOGFeaturesOfBlock()
+  {
+       for(int i=0;i<numFeats;i++)
+       {
+           feats[i]=0;
+       }      
+  }
+  
+  void initZeros()
+  {
+       for(int i=0;i<numFeats;i++)
+       {
+           feats[i]=0;
+       }      
+  }
+  
   static void aggregateFeatsOfBlocks(std::vector<HOGFeaturesOfBlock> & featsOfBlocks, HOGFeaturesOfBlock & aggFeats)
   {
  //   cout<<"here goes the HOG feats"<<endl;
@@ -67,6 +84,23 @@ public:
     for(size_t i=numDirections*3;i<numFeats-1;i++)
       featureVector.push_back(feats[i]);
   }
+  
+     void operator +=(const HOGFeaturesOfBlock & other)
+   {
+       for(int i=0;i<numFeats;i++)
+       {
+           feats[i]+=other.feats[i];
+       }
+   }
+
+   void operator /=(const int & num)
+   {
+       for(int i=0;i<numFeats;i++)
+       {
+           feats[i]/=(double)num;
+       }
+   }
+
 };
 
 class HOG
