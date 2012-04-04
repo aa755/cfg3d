@@ -48,6 +48,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
+#include "HOG.cpp"
 using boost::math::normal;
 string fileName;
 class NonTerminal;
@@ -58,6 +59,7 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 string rulePath;
+HOGPCD hogpcd;
 
 class Params
 {
@@ -70,12 +72,24 @@ public:
     const static double objectCost=10000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
+<<<<<<< HEAD
     const static double costPruningThresh=          2000.0;
     const static double costPruningThreshNonComplex=900;
 //    const static double costPruningThresh=          DBL_MAX;
 //  const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=120;
 //    const static double additionalCostThreshold=DBL_MAX;
+=======
+#ifdef META_LEARNING
+    const static double costPruningThresh=          DBL_MAX;
+  const static double costPruningThreshNonComplex=DBL_MAX;
+    const static double additionalCostThreshold=DBL_MAX;
+#else
+    const static double costPruningThresh=2000.0;
+    const static double costPruningThreshNonComplex=500;
+    const static double additionalCostThreshold=220;
+#endif
+>>>>>>> 0d5aab82f544f0af9416958792e22a273b752cc7
     const static double featScale=1000;
     const static double closeEnoughThresh=0.1;
     
@@ -586,6 +600,7 @@ Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
 pcl::PointCloud<PointT> scene;
+pcl::PointCloud<PointT> originalScene;
 
 PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
     return fromScene.points[pointIndex];
@@ -623,6 +638,7 @@ protected:
     pcl::PointXYZ minxyz;
     pcl::PointXYZ maxxyz;
     double distanceToBoundary;
+    HOGFeaturesOfBlock hogFeats;
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
@@ -771,6 +787,7 @@ public:
         // horizontal convex hull area
         features.push_back(horzArea*Params::featScale);
         
+        hogFeats.pushTextureFeats(features);
         // move eigen vector code to here
         // linearness, planarness, scatter
         
@@ -1057,6 +1074,11 @@ public:
     {
         return distanceToBoundary;
     }
+
+    const HOGFeaturesOfBlock & getHogFeats() const
+    {
+        return hogFeats;
+    }
     //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
 };
 
@@ -1236,6 +1258,8 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+        hogpcd.findHog(pointIndices,hogFeats);
+        
     }
     
     vector<int> & getPointIndices() {
@@ -1606,6 +1630,7 @@ protected:
     
     void computeCentroidAndColorAndNumPoints() {
         pcl::PointXYZ childCent;
+        hogFeats.initZeros();
         ColorRGB avg(0,0,0);
         numPoints=0;
         centroid.x = 0;
@@ -1613,7 +1638,8 @@ protected:
         centroid.z = 0;
         distanceToBoundary=0;
         
-        for (size_t i = 0; i < children.size(); i++) {
+        for (size_t i = 0; i < children.size(); i++) 
+        {
             children.at(i)->getCentroid(childCent);
             long numPointsInChild=children.at(i)->getNumPoints();
             numPoints+=numPointsInChild;
@@ -1622,12 +1648,15 @@ protected:
             centroid.z += numPointsInChild*childCent.z;
             avg+=(children.at(i)->getAvgColor()*numPointsInChild);
             distanceToBoundary += numPointsInChild * (children.at(i)->getDistanceToBoundary());
+            hogFeats+=(children.at(i)->getHogFeats());
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
+        hogFeats/=numPoints;
+
         distanceToBoundary/=numPoints;
     }
     
@@ -4702,5 +4731,43 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
+map<int,int> filteredIndexToNonFiltered;
+void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
+{
+    {//braces to restrict scope of iterators .. to prevent accidental use
+        
+         
+        pcl::PointCloud<PointT>::iterator itSrc = src.begin();
+        pcl::PointCloud<PointT>::iterator itDst = dst.begin();
+        for (;(itSrc!=src.end()&&itDst!=dst.end()) ;)
+        {
+            if (isnan((*itSrc).x))
+            {
+                itSrc++;
+                continue;
+            }
+            if (isnan((*itDst).x))
+            {
+                itDst++;
+                continue;
+            }
 
+            int srcIndex=itSrc-src.begin();
+            int dstIndex=itDst-dst.begin();
+            filteredIndexToNonFiltered[srcIndex]=dstIndex;
+            itSrc++;
+            itDst++;
+        }
+        // the remaining part in this scope is only for safety check
+            while (itSrc!=src.points.end() && isnan((*itSrc).x))
+                itSrc++;
+        
+            while (itDst!=dst.points.end() && isnan((*itDst).x))
+                itDst++;
+        
+        assert(itSrc==src.points.end()&&itDst==dst.points.end()); // both src and dst must have same number of nonNans
+        
+        
+    }    
+}
 #endif
