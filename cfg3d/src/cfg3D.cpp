@@ -359,20 +359,23 @@ int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     Rule::META_LEARNING=false;
     
-    if(argc!=3&&argc!=4)
+    if(argc!=4&&argc!=5)
     {
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
     pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    pcl::io::loadPCDFile<PointT>(argv[2], originalScene);
-    
+    pcl::io::loadPCDFile<PointT>(argv[3], originalScene);
+        pcl::PointCloud<PointT>::Ptr originalScenePtr=createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
+
+    generatePTIndexMapping(scene,originalScene);
+    cerr<<"origPTR:"<<originalScenePtr->size()<<endl;
+    hogpcd.init(originalScenePtr);
+
     fileName = string(argv[1]);
     fileName = fileName.substr(0, fileName.length()-4);
 
     occlusionChecker = new OccupancyMap<PointT>(scene);
-    pcl::PointCloud<PointT>::Ptr scenePtr=createStaticShared<pcl::PointCloud<PointT> >(&scene);
-    hogpcd.init(scenePtr);
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     map<int, set<int> > neighbors;
