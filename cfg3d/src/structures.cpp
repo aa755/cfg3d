@@ -4701,7 +4701,8 @@ public:
             //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
             //occFloor->setBaseHallucinated(true);
             LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted,terminals);
-            lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
+            if(lhsOcc!=NULL)
+                lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
             addToPqueueIfNotDuplicate(lhsOcc, pqueue);            
         }
         
