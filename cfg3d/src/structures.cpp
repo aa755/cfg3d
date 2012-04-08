@@ -69,7 +69,7 @@ public:
     const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=900;
     const static double doubleRuleDivide=200;
-    const static double objectCost=10000000000000000000000.0;
+    const static double objectCost=1000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
 #ifdef META_LEARNING
