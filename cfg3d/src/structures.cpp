@@ -69,7 +69,7 @@ public:
     const static double onTopPairDefaultOnModelMissing=300.0;
     const static int timeLimit=500;
     const static double doubleRuleDivide=30;
-    const static double objectCost=10000000000000000000.0;
+    const static double objectCost=1000000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
 #ifdef META_LEARNING
@@ -77,9 +77,9 @@ public:
   const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
 #else
-    const static double costPruningThresh=2000.0;
-    const static double costPruningThreshNonComplex=500;
-    const static double additionalCostThreshold=220;
+    const static double costPruningThresh=20000.0;
+    const static double costPruningThreshNonComplex=5000;
+    const static double additionalCostThreshold=1000;
 #endif
     const static double featScale=1000;
     const static double closeEnoughThresh=0.1;
