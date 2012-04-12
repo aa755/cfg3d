@@ -1887,7 +1887,7 @@ public:
             if(cost < children[i]->getCost())
             {
                 cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
-                //cost = children[i]->getCost();
+                cost = children[i]->getCost();
             }
         }
         costSet = true;
@@ -3934,7 +3934,8 @@ public:
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
-        assert(numIntermediates!=0);
+        if(numIntermediates==0)
+            numIntermediates=1;
         output->setAdditionalCost(cost/(numIntermediates*Params::doubleRuleDivide) - log(Params::objectCost));
         numIntermediates=0;
         
