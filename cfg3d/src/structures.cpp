@@ -65,10 +65,10 @@ class Params
 {
 public:
     const static double missPenalty=                9000.0;
-    const static double onTopPairDivide=200;
+    const static double onTopPairDivide=50;
     const static double onTopPairDefaultOnModelMissing=700.0;
     const static int timeLimit=4000;
-    const static double doubleRuleDivide=400;
+    const static double doubleRuleDivide=60;
     const static double objectCost=1000000000000000.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
@@ -85,17 +85,6 @@ public:
 #endif
     const static double featScale=1000;
     
-//    const static double missPenalty=9000;
-//    const static double onTopPairDivide=5;
-//    const static double onTopPairDefaultOnModelMissing=50;
-//    const static int timeLimit=2000;
-//    const static double doubleRuleDivide=10;
-//    const static double objectCost=60;
-//    const static double maxFloorHeight=0.05;
-//    const static double floorOcclusionPenalty=20;
-//    const static double costPruningThresh=150;
-//    const static double costPruningThreshNonComplex=45;
-//    const static double featScale=1000;        
 };
 
 
@@ -1887,8 +1876,8 @@ public:
         {
             if(cost < children[i]->getCost())
             {
-                cost = children[i]->getCost();
                 cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+                cost = children[i]->getCost();
             }
         }
         costSet = true;
@@ -3490,7 +3479,7 @@ template<typename LHS_Type, typename RHS_Type1, typename RHS_Type2 >
 class DoubleRule : public Rule
 {
 protected:
-    int hello;
+    int numIntermediates;
     //    template<typename RHS_Type1, typename RHS_Type2>
 
 //    template<typename NT_PlaneType>
@@ -3904,6 +3893,8 @@ public:
         rhs2->expandIntermediates(RHS2Expanded);
         assert(RHS2Expanded.size()==1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
         
+        numIntermediates=RHS1Expanded.size();
+        
         vector<Symbol*>::iterator it1;
         vector<Symbol*>::iterator it2;
         
@@ -3933,7 +3924,10 @@ public:
     virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
-        output->setAdditionalCost(cost/Params::doubleRuleDivide - log(Params::objectCost));
+        assert(numIntermediates!=0);
+        output->setAdditionalCost(cost/(numIntermediates*Params::doubleRuleDivide) - log(Params::objectCost));
+        numIntermediates=0;
+        
        if(Rule::META_LEARNING)
        {
            featureFile<<cost<<endl;
@@ -4654,7 +4648,7 @@ public:
 
             }
 
-            LHS->setAdditionalCost(additionalCost / Params::onTopPairDivide - log(Params::objectCost));
+            LHS->setAdditionalCost(additionalCost /( RHS1->objectsOnTop.size() * Params::onTopPairDivide) - log(Params::objectCost));
 
 
 

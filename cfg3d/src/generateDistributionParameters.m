@@ -60,9 +60,19 @@ function [] = writeMoGs(outputFileName,matrix)
     numFeats=length(covar);
     rankm=rank(covar);
     fprintf(1,'%d,%d\n',rankm,numFeats);
-    if(rankm<numFeats)
+%    if(rankm<numFeats)
+    if(true)
         %if(rankm<numFeats)
         covar=covar+eye(numFeats);
+        
+        for i=1:numFeats
+            for j=1:numFeats
+                if(i~=j)
+                    covar(i,j)=0;
+                end
+            end
+        end
+        
         %end
         assert(rank(covar)==numFeats);
         sigmaInv=inv(covar);
