@@ -358,7 +358,7 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     Rule::META_LEARNING=false;
-    
+    assert(Params::additionalCostThreshold==1000);
     if(argc!=4&&argc!=5)
     {
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;

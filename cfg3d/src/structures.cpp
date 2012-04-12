@@ -67,7 +67,7 @@ public:
     const static double missPenalty=                900000000000000000000000000.0;
     const static double onTopPairDivide=200;
     const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=900;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=200;
     const static double objectCost=1000000000000000000.0;
     const static double maxFloorHeight=0.05;
@@ -77,12 +77,12 @@ public:
   const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
 #else
-    const static double costPruningThresh=2000.0;
-    const static double costPruningThreshNonComplex=500;
-    const static double additionalCostThreshold=220;
+    const static double costPruningThresh=20000.0;
+    const static double costPruningThreshNonComplex=5000;
+    const static double additionalCostThreshold=1000;
 #endif
     const static double featScale=1000;
-    const static double closeEnoughThresh=0.1;
+    const static double closeEnoughThresh=0.05;
     
 //    const static double missPenalty=9000;
 //    const static double onTopPairDivide=5;
@@ -1886,8 +1886,8 @@ public:
         {
             if(cost < children[i]->getCost())
             {
-                cost = children[i]->getCost();
                 cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+                //cost = children[i]->getCost();
             }
         }
         costSet = true;
