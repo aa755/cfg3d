@@ -53,6 +53,18 @@ public:
      */
     virtual double getTransitionProb()=0;
     
+    /**
+     * when some tree in the forest is deleted, indices in the moves might 
+     * need to be updated. 
+     * 
+     * @param index : index of the tree which was deleted .. all inddices more 
+     * than this should be decremented . if the index was same, the move will become
+     * invalid . return true to indicate this
+     * 
+     * @return true if this move became invalid due to deletion
+     */
+    virtual bool handleDeletion(int index)=0;
+    virtual bool handleReplaceMent(int index)=0;
 };
 
 
@@ -106,6 +118,28 @@ public:
     {
         
     }
+    
+    virtual bool handleDeletion(int index)
+    {
+        if(index==mergeIndex1 || index==mergeIndex2)
+            return true;
+        
+        if(index<mergeIndex1)
+            mergeIndex1--;
+
+        if(index<mergeIndex2)
+            mergeIndex2--;
+     
+        return false;
+    }
+    
+    virtual bool handleReplaceMent(int index)
+    {
+        if(index==mergeIndex1 || index==mergeIndex2)
+            return true;
+     
+        return false;
+    }
 };
 
 class SplitMove: public Move
@@ -154,6 +188,27 @@ public:
     virtual double getTransitionProb()
     {
         return transProb;
+    }
+
+    virtual bool handleDeletion(int index)
+    {
+        if(index== delIndex)
+            return true;
+        
+        if(index<delIndex)
+            delIndex--;
+
+     
+        return false;
+    }
+    
+    virtual bool handleReplaceMent(int index)
+    {
+        if(index== delIndex)
+            return true;
+        
+     
+        return false;
     }
 };
 
