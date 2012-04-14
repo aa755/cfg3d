@@ -40,6 +40,7 @@
 #include "pcl/features/feature.h"
 #include <math.h>
 //sac_model_plane.h
+#include <boost/weak_ptr.hpp>
 
 using namespace Eigen;
 using namespace std;
@@ -665,6 +666,9 @@ protected:
     }
     
 public:
+    typedef  Symbol* Ptr;
+    typedef  boost::shared_ptr<Symbol> SPtr;
+    typedef  boost::weak_ptr<Symbol> WPtr;
 
     void undeclareOptimal()
     {
