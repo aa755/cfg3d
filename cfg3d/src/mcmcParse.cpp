@@ -31,6 +31,11 @@ public:
         trees.push_back(tree);
     }
     
+    void replaceTree(int index,Symbol::Ptr tree)
+    {
+        trees.at(index)=tree;
+    }
+    
     Symbol::Ptr getTree(int index)
     {
         return trees.at(index);
@@ -63,18 +68,40 @@ class MergeMove: public Move
     
 public:
     
+    vector<Symbol::Ptr> marshalParams()
+    {
+        vector<Symbol::Ptr> nodes;
+        nodes.push_back(mergeNode1);
+        nodes.push_back(mergeNode2);
+        return nodes;
+    }
+    
     MergeMove(Forest & cfor, int mergeIndex1, int mergeIndex2, RulePtr mergeRule)
     {
         this->mergeIndex1=mergeIndex1;
         this->mergeIndex2=mergeIndex2;
+        assert(mergeIndex1!=mergeIndex2);
+        
         mergeNode1=cfor.getTree(mergeIndex1);
         mergeNode2=cfor.getTree(mergeIndex2);
+        mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
         
     }
+    
     virtual void applyMove(Forest & cfor)
     {
+        int maxIndex=std::max(mergeIndex1,mergeIndex2); 
+        int minIndex=std::min(mergeIndex1,mergeIndex2);
         
+        // safety checks ... in the face of index updates
+        assert(cfor.getTree(mergeIndex1)==mergeNode1);
+        assert(cfor.getTree(mergeIndex2)==mergeNode2);
+        
+        cfor.replaceTree(minIndex,mergeResult);
+        
+        cfor.deleteTree(maxIndex);// max to reduce #index updates in moves
     }
+    
     virtual double getTransitionProb()
     {
         
