@@ -2927,6 +2927,11 @@ public:
     
     MultiVariateProbabilityDistribution * pdist;
     
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        assert(false); // all subclasses currently in use must have implemented it
+    }
+    
     Rule()
     {
         pdist=NULL;
@@ -3354,7 +3359,7 @@ class SingleRule : public Rule
     virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleInference(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleInference(RHS_extracted);
         
         if(newNT!=NULL)
         {
@@ -3425,7 +3430,7 @@ public:
 //        assert(3 == 2);
 //    }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type* input) {
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
@@ -3443,7 +3448,7 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         writeFeaturesToFile();
@@ -3454,9 +3459,9 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         if (Rule::META_LEARNING && this->pdist == NULL)
         {
             LHS->setAdditionalCost(0);
@@ -3466,7 +3471,7 @@ public:
         
         // to be replace by generic features
         computeFeatures(RHS);
-        if(setCost(LHS, RHS,terminals))
+        if(setCost(LHS, RHS))
              return LHS;
         else
         {
@@ -3474,8 +3479,12 @@ public:
             return NULL;
         }
     }
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<RHS_Type*>(children.at(0)));
+    }
 
-    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);
@@ -3543,7 +3552,7 @@ protected:
             if ( nt->isOfSubClass<RHS_Type2>())
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -3568,7 +3577,7 @@ protected:
             if ( nt->isOfSubClass<RHS_Type1>())
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -3897,7 +3906,7 @@ public:
         pairFeats.pushToVector(features);
     }
     
-    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
         features.clear();
         
@@ -3935,7 +3944,7 @@ public:
 //        output->appendFeatures(features);
     }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
         if(numIntermediates==0)
@@ -3958,19 +3967,19 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
-        appendAllFeatures(LHS,RHS1,RHS2,terminals);
+        appendAllFeatures(LHS,RHS1,RHS2);
         writeFeaturesToFile();
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         if(RHS1->getMinDistance(RHS2)>0.4)
             return NULL;
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         
         // below to be replaced by generic learned rules
         
@@ -3983,8 +3992,8 @@ public:
                 return LHS;
             }
             
-            appendAllFeatures(LHS, RHS1, RHS2, terminals);
-            if (setCost(LHS, RHS1, RHS2, terminals))
+            appendAllFeatures(LHS, RHS1, RHS2);
+            if (setCost(LHS, RHS1, RHS2))
             {
                 return LHS;
             }
@@ -4039,7 +4048,13 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<RHS_Type1*>(children.at(0)),dynamic_cast<RHS_Type2*>(children.at(1)));
+    }
+    
+    
+    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2)
     {
         assert(typeid(*RHS1)==typeid(RHS_Type1));
         assert(typeid(*RHS2)==typeid(RHS_Type2));
@@ -4141,6 +4156,12 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 }
 class RPlaneSeg : public Rule {
 public:
+    
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(children.at(0));
+    }
+    
 
     Plane * applyRuleInference(Symbol * extractedSym)
     {
@@ -4207,6 +4228,11 @@ public:
            LHS->declareOptimal();
        }
         return LHS;
+    }
+    
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<Plane*>(children.at(0)),dynamic_cast<Terminal*>(children.at(1)));
     }
 
     Plane * applyRuleLearning(Plane * RHS_plane, Terminal *RHS_seg) {
@@ -4354,7 +4380,7 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(this->cost);
@@ -4364,9 +4390,9 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         // to be replace by generic features
         additionalProcessing(LHS,RHS);
@@ -4541,7 +4567,7 @@ public:
         this->features.push_back((baseMaxZ - RHS2->getMinZ())*Params::featScale);
     }
     
-    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         LHS_Type * LHS = new LHS_Type();
         if(RHS1!=NULL)
@@ -4566,7 +4592,7 @@ public:
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
@@ -4598,9 +4624,9 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         
         if(Rule::META_LEARNING && this->pdist==NULL)
         {
@@ -4610,7 +4636,7 @@ public:
         }
         
             appendMainFeats(RHS1, RHS2);
-             if(!setCost(LHS, RHS1, RHS2, terminals)) // set main cost
+             if(!setCost(LHS, RHS1, RHS2)) // set main cost
              {
                 delete LHS;
                 return NULL;                 
@@ -4700,7 +4726,7 @@ public:
             if ( nt->isOfSubClass<RHS_Type1>())
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -4710,7 +4736,7 @@ public:
         {
             //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
             //occFloor->setBaseHallucinated(true);
-            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted,terminals);
+            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted);
             if(lhsOcc!=NULL)
                 lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
             addToPqueueIfNotDuplicate(lhsOcc, pqueue);            

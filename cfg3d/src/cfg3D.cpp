@@ -93,7 +93,7 @@ bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
 //}
 
 template<>
-VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2, vector<Terminal*> & terminals)
+VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2)
 {
             VisualObjects* LHS= new VisualObjects();
                 LHS->addChild(RHS1);
