@@ -21,6 +21,7 @@
 #include <time.h>
 #include "pcl/common/eigen.h"
 #include <fstream>
+#include <utility>
 using namespace std;
 
 struct null_deleter
@@ -435,7 +436,12 @@ public:
   }
 };
 
-
+template<typename T>
+void fast_erase(std::vector<T>& v, size_t i)
+{
+   v[i] = (v.back());
+   v.pop_back(); 
+}
 
 #endif	/* UTILS_H */
 

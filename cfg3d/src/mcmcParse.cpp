@@ -18,33 +18,13 @@ using namespace std;
  * 
  */
 
-class Forest
-{
-    vector<Symbol::Ptr> trees;
-public:
-    void deleteTree(int index)
-    {
-        trees.erase(trees.begin()+index);
-    }
-    void addTree(Symbol::Ptr tree)
-    {
-        trees.push_back(tree);
-    }
-    
-    void replaceTree(int index,Symbol::Ptr tree)
-    {
-        trees.at(index)=tree;
-    }
-    
-    Symbol::Ptr getTree(int index)
-    {
-        return trees.at(index);
-    }
-};
+class Forest;
 
 class Move
 {
 public:
+typedef  boost::shared_ptr<Move> SPtr;
+
     virtual void applyMove(Forest & cfor)=0;
     /**
      * 
@@ -63,9 +43,94 @@ public:
      * 
      * @return true if this move became invalid due to deletion
      */
-    virtual bool handleDeletion(int index)=0;
-    virtual bool handleReplaceMent(int index)=0;
+    virtual bool isInvalidatedOnDeletion(int index)=0;
+    virtual bool handleMove(int oldIndex, int newIndex)=0;
 };
+
+
+class Forest
+{
+    vector<Symbol::Ptr> trees;
+    vector<Move::SPtr> moves;
+public:
+
+    /**
+     * not supposed to deal with tree-move operation
+     * just remove all the moves which referenced it
+     * 
+     * @param index : the index of tree which was removed
+     */
+    void updateMovesOnDeletion(int index)
+    {
+
+        int count = 0;
+        int size = moves.size();
+        while (count < size)
+        {
+            Move::SPtr mptr = moves.at(count);
+            bool ret = mptr->isInvalidatedOnDeletion(index);
+            if (ret)
+            {
+                fast_erase(moves, count);
+                size--;
+                assert(size == moves.size());
+            }
+
+            count++;
+        }
+    }
+    
+    void deleteTree(int index)
+    {
+        
+        updateMovesOnDeletion(index);
+        fast_erase(trees,index);
+        int oldIndex=trees.size(); // the former last index ... the node there was moved to index
+        
+        {
+            vector<Move::SPtr>::iterator it;
+            
+            for(it=moves.begin();it!=moves.end();it++)
+            {
+                (*it)->handleMove(oldIndex,index);
+            }
+        }
+    }
+    
+    void addNewMoves(Symbol::Ptr tree)
+    {
+        
+    }
+    
+    void addTree(Symbol::Ptr tree)
+    {
+        trees.push_back(tree);
+        addNewMoves(tree);
+    }
+    
+    /**
+     * 
+     * @param index
+     * @param tree : tree not \in forest
+     */
+    void replaceTree(int index,Symbol::Ptr tree)
+    {
+        updateMovesOnDeletion(index);
+        trees.at(index)=tree;
+        addNewMoves(tree);
+    }
+    
+    
+    
+    Symbol::Ptr getTree(int index)
+    {
+        return trees.at(index);
+    }
+    
+    
+    
+};
+
 
 
 /**
@@ -119,26 +184,32 @@ public:
         
     }
     
-    virtual bool handleDeletion(int index)
+    virtual bool isInvalidatedOnDeletion(int index)
     {
         if(index==mergeIndex1 || index==mergeIndex2)
             return true;
         
-        if(index<mergeIndex1)
-            mergeIndex1--;
-
-        if(index<mergeIndex2)
-            mergeIndex2--;
      
         return false;
     }
     
-    virtual bool handleReplaceMent(int index)
+    virtual bool handleMove(int oldIndex, int newIndex )
     {
-        if(index==mergeIndex1 || index==mergeIndex2)
-            return true;
+        bool changed=false;
+        if(mergeIndex1 == oldIndex)
+        {
+            mergeIndex1 = newIndex;
+            changed=true;
+        }
+        
+        if(mergeIndex2 == oldIndex)
+        {
+            mergeIndex2 = newIndex;
+            changed=true;
+        }
+            
      
-        return false;
+        return changed;
     }
 };
 
@@ -190,28 +261,28 @@ public:
         return transProb;
     }
 
-    virtual bool handleDeletion(int index)
+    virtual bool isInvalidatedOnDeletion(int index)
     {
         if(index== delIndex)
             return true;
-        
-        if(index<delIndex)
-            delIndex--;
-
      
         return false;
     }
     
-    virtual bool handleReplaceMent(int index)
+    virtual bool handleMove(int oldIndex, int newIndex /* = 0 */)
     {
-        if(index== delIndex)
-            return true;
+        bool changed=false;
+        if(delIndex == oldIndex)
+        {
+            delIndex = newIndex;
+            changed=true;
+        }
         
      
-        return false;
+        return changed;
     }
 };
-
+  
 int main(int argc, char** argv)
 {
 
