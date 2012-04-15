@@ -887,6 +887,8 @@ public:
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
     virtual bool isSpanExclusive(Symbol::Ptr sym) = 0;
+    
+    virtual bool isSpanExclusive(AdvancedDynamicBitset & bitset) = 0;
 
     bool isNeighbor(int terminalIndex) {
         return neighbors.test(terminalIndex);
@@ -1322,6 +1324,11 @@ public:
     }
     
     bool isSpanExclusive(Symbol::Ptr sym);
+    
+    bool isSpanExclusive(AdvancedDynamicBitset & bitset)
+    {
+        return !(bitset.test(index));        
+    }
 
     
     void computeZSquaredSum() 
@@ -1698,6 +1705,12 @@ public:
         else
            return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
+    
+    bool isSpanExclusive(AdvancedDynamicBitset & bitset)
+    {
+           return !(spanned_terminals.intersects(bitset));
+    }
+    
     /**
      * either non-interse
      * @param nt
@@ -2927,7 +2940,13 @@ protected:
     vector<float> features;
     ofstream featureFile;
     bool modelFileMissing;
+    
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        assert(false); // all rules in use must have implemented this
+    }
+    
     static bool META_LEARNING;
     string filename;
     /**
@@ -3391,6 +3410,14 @@ class SingleRule : public Rule
 
     bool learning;
 public:
+    
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(RHS_Type).name());      
+        return ret;
+    }
+    
     virtual double getCostScaleFactor()
     {
         return 1.0;
@@ -3877,6 +3904,14 @@ public:
      * @param output
      * @param input
      */
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(RHS_Type1).name());
+        ret.push_back(typeid(RHS_Type2).name());
+        
+        return ret;
+    }
     
     const static int NUM_FEATS_PER_PAIR=26;
     
@@ -4170,6 +4205,13 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 }
 class RPlaneSeg : public Rule {
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(Terminal).name());
+        
+        return ret;
+    }
     
     virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
@@ -4216,6 +4258,13 @@ public:
 // Manual rules that we need.
 class RPlane_PlaneSeg : public Rule {
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(Plane).name());
+        ret.push_back(typeid(Terminal).name());        
+        return ret;
+    }
     
     int get_Nof_RHS_symbols() {
         return 2;

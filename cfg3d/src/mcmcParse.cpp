@@ -20,6 +20,23 @@ using namespace std;
 
 class Forest;
 
+/**
+ * this class is designed to support multiple fast queries for rules
+ */
+
+class RulesDB
+{
+    vector<RulePtr>  rules;
+    map<set<string>, RulePtr> childTypeToRule;
+public:
+    
+    RulesDB()
+    {
+        
+    }
+    
+};
+
 class Move
 {
 public:
@@ -100,6 +117,10 @@ public:
             if(tree!=(*it))
             {
                  assert(tree->isSpanExclusive((*it)));
+                 if(tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
+                 {
+                     
+                 }
                 
             }
         }
