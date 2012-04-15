@@ -886,13 +886,13 @@ public:
     }
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
-    virtual bool isSpanExclusive(NonTerminal * nt) = 0;
+    virtual bool isSpanExclusive(Symbol::Ptr sym) = 0;
 
     bool isNeighbor(int terminalIndex) {
         return neighbors.test(terminalIndex);
     }
 
-    boost::dynamic_bitset<> & getNeigborTerminalBitset() {
+    AdvancedDynamicBitset & getNeigborTerminalBitset() {
         return neighbors;
     }
 
@@ -1321,7 +1321,7 @@ public:
         neighbors.resize(numTerminals,false);
     }
     
-    bool isSpanExclusive(NonTerminal * nt);
+    bool isSpanExclusive(Symbol::Ptr sym);
 
     
     void computeZSquaredSum() 
@@ -1688,8 +1688,15 @@ public:
     }
 
     // Returns true if both Symbols do not overlap
-    bool isSpanExclusive(NonTerminal * nt) {
-        return !(spanned_terminals.intersects(nt->spanned_terminals));
+    bool isSpanExclusive(Symbol::Ptr sym) {
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        if(nt==NULL)
+        {
+            Terminal* term=dynamic_cast<Terminal*>(sym);
+            return !spanned_terminals.test(term->getIndex());
+        }
+        else
+           return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
     /**
      * either non-interse
@@ -2328,8 +2335,15 @@ bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const
  * @param nt
  * @return 
  */
-bool Terminal::isSpanExclusive(NonTerminal* nt) {
-    return !(nt->spanned_terminals.test(index));
+bool Terminal::isSpanExclusive(Symbol::Ptr sym) {
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        if(nt==NULL)
+        {
+            Terminal* term=dynamic_cast<Terminal*>(sym);
+            return getIndex()!=term->getIndex();
+        }
+        else
+            return !(nt->spanned_terminals.test(index));
 }
 
 void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo) {

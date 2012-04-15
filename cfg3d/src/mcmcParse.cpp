@@ -33,16 +33,6 @@ typedef  boost::shared_ptr<Move> SPtr;
      */
     virtual double getTransitionProb()=0;
     
-    /**
-     * when some tree in the forest is deleted, indices in the moves might 
-     * need to be updated. 
-     * 
-     * @param index : index of the tree which was deleted .. all inddices more 
-     * than this should be decremented . if the index was same, the move will become
-     * invalid . return true to indicate this
-     * 
-     * @return true if this move became invalid due to deletion
-     */
     virtual bool isInvalidatedOnDeletion(int index)=0;
     virtual bool handleMove(int oldIndex, int newIndex)=0;
 };
@@ -52,6 +42,7 @@ class Forest
 {
     vector<Symbol::Ptr> trees;
     vector<Move::SPtr> moves;
+    double partitionFunc; 
 public:
 
     /**
@@ -60,6 +51,11 @@ public:
      * 
      * @param index : the index of tree which was removed
      */
+    Forest()
+    {
+        partitionFunc=0;
+    }
+    
     void updateMovesOnDeletion(int index)
     {
 
@@ -73,7 +69,7 @@ public:
             {
                 fast_erase(moves, count);
                 size--;
-                assert(size == moves.size());
+                assert(size == (int)moves.size());
             }
 
             count++;
@@ -99,7 +95,14 @@ public:
     
     void addNewMoves(Symbol::Ptr tree)
     {
-        
+        for(vector<Symbol::Ptr>::iterator it=trees.begin();it!=trees.end();it++)
+        {
+            if(tree!=(*it))
+            {
+                 assert(tree->isSpanExclusive((*it)));
+                
+            }
+        }
     }
     
     void addTree(Symbol::Ptr tree)
@@ -127,6 +130,10 @@ public:
         return trees.at(index);
     }
     
+    void sampleNextMove()
+    {
+        
+    }
     
     
 };
