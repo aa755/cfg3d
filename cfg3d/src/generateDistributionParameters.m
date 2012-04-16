@@ -65,13 +65,13 @@ function [] = writeMoGs(outputFileName,matrix)
         %if(rankm<numFeats)
         covar=covar+eye(numFeats);
         
-        for i=1:numFeats
-            for j=1:numFeats
-                if(i~=j)
-                    covar(i,j)=0;
-                end
-            end
-        end
+%        for i=1:numFeats
+%            for j=1:numFeats
+%                if(i~=j)
+%                    covar(i,j)=0;
+%                end
+%            end
+%        end
         
         %end
         assert(rank(covar)==numFeats);

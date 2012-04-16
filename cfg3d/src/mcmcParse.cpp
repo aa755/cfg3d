@@ -89,7 +89,7 @@ typedef  boost::shared_ptr<Move> SPtr;
      * @return Q(f',f) where f' is the forest which will be generated when
      * applyMove is called on f
      */
-    virtual double getTransitionProb()=0;
+    virtual double getTransitionProbUnnormalized(double curProb)=0;
     
     virtual bool isInvalidatedOnDeletion(int index)=0;
     virtual bool handleMove(int oldIndex, int newIndex)=0;
@@ -100,8 +100,9 @@ class Forest
 {
     vector<Symbol::Ptr> trees;
     vector<Move::SPtr> moves;
-    double partitionFunc;
+    double curNegLogProb;
     RulesDB rulesDB;
+    const static double ADDITIONAL_COMPONENT_PENALTY=50;
 public:
 
 /**
@@ -112,7 +113,7 @@ public:
      */
     Forest(vector<Terminal *> & terminals)
     {
-        partitionFunc = 0;
+        curNegLogProb = 0;
         for (unsigned int i = 0; i < terminals.size(); i++)
         {
             addTree(terminals.at(i));
@@ -143,6 +144,9 @@ public:
     void deleteTree(int index)
     {
         
+        Symbol::Ptr oldTree=trees.at(index);
+        curNegLogProb-=(oldTree->getCost()+ADDITIONAL_COMPONENT_PENALTY);
+        
         updateMovesOnDeletion(index);
         fast_erase(trees,index);
         int oldIndex=trees.size(); // the former last index ... the node there was moved to index
@@ -166,6 +170,7 @@ public:
     {
         trees.push_back(tree);
         addNewMoves(tree,trees.size()-1);
+        curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
     }
     
     /**
@@ -175,8 +180,11 @@ public:
      */
     void replaceTree(int index,Symbol::Ptr tree)
     {
+        Symbol::Ptr oldTree=trees.at(index);
+        curNegLogProb-=oldTree->getCost();
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
+        curNegLogProb+=tree->getCost();
         addNewMoves(tree,index);
     }
     
@@ -187,12 +195,49 @@ public:
         return trees.at(index);
     }
     
-    void sampleNextMove()
+    /**
+     * get a random float b/w 0 and range
+     * @param range
+     * @return 
+     */
+    float getRand(float range)
     {
-        
+            return ((float)range*(float)rand())/(float)RAND_MAX;        
     }
     
-    
+    int sampleNextMove()
+    {
+        double sum=0;
+        //double partialSums[moves.size()];
+        //std::array<double,moves.size()> partialSums;
+        vector<double> partialSums;
+        partialSums.resize(moves.size());
+        for(int i=0; i< (int)moves.size(); i++ )
+        {
+            sum+=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
+            partialSums[i]=sum;
+        }
+        
+        cerr<<"sum:"<<sum<<endl;
+        
+        int count=0;
+        while(true)
+        {
+            float r = getRand(sum);
+            vector<double>::iterator upb;
+            upb=upper_bound(partialSums.begin(),partialSums.end(),r);
+            assert(upb!=partialSums.end() || r==sum);
+            int selectedMove=(int)(upb-partialSums.begin());
+            count++;
+            Move::SPtr selMove=moves.at(selectedMove);
+            double ratio=1.0/(selMove->getTransitionProbUnnormalized(curNegLogProb));
+            if(ratio>1 || getRand(1.0)<ratio)
+            {
+                cout<<"#trials= "<<count<<endl;
+                return selectedMove;
+            }
+        }
+    }
 };
 
 
@@ -244,7 +289,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         cfor.deleteTree(maxIndex);// max to reduce #index updates in moves
     }
     
-    virtual double getTransitionProb()
+    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
     {
         
     }
@@ -317,7 +362,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
     }
     
-    virtual double getTransitionProb()
+    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
     {
         
     }
@@ -387,7 +432,7 @@ public:
         
     }
     
-    virtual double getTransitionProb()
+    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
     {
         return transProb;
     }
