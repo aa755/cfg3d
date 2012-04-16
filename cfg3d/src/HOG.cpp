@@ -548,7 +548,7 @@ public:
     return ret;
   }
   
-  void findHog(vector<int> & pointIndices, HOGFeaturesOfBlock &hogSegment)
+  void findHog(vector<int> & pointIndices, map<int,int> & filteredIndexToNonFiltered, HOGFeaturesOfBlock &hogSegment)
   {
        HOGPCD*  targetFrame=this;
     assert(targetFrame->RGBDSlamFrame->size ()>0);
@@ -556,7 +556,7 @@ public:
     vector<Point2DAbhishek> pointsInImageLyingOnSegment;
     for(size_t i=0;i<pointIndices.size ();i++)
       {
-              pointsInImageLyingOnSegment.push_back (getPixelFromIndex (pointIndices[i]));     
+              pointsInImageLyingOnSegment.push_back (getPixelFromIndex (filteredIndexToNonFiltered[pointIndices[i]]));     
       }
     
     assert(pointsInImageLyingOnSegment.size ()>0);

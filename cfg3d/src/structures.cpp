@@ -45,6 +45,8 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
+map<int,int> filteredIndexToNonFiltered;
+
 
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
@@ -1255,7 +1257,7 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
-        hogpcd.findHog(pointIndices,hogFeats);
+        hogpcd.findHog(pointIndices,filteredIndexToNonFiltered,hogFeats);
         
     }
     
@@ -4828,7 +4830,6 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
-map<int,int> filteredIndexToNonFiltered;
 void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
 {
     {//braces to restrict scope of iterators .. to prevent accidental use
