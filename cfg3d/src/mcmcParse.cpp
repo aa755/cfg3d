@@ -104,15 +104,20 @@ class Forest
     RulesDB rulesDB;
 public:
 
-    /**
+/**
      * not supposed to deal with tree-move operation
      * just remove all the moves which referenced it
      * 
      * @param index : the index of tree which was removed
      */
-    Forest()
+    Forest(vector<Terminal *> & terminals)
     {
-        partitionFunc=0;
+        partitionFunc = 0;
+        for (unsigned int i = 0; i < terminals.size(); i++)
+        {
+            addTree(terminals.at(i));
+        }
+
     }
     
     void updateMovesOnDeletion(int index)
@@ -448,7 +453,10 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 int main(int argc, char** argv)
 {
 
-    Forest forest;
+    vector<Terminal *>  terminals;
+    initParsing(argc,argv,terminals);
+    
+    Forest forest(terminals);
     return 0;
 }
 
