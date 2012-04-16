@@ -29,10 +29,51 @@ class RulesDB
     vector<RulePtr>  rules;
     map<set<string>, RulePtr> childTypeToRule;
 public:
+
+    void prepareRulesVector()
+    {
+        rules.push_back(RulePtr(new RPlaneSeg()));
+        rules.push_back(RulePtr(new RPlane_PlaneSeg()));
+        appendLearningRules(rules);        
+    }
     
     RulesDB()
     {
+        prepareRulesVector();
         
+        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
+        {
+            childTypeToRule[(*it)->getChildrenTypesAsSet()]=(*it);
+        }
+        
+    }
+    
+    RulePtr lookupRule(set<string> & childTypes)
+    {
+        map<set<string>, RulePtr>::iterator it= childTypeToRule.find(childTypes);
+        if(it==childTypeToRule.end())
+        {
+            return RulePtr();
+        }
+        else
+        {
+            return it->second;
+        }
+    }
+    
+    RulePtr lookupSingleRule(Symbol::Ptr child)
+    {
+        set<string> childTypeSet;
+        childTypeSet.insert(typeid(child).name());
+        return lookupRule(childTypeSet);
+    }
+    
+    RulePtr lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
+    {
+        set<string> childTypeSet;
+        childTypeSet.insert(typeid(child1).name());
+        childTypeSet.insert(typeid(child2).name());
+        return lookupRule(childTypeSet);
     }
     
 };
@@ -59,7 +100,8 @@ class Forest
 {
     vector<Symbol::Ptr> trees;
     vector<Move::SPtr> moves;
-    double partitionFunc; 
+    double partitionFunc;
+    RulesDB rulesDB;
 public:
 
     /**
@@ -110,26 +152,15 @@ public:
         }
     }
     
-    void addNewMoves(Symbol::Ptr tree)
-    {
-        for(vector<Symbol::Ptr>::iterator it=trees.begin();it!=trees.end();it++)
-        {
-            if(tree!=(*it))
-            {
-                 assert(tree->isSpanExclusive((*it)));
-                 if(tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
-                 {
-                     
-                 }
-                
-            }
-        }
-    }
+    /**
+     * create the new moves involving @param tree which was added at @param index
+     */
+    void addNewMoves(Symbol::Ptr tree, int index);
     
     void addTree(Symbol::Ptr tree)
     {
         trees.push_back(tree);
-        addNewMoves(tree);
+        addNewMoves(tree,trees.size()-1);
     }
     
     /**
@@ -141,7 +172,7 @@ public:
     {
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
-        addNewMoves(tree);
+        addNewMoves(tree,index);
     }
     
     
@@ -162,7 +193,7 @@ public:
 
 
 /**
- * store nodes also for typechecks
+ * store nodes(along with indices) also for typechecks
  */
 class MergeMove: public Move
 {
@@ -172,6 +203,7 @@ class MergeMove: public Move
     Symbol::Ptr mergeResult;
     
 public:
+typedef  boost::shared_ptr<MergeMove> SPtr;
     
     vector<Symbol::Ptr> marshalParams()
     {
@@ -241,13 +273,79 @@ public:
     }
 };
 
+/**
+ * store node(along with index) also for typechecks
+ */
+class SingleRuleMove: public Move
+{
+    int mergeIndex;
+    Symbol::Ptr mergeNode; // store nodes also for additional safety check
+    RulePtr mergeRule;
+    Symbol::Ptr mergeResult;
+    
+public:
+typedef  boost::shared_ptr<MergeMove> SPtr;
+    
+    vector<Symbol::Ptr> marshalParams()
+    {
+        vector<Symbol::Ptr> nodes;
+        nodes.push_back(mergeNode);
+        return nodes;
+    }
+    
+    SingleRuleMove(Forest & cfor, int mergeIndex, RulePtr mergeRule)
+    {
+        this->mergeIndex=mergeIndex;
+        
+        mergeNode=cfor.getTree(mergeIndex);
+        
+        mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+        
+    }
+    
+    virtual void applyMove(Forest & cfor)
+    {
+        
+        assert(cfor.getTree(mergeIndex)==mergeNode);
+        
+        cfor.replaceTree(mergeIndex,mergeResult);
+        
+    }
+    
+    virtual double getTransitionProb()
+    {
+        
+    }
+    
+    virtual bool isInvalidatedOnDeletion(int index)
+    {
+        if(index==mergeIndex)
+            return true;
+     
+        return false;
+    }
+    
+    virtual bool handleMove(int oldIndex, int newIndex )
+    {
+        bool changed=false;
+        if(mergeIndex == oldIndex)
+        {
+            mergeIndex = newIndex;
+            changed=true;
+        }
+                    
+     
+        return changed;
+    }
+};
+
 class SplitMove: public Move
 {
     int delIndex;
     double transProb;
 public:
     
-    SplitMove(int delIndex,Forest & cfor)
+    SplitMove(Forest & cfor,int delIndex)
     {
         this->delIndex=delIndex;
         
@@ -311,6 +409,35 @@ public:
     }
 };
   
+    void Forest::addNewMoves(Symbol::Ptr tree, int index)
+    {
+        
+        // try         
+        
+        // try to apply double rules
+        for(vector<Symbol::Ptr>::iterator it=trees.begin();it!=trees.end();it++)
+        {
+            if(tree!=(*it))
+            {
+                 assert(tree->isSpanExclusive((*it)));
+                 if(tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
+                 {
+                     RulePtr rul= rulesDB.lookupDoubleRule(tree, *it);
+                     if(rul)
+                     {
+                        moves.push_back(Move::SPtr(new MergeMove(*this, index, it-trees.begin() , rul)));
+                     }
+                 }
+                
+            }
+        }
+        
+        // add the delete move for this new node
+        moves.push_back(Move::SPtr(new SplitMove(*this, index)));
+        
+        
+    }
+
 int main(int argc, char** argv)
 {
 

@@ -2947,6 +2947,12 @@ public:
         assert(false); // all rules in use must have implemented this
     }
     
+    set<string> getChildrenTypesAsSet()
+    {
+        vector<string> ct=getChildrenTypes();
+        return set<string>(ct.begin(),ct.end());
+    }
+    
     static bool META_LEARNING;
     string filename;
     /**
