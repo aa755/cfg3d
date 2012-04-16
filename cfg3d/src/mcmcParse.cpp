@@ -408,39 +408,47 @@ public:
         return changed;
     }
 };
-  
-    void Forest::addNewMoves(Symbol::Ptr tree, int index)
+
+void Forest::addNewMoves(Symbol::Ptr tree, int index)
+{
+
+    //single rule
+
+    RulePtr ruls = rulesDB.lookupSingleRule(tree);
+    if (ruls)
     {
-        
-        // try         
-        
-        // try to apply double rules
-        for(vector<Symbol::Ptr>::iterator it=trees.begin();it!=trees.end();it++)
-        {
-            if(tree!=(*it))
-            {
-                 assert(tree->isSpanExclusive((*it)));
-                 if(tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
-                 {
-                     RulePtr rul= rulesDB.lookupDoubleRule(tree, *it);
-                     if(rul)
-                     {
-                        moves.push_back(Move::SPtr(new MergeMove(*this, index, it-trees.begin() , rul)));
-                     }
-                 }
-                
-            }
-        }
-        
-        // add the delete move for this new node
-        moves.push_back(Move::SPtr(new SplitMove(*this, index)));
-        
-        
+        moves.push_back(Move::SPtr(new SingleRuleMove(*this, index, ruls)));
     }
+
+
+    // try to apply double rules
+    for (vector<Symbol::Ptr>::iterator it = trees.begin(); it != trees.end(); it++)
+    {
+        if (tree != (*it))
+        {
+            assert(tree->isSpanExclusive((*it)));
+            if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
+            {
+                RulePtr rul = rulesDB.lookupDoubleRule(tree, *it);
+                if (rul)
+                {
+                    moves.push_back(Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul)));
+                }
+            }
+
+        }
+    }
+
+    // add the delete move for this new node
+    moves.push_back(Move::SPtr(new SplitMove(*this, index)));
+
+
+}
 
 int main(int argc, char** argv)
 {
 
+    Forest forest;
     return 0;
 }
 
