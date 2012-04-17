@@ -80,7 +80,20 @@ public:
 
 class Move
 {
+protected:
+    double costDelta;
+    double transProb;
+    bool transProbSet;
+    void setTransProbFromDelta()
+    {
+        transProb=exp(-costDelta);
+        transProbSet=true;
+    }
 public:
+    Move()
+    {
+        transProb=false;
+    }
 typedef  boost::shared_ptr<Move> SPtr;
 
     virtual void applyMove(Forest & cfor)=0;
@@ -89,7 +102,11 @@ typedef  boost::shared_ptr<Move> SPtr;
      * @return Q(f',f) where f' is the forest which will be generated when
      * applyMove is called on f
      */
-    virtual double getTransitionProbUnnormalized(double curProb)=0;
+    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
+    {
+        assert(transProbSet);
+        return transProb;
+    }
     
     virtual bool isInvalidatedOnDeletion(int index)=0;
     virtual bool handleMove(int oldIndex, int newIndex)=0;
@@ -102,8 +119,9 @@ class Forest
     vector<Move::SPtr> moves;
     double curNegLogProb;
     RulesDB rulesDB;
-    const static double ADDITIONAL_COMPONENT_PENALTY=50;
 public:
+    const static double ADDITIONAL_COMPONENT_PENALTY=50;
+    const static int NUM_MCMC_ITERATIONS=1000000;
 
 /**
      * not supposed to deal with tree-move operation
@@ -218,7 +236,7 @@ public:
             partialSums[i]=sum;
         }
         
-        cerr<<"sum:"<<sum<<endl;
+        cout<<"sum:"<<sum<<endl;
         
         int count=0;
         while(true)
@@ -236,6 +254,16 @@ public:
                 cout<<"#trials= "<<count<<endl;
                 return selectedMove;
             }
+        }
+    }
+    
+    void runMCMC()
+    {
+        
+        for(int i=0;i<NUM_MCMC_ITERATIONS;i++)
+        {
+            int nm=sampleNextMove();
+            moves.at(nm)->applyMove(*this);
         }
     }
 };
@@ -272,6 +300,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         mergeNode1=cfor.getTree(mergeIndex1);
         mergeNode2=cfor.getTree(mergeIndex2);
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+        costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
+        setTransProbFromDelta();
         
     }
     
@@ -392,26 +422,27 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
 class SplitMove: public Move
 {
     int delIndex;
-    double transProb;
 public:
     
     SplitMove(Forest & cfor,int delIndex)
     {
         this->delIndex=delIndex;
         
-        double cost=0;
-        Symbol::Ptr tree=cfor.getTree(delIndex);
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(tree);
+        Symbol::Ptr delTree=cfor.getTree(delIndex);
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
+        costDelta=-(delTree->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
         
         {
             vector<Symbol*>::iterator it;
             for (it = nt->children.begin(); it != nt->children.end(); it++)
             {
-                cost=cost+(*it)->getCost();
+                costDelta += ((*it)->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
             }
         }
+        
+        setTransProbFromDelta();
         
     }
     
@@ -432,10 +463,6 @@ public:
         
     }
     
-    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
-    {
-        return transProb;
-    }
 
     virtual bool isInvalidatedOnDeletion(int index)
     {
@@ -490,7 +517,8 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     }
 
     // add the delete move for this new node
-    moves.push_back(Move::SPtr(new SplitMove(*this, index)));
+    if(tree->isOfSubClass<NonTerminal>())
+        moves.push_back(Move::SPtr(new SplitMove(*this, index)));
 
 
 }
@@ -502,6 +530,7 @@ int main(int argc, char** argv)
     initParsing(argc,argv,terminals);
     
     Forest forest(terminals);
+    forest.runMCMC();
     return 0;
 }
 
