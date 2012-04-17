@@ -45,6 +45,7 @@ public:
         {
             childTypeToRule[(*it)->getChildrenTypesAsSet()]=(*it);
         }
+        cerr<<"rules map has size: "<<childTypeToRule.size()<<endl;
         
     }
     
@@ -64,15 +65,15 @@ public:
     RulePtr lookupSingleRule(Symbol::Ptr child)
     {
         set<string> childTypeSet;
-        childTypeSet.insert(typeid(child).name());
+        childTypeSet.insert(typeid(*child).name());
         return lookupRule(childTypeSet);
     }
     
     RulePtr lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
     {
         set<string> childTypeSet;
-        childTypeSet.insert(typeid(child1).name());
-        childTypeSet.insert(typeid(child2).name());
+        childTypeSet.insert(typeid(*child1).name());
+        childTypeSet.insert(typeid(*child2).name());
         return lookupRule(childTypeSet);
     }
     
@@ -94,6 +95,12 @@ public:
     {
         transProb=false;
     }
+    
+    virtual bool moveCreationSucceded()
+    {
+        return true;
+    }
+    
 typedef  boost::shared_ptr<Move> SPtr;
 
     virtual void applyMove(Forest & cfor)=0;
@@ -300,6 +307,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         mergeNode1=cfor.getTree(mergeIndex1);
         mergeNode2=cfor.getTree(mergeIndex2);
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+        if(mergeResult==NULL)
+            return;
+        
         costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
         setTransProbFromDelta();
         
@@ -319,10 +329,6 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         cfor.deleteTree(maxIndex);// max to reduce #index updates in moves
     }
     
-    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
-    {
-        
-    }
     
     virtual bool isInvalidatedOnDeletion(int index)
     {
@@ -381,6 +387,17 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
         
+        if(mergeResult==NULL)
+            return;
+        
+        costDelta=mergeResult->getCost()-mergeNode->getCost();
+        setTransProbFromDelta();
+        
+    }
+    
+    virtual bool moveCreationSucceded()
+    {
+        return (mergeResult!=NULL);
     }
     
     virtual void applyMove(Forest & cfor)
@@ -392,10 +409,6 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
     }
     
-    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
-    {
-        
-    }
     
     virtual bool isInvalidatedOnDeletion(int index)
     {
@@ -509,7 +522,10 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
                 RulePtr rul = rulesDB.lookupDoubleRule(tree, *it);
                 if (rul)
                 {
-                    moves.push_back(Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul)));
+                    Move::SPtr newMerge=Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul));
+                    if(newMerge->moveCreationSucceded())
+                        moves.push_back(newMerge);
+                    
                 }
             }
 

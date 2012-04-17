@@ -80,9 +80,13 @@ public:
   const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
 #else
-    const static double costPruningThresh=20000.0;
-    const static double costPruningThreshNonComplex=5000;
-    const static double additionalCostThreshold=1000;
+//    const static double costPruningThresh=20000.0;
+//    const static double costPruningThreshNonComplex=5000;
+//    const static double additionalCostThreshold=1000;
+    
+    const static double costPruningThresh=          DBL_MAX;
+    const static double costPruningThreshNonComplex=DBL_MAX;
+    const static double additionalCostThreshold=DBL_MAX;
 #endif
     const static double featScale=1000;
     const static double closeEnoughThresh=0.05;
@@ -4872,7 +4876,7 @@ void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT
 void initParsing(int argc, char** argv,vector<Terminal *> & terminals)
 {
     Rule::META_LEARNING=false;
-    assert(Params::additionalCostThreshold==1000);
+    //assert(Params::additionalCostThreshold==1000);
     if(argc!=4&&argc!=5)
     {
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
