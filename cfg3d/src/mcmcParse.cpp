@@ -385,18 +385,17 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     
     virtual void applyMove(Forest & cfor)
     {
-        int maxIndex=std::max(mergeIndex1,mergeIndex2); 
-        int minIndex=std::min(mergeIndex1,mergeIndex2);
         
         // safety checks ... in the face of index updates
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
-        assert(cfor.getTree(mergeIndex2)==mergeNode2);
         
         cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl<<endl;
         
-        cfor.replaceTree(minIndex,mergeResult);
+        cfor.deleteTree(mergeIndex1);// max to reduce #index updates in moves
         
-        cfor.deleteTree(maxIndex);// max to reduce #index updates in moves
+        assert(cfor.getTree(mergeIndex2)==mergeNode2);
+        
+        cfor.replaceTree(mergeIndex2,mergeResult); // isSpanDisjo
     }
     
     
