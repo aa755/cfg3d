@@ -958,7 +958,7 @@ public:
         return ColorRGB(avgColor);
     }
     
-    virtual bool declareOptimal() = 0;
+    virtual bool declareOptimal(bool appendToChildrensParents=true) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -1420,7 +1420,7 @@ public:
         cout << "t\t:" << index << endl;
     }
 
-    bool declareOptimal() {
+    bool declareOptimal(bool appendToChildrensParents=true) {
         isDeclaredOptimal = true;
         return true;
     }
@@ -2046,15 +2046,19 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal() {
+    bool declareOptimal(bool appendToChildrensParents=true) {
         if(isDeclaredOptimal)
             return true;
         isDeclaredOptimal = true;
-        
-        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) {
-            (*it)->appendOptimalParents(this);
-        }
 
+        if (appendToChildrensParents)
+        {
+            for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++)
+            {
+                (*it)->appendOptimalParents(this);
+            }
+        }
+        
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
         computeFeatures();

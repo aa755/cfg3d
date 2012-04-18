@@ -76,6 +76,8 @@ public:
         set<string> childTypeSet;
         childTypeSet.insert(typeid(*child1).name());
         childTypeSet.insert(typeid(*child2).name());
+        if(childTypeSet.size()==1)//both same
+            return RulePtr();
         return lookupRule(childTypeSet);
     }
     
@@ -94,6 +96,7 @@ protected:
     }
     
 public:
+    virtual string toString()=0;
     double getCostDelta()
     {
         return costDelta;
@@ -234,42 +237,82 @@ public:
      * @param range
      * @return 
      */
-    float getRand(float range)
+    float getRandFloat(float range)
     {
             return ((float)range*(float)rand())/(float)RAND_MAX;        
     }
     
-    int sampleNextMove()
+    int getRandInt(int range)
     {
-        double sum=0;
-        //double partialSums[moves.size()];
-        //std::array<double,moves.size()> partialSums;
-        vector<double> partialSums;
-        partialSums.resize(moves.size());
-        cerr<<moves.size()<<":";
-        for(int i=0; i< (int)moves.size(); i++ )
-        {
-            double moveProb=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
-            sum+=moveProb;
-            partialSums[i]=sum;
-            cerr<<moves.at(i)->getCostDelta() <<",";
-        }
-        cerr<<endl;
-        
-        cerr<<"sum:"<<sum<<endl;
+            return (range*rand())/RAND_MAX;        
+    }
+    
+//    int sampleNextMove()
+//    {
+//        double sum=0;
+//        //double partialSums[moves.size()];
+//        //std::array<double,moves.size()> partialSums;
+//        vector<double> partialSums;
+//        partialSums.resize(moves.size());
+//        cerr<<moves.size()<<":";
+//        for(int i=0; i< (int)moves.size(); i++ )
+//        {
+//            double moveProb=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
+//            sum+=moveProb;
+//            partialSums[i]=sum;
+//            cerr<<moves.at(i)->getCostDelta() <<",";
+//        }
+//        cerr<<endl;
+//        
+//        cerr<<"sum:"<<sum<<endl;
+//        
+//        int count=0;
+//        while(true)
+//        {
+//            float r = getRand(sum);
+//            vector<double>::iterator upb;
+//            upb=upper_bound(partialSums.begin(),partialSums.end(),r);
+//            assert(upb!=partialSums.end() || r==sum);
+//            int selectedMove=(int)(upb-partialSums.begin());
+//            count++;
+//            Move::SPtr selMove=moves.at(selectedMove);
+//            double ratio=1.0/(selMove->getTransitionProbUnnormalized(curNegLogProb));
+//            if(ratio>1 || getRand(1.0)<ratio)
+//            {
+//                cerr<<"#trials= "<<count<<endl;
+//                return selectedMove;
+//            }
+//        }
+//    }
+    
+    int sampleNextMoveUniform()
+    {
         
         int count=0;
         while(true)
         {
-            float r = getRand(sum);
-            vector<double>::iterator upb;
-            upb=upper_bound(partialSums.begin(),partialSums.end(),r);
-            assert(upb!=partialSums.end() || r==sum);
-            int selectedMove=(int)(upb-partialSums.begin());
+            int selectedMove = getRandInt(moves.size());
             count++;
             Move::SPtr selMove=moves.at(selectedMove);
-            double ratio=1.0/(selMove->getTransitionProbUnnormalized(curNegLogProb));
-            if(ratio>1 || getRand(1.0)<ratio)
+            double q_old_to_new=1.0/moves.size();
+            cerr<<"old #moves:"<<moves.size()<<endl;
+            Forest newF=*this;
+//            selMove->applyMove(newF);
+            cerr<<"selMove:"<<selMove->toString()<<endl;
+            newF.moves.at(selectedMove)->applyMove(newF);
+            cerr<<"new #moves:"<<newF.moves.size()<<endl;
+            
+            double q_new_to_old=1.0/newF.moves.size();
+            
+            double factor1=exp(curNegLogProb-newF.curNegLogProb); // newProb/oldProb ; p(x')/p(x)
+            cerr<<"factor1:"<<factor1<<endl;
+            
+            double factor2=q_new_to_old/q_old_to_new;
+            
+            double ratio=factor1*factor2;
+            cerr<<"ratio:"<<ratio<<endl;
+            
+            if(ratio>1 || getRandFloat(1.0)<=ratio)
             {
                 cerr<<"#trials= "<<count<<endl;
                 return selectedMove;
@@ -282,7 +325,7 @@ public:
         
         for(int i=0;i<NUM_MCMC_ITERATIONS;i++)
         {
-            int nm=sampleNextMove();
+            int nm=sampleNextMoveUniform();
             moves.at(nm)->applyMove(*this);
         }
     }
@@ -298,7 +341,7 @@ class MergeMove: public Move
     int mergeIndex1,mergeIndex2;
     Symbol::Ptr mergeNode1,mergeNode2; // store nodes also for additional safety check
     RulePtr mergeRule;
-    Symbol::Ptr mergeResult;
+    NonTerminal* mergeResult;
     
 public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
@@ -315,17 +358,29 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     {
         this->mergeIndex1=mergeIndex1;
         this->mergeIndex2=mergeIndex2;
+        this->mergeRule=mergeRule;
+        assert(mergeRule->getChildrenTypes().size()==2);
+        
         assert(mergeIndex1!=mergeIndex2);
         
         mergeNode1=cfor.getTree(mergeIndex1);
         mergeNode2=cfor.getTree(mergeIndex2);
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+        
+        
         if(mergeResult==NULL)
             return;
+
+        mergeResult->declareOptimal(false);
         
         costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
         setTransProbFromDelta();
         
+    }
+    
+    virtual string toString()
+    {
+        return typeid(*mergeRule).name();
     }
     
     virtual void applyMove(Forest & cfor)
@@ -336,6 +391,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         // safety checks ... in the face of index updates
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
         assert(cfor.getTree(mergeIndex2)==mergeNode2);
+        
+        cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl<<endl;
         
         cfor.replaceTree(minIndex,mergeResult);
         
@@ -395,13 +452,15 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     SingleRuleMove(Forest & cfor, int mergeIndex, RulePtr mergeRule)
     {
         this->mergeIndex=mergeIndex;
+        this->mergeRule=mergeRule;
         
         mergeNode=cfor.getTree(mergeIndex);
         
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
-        
+      
         if(mergeResult==NULL)
             return;
+          mergeResult->declareOptimal(false);
         
         costDelta=mergeResult->getCost()-mergeNode->getCost();
         setTransProbFromDelta();
@@ -413,10 +472,16 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return (mergeResult!=NULL);
     }
     
+    virtual string toString()
+    {
+        return typeid(*mergeRule).name();
+    }
+    
     virtual void applyMove(Forest & cfor)
     {
         
         assert(cfor.getTree(mergeIndex)==mergeNode);
+        cerr<<"sr"<<mergeNode->getName()<<"->"<<mergeResult->getName()<<endl;
         
         cfor.replaceTree(mergeIndex,mergeResult);
         
@@ -448,6 +513,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
 class SplitMove: public Move
 {
     int delIndex;
+    string desc;
 public:
     
     SplitMove(Forest & cfor,int delIndex)
@@ -455,6 +521,7 @@ public:
         this->delIndex=delIndex;
         
         Symbol::Ptr delTree=cfor.getTree(delIndex);
+        desc="del:"+string(typeid(*delTree).name());
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
@@ -472,12 +539,17 @@ public:
         
     }
     
+    virtual string toString()
+    {
+        return desc;
+    }
+    
     virtual void applyMove(Forest & cfor)
     {
         Symbol::Ptr delTree=cfor.getTree(delIndex);
         cfor.deleteTree(delIndex);
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
-        delete delTree; 
+      //  delete delTree; //TODO: memory leak possible
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         
         {
@@ -530,9 +602,11 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     {
         if (tree != (*it))
         {
+            cerr<<"db:"<<tree->getName()<<":"<<(*it)->getName()<<endl;
             assert(tree->isSpanExclusive((*it)));
             if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
             {
+                
                 RulePtr rul = rulesDB->lookupDoubleRule(tree, *it);
                 if (rul)
                 {
