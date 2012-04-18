@@ -28,7 +28,9 @@ class RulesDB
 {
     vector<RulePtr>  rules;
     map<set<string>, RulePtr> childTypeToRule;
+    
 public:
+    typedef  boost::shared_ptr<RulesDB> SPtr;
 
     void prepareRulesVector()
     {
@@ -90,7 +92,13 @@ protected:
         transProb=exp(-costDelta);
         transProbSet=true;
     }
+    
 public:
+    double getCostDelta()
+    {
+        return costDelta;
+    }
+    
     Move()
     {
         transProb=false;
@@ -125,7 +133,7 @@ class Forest
     vector<Symbol::Ptr> trees;
     vector<Move::SPtr> moves;
     double curNegLogProb;
-    RulesDB rulesDB;
+    RulesDB::SPtr rulesDB;
 public:
     const static double ADDITIONAL_COMPONENT_PENALTY=50;
     const static int NUM_MCMC_ITERATIONS=1000000;
@@ -136,8 +144,9 @@ public:
      * 
      * @param index : the index of tree which was removed
      */
-    Forest(vector<Terminal *> & terminals)
+    Forest(vector<Terminal *> & terminals, RulesDB::SPtr rulesDB)
     {
+        this->rulesDB=rulesDB;
         curNegLogProb = 0;
         for (unsigned int i = 0; i < terminals.size(); i++)
         {
@@ -237,13 +246,17 @@ public:
         //std::array<double,moves.size()> partialSums;
         vector<double> partialSums;
         partialSums.resize(moves.size());
+        cerr<<moves.size()<<":";
         for(int i=0; i< (int)moves.size(); i++ )
         {
-            sum+=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
+            double moveProb=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
+            sum+=moveProb;
             partialSums[i]=sum;
+            cerr<<moves.at(i)->getCostDelta() <<",";
         }
+        cerr<<endl;
         
-        cout<<"sum:"<<sum<<endl;
+        cerr<<"sum:"<<sum<<endl;
         
         int count=0;
         while(true)
@@ -258,7 +271,7 @@ public:
             double ratio=1.0/(selMove->getTransitionProbUnnormalized(curNegLogProb));
             if(ratio>1 || getRand(1.0)<ratio)
             {
-                cout<<"#trials= "<<count<<endl;
+                cerr<<"#trials= "<<count<<endl;
                 return selectedMove;
             }
         }
@@ -461,9 +474,10 @@ public:
     
     virtual void applyMove(Forest & cfor)
     {
-        Symbol::Ptr tree=cfor.getTree(delIndex);
+        Symbol::Ptr delTree=cfor.getTree(delIndex);
         cfor.deleteTree(delIndex);
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(tree);
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
+        delete delTree; 
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         
         {
@@ -504,7 +518,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     //single rule
 
-    RulePtr ruls = rulesDB.lookupSingleRule(tree);
+    RulePtr ruls = rulesDB->lookupSingleRule(tree);
     if (ruls)
     {
         moves.push_back(Move::SPtr(new SingleRuleMove(*this, index, ruls)));
@@ -519,7 +533,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
             assert(tree->isSpanExclusive((*it)));
             if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
             {
-                RulePtr rul = rulesDB.lookupDoubleRule(tree, *it);
+                RulePtr rul = rulesDB->lookupDoubleRule(tree, *it);
                 if (rul)
                 {
                     Move::SPtr newMerge=Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul));
@@ -545,7 +559,7 @@ int main(int argc, char** argv)
     vector<Terminal *>  terminals;
     initParsing(argc,argv,terminals);
     
-    Forest forest(terminals);
+    Forest forest(terminals, RulesDB::SPtr(new RulesDB()));
     forest.runMCMC();
     return 0;
 }
