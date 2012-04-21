@@ -89,6 +89,10 @@ protected:
     double costDelta;
     double transProb;
     bool transProbSet;
+    
+    /**
+     * pnew/pold=exp(-cost_new)/exp(-cost_old)=exp(cost_old-cost_new)=cost(-costDelta)
+     */
     void setTransProbFromDelta()
     {
         transProb=exp(-costDelta);
@@ -153,6 +157,7 @@ public:
         curNegLogProb = 0;
         for (unsigned int i = 0; i < terminals.size(); i++)
         {
+            terminals.at(i)->declareOptimal(false);
             addTree(terminals.at(i));
         }
 
@@ -229,7 +234,9 @@ public:
     
     void addTree(Symbol::Ptr tree)
     {
+        assert(tree!=NULL);
         trees.push_back(tree);
+        cerr<<"adTr:"<<tree->getName();
         addNewMoves(tree,trees.size()-1);
         curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
     }
@@ -344,12 +351,40 @@ public:
         }
     }
     
+    int sampleNextMoveUniformApprox()
+    {
+        
+        int count=0;
+        while(true)
+        {
+            int selectedMove = getRandInt(moves.size());
+            count++;
+            Move::SPtr selMove=moves.at(selectedMove);
+            cerr<<"selMove:"<<selMove->toString()<<endl;
+            
+            double factor1=selMove->getTransitionProbUnnormalized(curNegLogProb); // newProb/oldProb ; p(x')/p(x)
+            cerr<<"factor1:"<<factor1<<endl;
+            
+            double factor2=1; // approximation 
+            // can write a dry run version of applyMove to estimate new # moves
+            
+            double ratio=factor1*factor2;
+            cerr<<"ratio:"<<ratio<<endl;
+            
+            if(ratio>1 || getRandFloat(1.0)<=ratio)
+            {
+                cerr<<"#trials= "<<count<<endl;
+                return selectedMove;
+            }
+        }
+    }
+    
     void runMCMC()
     {
         
         for(int i=0;i<NUM_MCMC_ITERATIONS;i++)
         {
-            int nm=sampleNextMoveUniform();
+            int nm=sampleNextMoveUniformApprox();
             moves.at(nm)->applyMove(*this);
         }
     }
@@ -369,6 +404,11 @@ class MergeMove: public Move
     
 public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
+
+    virtual bool moveCreationSucceded()
+    {
+        return (mergeResult!=NULL);
+    }
     
     vector<Symbol::Ptr> marshalParams(RulePtr mergeRule)
     {
@@ -643,7 +683,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     {
         if (tree != (*it))
         {
-            cerr<<"db:"<<tree->getName()<<":"<<(*it)->getName()<<endl;
+            //cerr<<"db:"<<tree->getName()<<":"<<(*it)->getName()<<endl;
             assert(tree->isSpanExclusive((*it)));
             if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
             {
