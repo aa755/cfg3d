@@ -184,8 +184,9 @@ public:
                 size--;
                 assert(size == (int)moves.size());
             }
-
-            count++;
+            else
+                count++; // the last node moved at count ... needs to be fixed
+            
         }
         
         return delMoves;
@@ -204,7 +205,9 @@ public:
         Symbol::Ptr movedTree=trees.at(oldIndex);
         fast_erase(trees,index);
         assert((int)trees.size()==oldSize-1);
-        assert(trees.at(index)=movedTree);
+        
+        if(oldIndex!=index) // if the last element was deleted, then no moving
+                assert(trees.at(index)=movedTree);
         
         {
             vector<Move::SPtr>::iterator it;
@@ -275,7 +278,9 @@ public:
     
     int getRandInt(int range)
     {
-            return (range*rand())/RAND_MAX;        
+            int ret= (int)(getRandFloat(1.0)*range);
+            cerr<<"rand:"<<ret<<endl;
+            return ret;
     }
     
 //    int sampleNextMove()
@@ -365,7 +370,7 @@ public:
             double factor1=selMove->getTransitionProbUnnormalized(curNegLogProb); // newProb/oldProb ; p(x')/p(x)
             cerr<<"factor1:"<<factor1<<endl;
             
-            double factor2=1; // approximation 
+            double factor2=1.0; // approximation 
             // can write a dry run version of applyMove to estimate new # moves
             
             double ratio=factor1*factor2;
@@ -539,6 +544,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
       
+//        assert(mergeResult!=NULL);
         if(mergeResult==NULL)
             return;
           mergeResult->declareOptimal(false);
@@ -602,11 +608,10 @@ public:
     {
         this->delIndex=delIndex;
         delNode=cfor.getTree(delIndex);
-        Symbol::Ptr delTree=cfor.getTree(delIndex);
-        desc="del:"+string(typeid(*delTree).name());
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
+        desc="del:"+string(typeid(*delNode).name());
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
-        costDelta=-(delTree->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
+        costDelta=-(delNode->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
         
         {
             vector<Symbol*>::iterator it;
@@ -674,7 +679,9 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     RulePtr ruls = rulesDB->lookupSingleRule(tree);
     if (ruls)
     {
-        moves.push_back(Move::SPtr(new SingleRuleMove(*this, index, ruls)));
+        Move::SPtr newMerge=(Move::SPtr(new SingleRuleMove(*this, index, ruls)));
+                    if(newMerge->moveCreationSucceded())
+                        moves.push_back(newMerge);
     }
 
 

@@ -67,12 +67,12 @@ HOGPCD hogpcd;
 class Params
 {
 public:
-    const static double missPenalty=                900000000000000000000000000.0;
+    const static double missPenalty=900000.0;
     const static double onTopPairDivide=50;
     const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=500;
     const static double doubleRuleDivide=60;
-    const static double objectCost=1000000000000000000.0;
+    const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=2000000.0;
 #ifdef META_LEARNING
