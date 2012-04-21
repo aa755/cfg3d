@@ -1912,14 +1912,14 @@ public:
             cost += children[i]->getCost();
         cost += additionalCost;
         
-        for (size_t i = 0; i < children.size(); i++)
-        {
-            if(cost < children[i]->getCost())
-            {
-                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
-                cost = children[i]->getCost();
-            }
-        }
+//        for (size_t i = 0; i < children.size(); i++)
+//        {
+//            if(cost < children[i]->getCost())
+//            {
+//                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+//                cost = children[i]->getCost();
+//            }
+//        }
         costSet = true;
                 cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
@@ -2579,7 +2579,8 @@ public:
         {
             cerr<<"negEig:"<<sumSquaredDistances<<endl;
         }
-        setAbsoluteCost(0);
+        //setAbsoluteCost(0);
+        setAdditionalCost(sumSquaredDistances);
     }
     
     /**

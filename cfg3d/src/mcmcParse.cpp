@@ -27,8 +27,8 @@ class Forest;
 class RulesDB
 {
     vector<RulePtr>  rules;
-    map<set<string>, RulePtr> childTypeToRule;
-    
+    map<set<string>, vector<RulePtr> > childTypeToRule; // same LHS can have multiple RHS; Wall, Floor -> Plane
+    vector<RulePtr> emptyRules;
 public:
     typedef  boost::shared_ptr<RulesDB> SPtr;
 
@@ -45,18 +45,18 @@ public:
         
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
-            childTypeToRule[(*it)->getChildrenTypesAsSet()]=(*it);
+            childTypeToRule[(*it)->getChildrenTypesAsSet()].push_back(*it);
         }
         cerr<<"rules map has size: "<<childTypeToRule.size()<<endl;
         
     }
     
-    RulePtr lookupRule(set<string> & childTypes)
+    vector<RulePtr> & lookupRule(set<string> & childTypes)
     {
-        map<set<string>, RulePtr>::iterator it= childTypeToRule.find(childTypes);
+        map<set<string>, vector<RulePtr> >::iterator it= childTypeToRule.find(childTypes);
         if(it==childTypeToRule.end())
         {
-            return RulePtr();
+            return emptyRules;
         }
         else
         {
@@ -64,20 +64,20 @@ public:
         }
     }
     
-    RulePtr lookupSingleRule(Symbol::Ptr child)
+    const vector<RulePtr> & lookupSingleRule(Symbol::Ptr child)
     {
         set<string> childTypeSet;
         childTypeSet.insert(typeid(*child).name());
         return lookupRule(childTypeSet);
     }
     
-    RulePtr lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
+    const vector<RulePtr> & lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
     {
         set<string> childTypeSet;
         childTypeSet.insert(typeid(*child1).name());
         childTypeSet.insert(typeid(*child2).name());
         if(childTypeSet.size()==1)//both same
-            return RulePtr();
+            return emptyRules;
         return lookupRule(childTypeSet);
     }
     
@@ -239,7 +239,7 @@ public:
     {
         assert(tree!=NULL);
         trees.push_back(tree);
-        cerr<<"adTr:"<<tree->getName();
+        cerr<<"adTr:"<<tree->getName()<<endl;
         addNewMoves(tree,trees.size()-1);
         curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
     }
@@ -365,10 +365,9 @@ public:
             int selectedMove = getRandInt(moves.size());
             count++;
             Move::SPtr selMove=moves.at(selectedMove);
-            cerr<<"selMove:"<<selMove->toString()<<endl;
             
             double factor1=selMove->getTransitionProbUnnormalized(curNegLogProb); // newProb/oldProb ; p(x')/p(x)
-            cerr<<"factor1:"<<factor1<<endl;
+//            cerr<<"factor1:"<<factor1<<endl;
             
             double factor2=1.0; // approximation 
             // can write a dry run version of applyMove to estimate new # moves
@@ -376,11 +375,15 @@ public:
             double ratio=factor1*factor2;
             cerr<<"ratio:"<<ratio<<endl;
             
-            if(ratio>1 || getRandFloat(1.0)<=ratio)
+            if(ratio>1.0 || getRandFloat(1.0)<=ratio)
             {
                 cerr<<"#trials= "<<count<<endl;
+                cerr<<"selMove:"<<selMove->toString()<<endl;
                 return selectedMove;
             }
+            else
+                cerr<<"rejMove:"<<selMove->toString()<<endl;
+                
         }
     }
     
@@ -471,7 +474,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
         assert(cfor.getTree(mergeIndex2)==mergeNode2);
         
-        cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl<<endl;
+        cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl;
         
         cfor.deleteTree(mergeIndex1);// max to reduce #index updates in moves
         
@@ -676,10 +679,11 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     //single rule
 
-    RulePtr ruls = rulesDB->lookupSingleRule(tree);
-    if (ruls)
+    const vector<RulePtr> & rules = rulesDB->lookupSingleRule(tree);
+    for(int i=0;i<(int)rules.size();i++)
     {
-        Move::SPtr newMerge=(Move::SPtr(new SingleRuleMove(*this, index, ruls)));
+        RulePtr rule=rules.at(i);
+        Move::SPtr newMerge=(Move::SPtr(new SingleRuleMove(*this, index, rule)));
                     if(newMerge->moveCreationSucceded())
                         moves.push_back(newMerge);
     }
@@ -695,9 +699,10 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
             if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
             {
                 
-                RulePtr rul = rulesDB->lookupDoubleRule(tree, *it);
-                if (rul)
+                const vector<RulePtr> & rules = rulesDB->lookupDoubleRule(tree, *it);
+                for(int i=0;i<(int)rules.size();i++)
                 {
+                    RulePtr rul=rules.at(i);
                     Move::SPtr newMerge=Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul));
                     if(newMerge->moveCreationSucceded())
                         moves.push_back(newMerge);
