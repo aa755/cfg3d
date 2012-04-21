@@ -127,7 +127,7 @@ typedef  boost::shared_ptr<Move> SPtr;
     }
     
     virtual bool isInvalidatedOnDeletion(int index)=0;
-    virtual bool handleMove(int oldIndex, int newIndex)=0;
+    virtual bool handleMove(int oldIndex, int newIndex, Forest * cfor /* = NULL */)=0;
 };
 
 
@@ -158,9 +158,14 @@ public:
 
     }
     
-    void updateMovesOnDeletion(int index)
+    /**
+     * 
+     * @param index
+     * @return : deleted moves
+     */
+    vector<Move::SPtr> updateMovesOnDeletion(int index)
     {
-
+        vector<Move::SPtr> delMoves;
         int count = 0;
         int size = moves.size();
         while (count < size)
@@ -169,6 +174,7 @@ public:
             bool ret = mptr->isInvalidatedOnDeletion(index);
             if (ret)
             {
+                delMoves.push_back(moves.at(count));
                 fast_erase(moves, count);
                 size--;
                 assert(size == (int)moves.size());
@@ -176,6 +182,8 @@ public:
 
             count++;
         }
+        
+        return delMoves;
     }
     
     void deleteTree(int index)
@@ -184,16 +192,32 @@ public:
         Symbol::Ptr oldTree=trees.at(index);
         curNegLogProb-=(oldTree->getCost()+ADDITIONAL_COMPONENT_PENALTY);
         
-        updateMovesOnDeletion(index);
+        vector<Move::SPtr> delMoves=updateMovesOnDeletion(index);
+
+        int oldSize=trees.size();
+        int oldIndex=trees.size()-1; // the former last index ... the node there was moved to index
+        Symbol::Ptr movedTree=trees.at(oldIndex);
         fast_erase(trees,index);
-        int oldIndex=trees.size(); // the former last index ... the node there was moved to index
+        assert((int)trees.size()==oldSize-1);
+        assert(trees.at(index)=movedTree);
         
         {
             vector<Move::SPtr>::iterator it;
             
             for(it=moves.begin();it!=moves.end();it++)
             {
-                (*it)->handleMove(oldIndex,index);
+                (*it)->handleMove(oldIndex, index, this);
+            }
+            
+            // some of these deleted moves might be active .. this function 
+            // might have been called from one of those deleted moves
+            // eg. see mergeMove::applyMove
+            // so those also need to be updated
+            // those Moves would also carefully recheck validity of indices after
+            // this call
+            for(it=delMoves.begin();it!=delMoves.end();it++)
+            {
+                (*it)->handleMove(oldIndex, index, this);
             }
         }
     }
@@ -346,11 +370,20 @@ class MergeMove: public Move
 public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
     
-    vector<Symbol::Ptr> marshalParams()
+    vector<Symbol::Ptr> marshalParams(RulePtr mergeRule)
     {
         vector<Symbol::Ptr> nodes;
-        nodes.push_back(mergeNode1);
-        nodes.push_back(mergeNode2);
+        if(mergeRule->getChildrenTypes().at(0)==string(typeid(*mergeNode1).name()))
+        {
+              nodes.push_back(mergeNode1);
+              nodes.push_back(mergeNode2);
+        }
+        else
+        {            
+            assert(mergeRule->getChildrenTypes().at(0)==string(typeid(*mergeNode2).name()));
+              nodes.push_back(mergeNode2);
+              nodes.push_back(mergeNode1);            
+        }
         return nodes;
     }
     
@@ -365,7 +398,10 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         mergeNode1=cfor.getTree(mergeIndex1);
         mergeNode2=cfor.getTree(mergeIndex2);
-        mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+        
+        assert(cfor.getTree(mergeIndex1)==mergeNode1);
+        assert(cfor.getTree(mergeIndex2)==mergeNode2);
+        mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams(mergeRule));
         
         
         if(mergeResult==NULL)
@@ -388,6 +424,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         // safety checks ... in the face of index updates
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
+        assert(cfor.getTree(mergeIndex2)==mergeNode2);
         
         cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl<<endl;
         
@@ -408,9 +445,11 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex )
+    virtual bool handleMove(int oldIndex, int newIndex , Forest * cfor /* = NULL */)
     {
         bool changed=false;
+        
+        
         if(mergeIndex1 == oldIndex)
         {
             mergeIndex1 = newIndex;
@@ -422,6 +461,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
             mergeIndex2 = newIndex;
             changed=true;
         }
+        
+//        assert(cfor->getTree(mergeIndex1)==mergeNode1);
+//        assert(cfor->getTree(mergeIndex2)==mergeNode2);
             
      
         return changed;
@@ -495,7 +537,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex )
+    virtual bool handleMove(int oldIndex, int newIndex , Forest * cfor /* = NULL */)
     {
         bool changed=false;
         if(mergeIndex == oldIndex)
@@ -512,17 +554,17 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
 class SplitMove: public Move
 {
     int delIndex;
+    Symbol::Ptr delNode;
     string desc;
 public:
     
     SplitMove(Forest & cfor,int delIndex)
     {
         this->delIndex=delIndex;
-        
+        delNode=cfor.getTree(delIndex);
         Symbol::Ptr delTree=cfor.getTree(delIndex);
         desc="del:"+string(typeid(*delTree).name());
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
-        assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         costDelta=-(delTree->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
         
@@ -545,9 +587,9 @@ public:
     
     virtual void applyMove(Forest & cfor)
     {
-        Symbol::Ptr delTree=cfor.getTree(delIndex);
+        assert(cfor.getTree(delIndex)==delNode);
         cfor.deleteTree(delIndex);
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(delTree);
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
       //  delete delTree; //TODO: memory leak possible
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         
@@ -570,7 +612,7 @@ public:
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex /* = 0 */)
+    virtual bool handleMove(int oldIndex, int newIndex /* = 0 */, Forest * cfor /* = NULL */)
     {
         bool changed=false;
         if(delIndex == oldIndex)
