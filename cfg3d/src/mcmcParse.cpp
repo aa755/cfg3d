@@ -85,8 +85,9 @@ public:
 
 class Move
 {
-protected:
+private:
     double costDelta;
+protected:
     double transProb;
     bool transProbSet;
     
@@ -100,6 +101,14 @@ protected:
     }
     
 public:
+    void resetCostDelta()
+    {
+        costDelta=0;
+    }
+    
+    void adjustCostDeltaForNodeAddition(Symbol::Ptr newNode);
+    void adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode);
+    
     virtual string toString()=0;
     double getCostDelta()
     {
@@ -109,6 +118,7 @@ public:
     Move()
     {
         transProb=false;
+        costDelta=0;
     }
     
     virtual bool moveCreationSucceded()
@@ -142,7 +152,9 @@ class Forest
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=50;
+    const static double ADDITIONAL_COMPONENT_PENALTY=100;
+    const static double ADDITIONAL_TERMINAL_PENALTY=97; //PLANE->TERMINAL cost is usually low
+    const static double ADDITIONAL_PLANE_PENALTY=3;
     const static int NUM_MCMC_ITERATIONS=1000000;
 
 /**
@@ -398,7 +410,27 @@ public:
     }
 };
 
+void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
+{
+    costDelta += (newNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
 
+    if (newNode->isOfSubClass<Terminal > ())
+        costDelta += Forest::ADDITIONAL_TERMINAL_PENALTY;
+
+    if (newNode->isOfSubClass<Plane > ())
+        costDelta += Forest::ADDITIONAL_PLANE_PENALTY;
+}
+
+void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
+{
+    costDelta -= (remNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
+
+    if (remNode->isOfSubClass<Terminal > ())
+        costDelta -= Forest::ADDITIONAL_TERMINAL_PENALTY;
+
+    if (remNode->isOfSubClass<Plane > ())
+        costDelta -= Forest::ADDITIONAL_PLANE_PENALTY;
+}
 
 /**
  * store nodes(along with indices) also for typechecks
@@ -457,7 +489,10 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
 
         mergeResult->declareOptimal(false);
         
-        costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
+        //costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
+        adjustCostDeltaForNodeAddition(mergeResult);
+        adjustCostDeltaForNodeRemoval(mergeNode1);
+        adjustCostDeltaForNodeRemoval(mergeNode2);
         setTransProbFromDelta();
         
     }
@@ -552,7 +587,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
             return;
           mergeResult->declareOptimal(false);
         
-        costDelta=mergeResult->getCost()-mergeNode->getCost();
+        adjustCostDeltaForNodeAddition(mergeResult);
+        adjustCostDeltaForNodeRemoval(mergeNode);
         setTransProbFromDelta();
         
     }
@@ -614,13 +650,13 @@ public:
         desc="del:"+string(typeid(*delNode).name());
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
-        costDelta=-(delNode->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
+        adjustCostDeltaForNodeRemoval(delNode);
         
         {
             vector<Symbol*>::iterator it;
             for (it = nt->children.begin(); it != nt->children.end(); it++)
             {
-                costDelta += ((*it)->getCost()+Forest::ADDITIONAL_COMPONENT_PENALTY);
+                adjustCostDeltaForNodeAddition(*it);
             }
         }
         
