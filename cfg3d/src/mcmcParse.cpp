@@ -152,9 +152,8 @@ class Forest
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=100;
-    const static double ADDITIONAL_TERMINAL_PENALTY=97; //PLANE->TERMINAL cost is usually low
-    const static double ADDITIONAL_PLANE_PENALTY=3;
+    const static double ADDITIONAL_COMPONENT_PENALTY=200;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
     const static int NUM_MCMC_ITERATIONS=1000000;
 
 /**
@@ -414,22 +413,17 @@ void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
 {
     costDelta += (newNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
 
-    if (newNode->isOfSubClass<Terminal > ())
-        costDelta += Forest::ADDITIONAL_TERMINAL_PENALTY;
+    if (!(newNode->isOfSubClass<Terminal > () || newNode->isOfSubClass<Plane> ()))
+        costDelta += Forest::ADDITIONAL_PLANE_TERMINAL_PENALTY;
 
-    if (newNode->isOfSubClass<Plane > ())
-        costDelta += Forest::ADDITIONAL_PLANE_PENALTY;
 }
 
 void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
 {
     costDelta -= (remNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
 
-    if (remNode->isOfSubClass<Terminal > ())
-        costDelta -= Forest::ADDITIONAL_TERMINAL_PENALTY;
-
-    if (remNode->isOfSubClass<Plane > ())
-        costDelta -= Forest::ADDITIONAL_PLANE_PENALTY;
+    if (!(remNode->isOfSubClass<Terminal > () || remNode->isOfSubClass<Plane> ()))
+        costDelta -= Forest::ADDITIONAL_PLANE_TERMINAL_PENALTY;
 }
 
 /**
@@ -674,7 +668,6 @@ public:
         assert(cfor.getTree(delIndex)==delNode);
         cfor.deleteTree(delIndex);
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
-      //  delete delTree; //TODO: memory leak possible
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         
         {
@@ -684,6 +677,7 @@ public:
                 cfor.addTree(*it);
             }
         }
+      //  delete delNode; //TODO: memory leak possible
         
     }
     
@@ -732,7 +726,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
         {
             //cerr<<"db:"<<tree->getName()<<":"<<(*it)->getName()<<endl;
             assert(tree->isSpanExclusive((*it)));
-            if (tree->isSpanExclusive((*it)->getNeigborTerminalBitset()))
+            if (!(tree->isSpanExclusive((*it)->getNeigborTerminalBitset())))
             {
                 
                 const vector<RulePtr> & rules = rulesDB->lookupDoubleRule(tree, *it);

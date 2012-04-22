@@ -2156,6 +2156,8 @@ public:
     {
         numObjectsSpanned=0;
     }
+    
+    virtual ~NonTerminalIntermediate() {}
 
 };
 
@@ -2668,6 +2670,8 @@ public:
     {
         return getPlaneChild()->getPlaneNormal();
     }
+    
+    virtual ~PlanarPrimitive() {}
 };
 
     bool Symbol::isPlanarPrimitive()
