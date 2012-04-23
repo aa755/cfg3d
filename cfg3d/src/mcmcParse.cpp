@@ -313,10 +313,12 @@ public:
             return ((float)range*(float)rand())/(float)RAND_MAX;        
     }
     
+    /* 0 to range -1
+     */
     int getRandInt(int range)
     {
-            int ret= (int)(getRandFloat(1.0)*range);
-            assert(ret <= range);
+            int ret= (int)(getRandFloat(1.0)*(range-1));
+            assert(ret < range);
             cerr<<"rand:"<<ret<<endl;
             return ret;
     }
@@ -528,8 +530,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         if(mergeResult==NULL)
         {
             cerr<<"mf:"<<toString()<<endl;
-        }
             return;
+        }
 
         mergeResult->declareOptimal(false);
         

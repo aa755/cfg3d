@@ -4049,6 +4049,8 @@ public:
     
     virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
+        assert(RHS1!=NULL);
+        assert(RHS2!=NULL);
         if(RHS1->getMinDistance(RHS2)>0.4)
             return NULL;
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
