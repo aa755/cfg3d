@@ -64,14 +64,14 @@ HOGPCD hogpcd;
 class Params
 {
 public:
-    const static double missPenalty=                9000.0;
+    const static double missPenalty=                90000.0;
     const static double onTopPairDivide=50;
-    const static double onTopPairDefaultOnModelMissing=700.0;
+    const static double onTopPairDefaultOnModelMissing=1000.0;
     const static int timeLimit=4000;
-    const static double doubleRuleDivide=60;
-    const static double objectCost=1000000000000000.0;
+    const static double doubleRuleDivide=100;
+    const static double objectCost=100000000000000000.0;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=2000000.0;
+    const static double floorOcclusionPenalty=600.0;
 #ifdef META_LEARNING
     const static double costPruningThresh=          DBL_MAX;
   const static double costPruningThreshNonComplex=DBL_MAX;
@@ -1877,7 +1877,7 @@ public:
             if(cost < children[i]->getCost())
             {
                 cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
-                cost = children[i]->getCost();
+         //       cost = children[i]->getCost();
             }
         }
         costSet = true;
@@ -4596,6 +4596,7 @@ public:
         }
         
             appendMainFeats(RHS1, RHS2);
+	this->numIntermediates=1;
              if(!setCost(LHS, RHS1, RHS2, terminals)) // set main cost
              {
                 delete LHS;
@@ -4649,7 +4650,10 @@ public:
 
             }
 
+        if( RHS1->objectsOnTop.size() !=0)
             LHS->setAdditionalCost(additionalCost /( RHS1->objectsOnTop.size() * Params::onTopPairDivide) - log(Params::objectCost));
+	else
+            LHS->setAdditionalCost(additionalCost /(  Params::onTopPairDivide) - log(Params::objectCost));
 
 
 
