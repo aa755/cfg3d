@@ -90,6 +90,7 @@ private:
 protected:
     double transProb;
     bool transProbSet;
+    bool applied;
     
     /**
      * pnew/pold=exp(-cost_new)/exp(-cost_old)=exp(cost_old-cost_new)=cost(-costDelta)
@@ -119,6 +120,7 @@ public:
     {
         transProb=false;
         costDelta=0;
+        applied=false;
     }
     
     virtual bool moveCreationSucceded()
@@ -142,6 +144,7 @@ typedef  boost::shared_ptr<Move> SPtr;
     
     virtual bool isInvalidatedOnDeletion(int index)=0;
     virtual bool handleMove(int oldIndex, int newIndex, Forest * cfor /* = NULL */)=0;
+    virtual ~Move() {}
 };
 
 
@@ -154,7 +157,7 @@ class Forest
     Scene *bestSceneSoFar;
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=200;
+    const static double ADDITIONAL_COMPONENT_PENALTY=2000;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
     const static int NUM_MCMC_ITERATIONS=100000000;
 
@@ -408,16 +411,16 @@ public:
             // can write a dry run version of applyMove to estimate new # moves
             
             double ratio=factor1*factor2;
-            cerr<<"ratio:"<<ratio<<endl;
+            cerr<<"rat:"<<ratio<<",#n:"<<trees.size()<<endl;
             
             if(ratio>1.0 || getRandFloat(1.0)<=ratio)
             {
-                cerr<<"#trials= "<<count<<endl;
-                cerr<<"selMove:"<<selMove->toString()<<endl;
+                cerr<<"#tri= "<<count<<endl;
+                cerr<<"sMv:"<<selMove->toString()<<endl;
                 return selectedMove;
             }
             else
-                cerr<<"rejMove:"<<selMove->toString()<<endl;
+                cerr<<"rMv:"<<selMove->toString()<<endl;
                 
         }
     }
@@ -430,10 +433,18 @@ public:
             int nm=sampleNextMoveUniformApprox();
             moves.at(nm)->applyMove(*this);
           //  int iter=i*100/NUM_MCMC_ITERATIONS;
-            if(bestSceneSoFar!=NULL && (i % (NUM_MCMC_ITERATIONS/100))==0)
+            if( (i % (NUM_MCMC_ITERATIONS/100))==0)
             {
-                fileName=fileName+"_";
-                bestSceneSoFar->printData();
+                if(bestSceneSoFar!=NULL)
+                {
+                        fileName=fileName+"_";
+                        bestSceneSoFar->printData();
+                }
+                else
+                {
+                    cerr<<i<<":NULL\n";
+                }
+                
             }
         }
     }
@@ -491,6 +502,12 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return nodes;
     }
     
+    virtual ~MergeMove()
+    {
+        if(!applied)
+            delete mergeResult;
+    }
+    
     MergeMove(Forest & cfor, int mergeIndex1, int mergeIndex2, RulePtr mergeRule)
     {
         this->mergeIndex1=mergeIndex1;
@@ -509,6 +526,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         
         if(mergeResult==NULL)
+        {
+            cerr<<"mf:"<<toString()<<endl;
+        }
             return;
 
         mergeResult->declareOptimal(false);
@@ -528,7 +548,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     
     virtual void applyMove(Forest & cfor)
     {
-        
+        applied=true;
         // safety checks ... in the face of index updates
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
         assert(cfor.getTree(mergeIndex2)==mergeNode2);
@@ -597,6 +617,12 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return nodes;
     }
     
+    virtual ~SingleRuleMove() 
+    {
+        if(!applied)
+            delete mergeResult;
+    }
+    
     SingleRuleMove(Forest & cfor, int mergeIndex, RulePtr mergeRule)
     {
         this->mergeIndex=mergeIndex;
@@ -630,6 +656,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     virtual void applyMove(Forest & cfor)
     {
         
+        applied=true;
         assert(cfor.getTree(mergeIndex)==mergeNode);
         cerr<<"sr"<<mergeNode->getName()<<"->"<<mergeResult->getName()<<endl;
         
@@ -695,6 +722,7 @@ public:
     
     virtual void applyMove(Forest & cfor)
     {
+        applied=true;
         assert(cfor.getTree(delIndex)==delNode);
         cfor.deleteTree(delIndex);
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
