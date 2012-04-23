@@ -164,8 +164,11 @@ public:
         }
         double ret= minusLogProb(feats);
        // cout<<endl;
+        assert(!isnan(ret));
+        assert(!isinf(ret));
         if(ret>Params::additionalCostThreshold)
         {
+            assert(false);
             return infinity();
         }
         else
@@ -234,7 +237,22 @@ public:
     virtual double getProb(VectorXd & x)
     {
         double mlp=minusLogProb(x);
-        return exp(-mlp)*mixingProb;
+        assert(mixingProb>0);
+        assert(mixingProb<=1.0);
+        assert(!isnan(mlp));
+        assert(!isinf(mlp));
+        
+        double ret= exp(-mlp)*mixingProb;
+        assert(ret>0);
+        assert(ret<=1.0);
+        return ret;
+    }
+    
+    
+    virtual double getCost(VectorXd & x)
+    {
+        double mlp=minusLogProb(x);
+        return mlp;
     }
 };
 
@@ -349,12 +367,24 @@ public:
     virtual double minusLogProb(VectorXd & x)
     {
         double sum=0;
-        for(CompItr it=gaussians.begin();it!=gaussians.end();it++)
+        assert(gaussians.size()>0);
+        if (gaussians.size() == 1)
         {
-            sum+=it->getProb(x);
+            return gaussians.at(0).getCost(x);
         }
-        double mlp=-log(sum);
-        return mlp;
+        else
+        {
+            for (CompItr it = gaussians.begin(); it != gaussians.end(); it++)
+            {
+                sum += it->getProb(x);
+            }
+            
+            assert(!isnan(sum));
+            assert(!isinf(sum));
+            assert(sum>0);
+            double mlp=-log(sum);
+            return mlp;
+        }
     }
 
     MultiVarMixtureOfGaussian(std::ifstream & file, string filename)
@@ -1907,6 +1937,7 @@ public:
     void setAdditionalCost(double additionalCost) {
         assert(!isDeclaredOptimal);
         //assert(additionalCost >= 0);
+        assert(!(isnan(additionalCost) || isinf(additionalCost)));
         cost = 0;
         for (size_t i = 0; i < children.size(); i++)
             cost += children[i]->getCost();
@@ -4031,6 +4062,7 @@ public:
            return true;
        }
         
+        assert(!isinf(cost));
         if(isinf(cost))
             return false;
         else
@@ -4051,8 +4083,8 @@ public:
     {
         assert(RHS1!=NULL);
         assert(RHS2!=NULL);
-        if(RHS1->getMinDistance(RHS2)>0.4)
-            return NULL;
+//        if(RHS1->getMinDistance(RHS2)>0.4)
+//            return NULL;
         LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         
         // below to be replaced by generic learned rules
