@@ -94,7 +94,7 @@ bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
 //}
 
 template<>
-VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2, vector<Terminal*> & terminals)
+VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2)
 {
             VisualObjects* LHS= new VisualObjects();
                 LHS->addChild(RHS1);
@@ -129,119 +129,18 @@ void outputOnBothStreams(string str)
     cerr<<str<<endl;
 }
 
-void runParse(map<int, set<int> > & neighbors, int maxSegIndex, char * labelMapFile=NULL) {
+void runParse(vector<Terminal *> & terminals) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
-    //CPUAppendLearningRules(rules);
-//    MonitorAppendLearningRules(rules);
-//    rules.push_back(RulePtr(new SingleRule<Wall, Plane>()));
-//    vector<string> cpps;
-//    cpps.push_back("hello");
-//    cpps.push_back("how");
-//    rules.push_back(RulePtr(new DoubleRuleComplex<Plane,Plane>(vector<string>(cpps))));
 
-//    printerAppendLearningRules(rules);
-
-    //    vector<set<NonTerminal*> > ancestors(numPoints,set<NonTerminal*>());
-
-    SymbolPriorityQueue pq(maxSegIndex);
-
-    vector<Terminal *> terminals;
-    NUMTerminalsToBeParsed=0;
-#ifdef FILTER_LABELS
-    assert(labelMapFile!=NULL);
-    LabelSelector labSel;
-    labSel.addAcceptedLabel(1);//Wall
-    labSel.addAcceptedLabel(2);//Floor
-    labSel.addAcceptedLabel(7);//Monitor
-    labSel.addAcceptedLabel(6);//CPUFront
-    labSel.addAcceptedLabel(36);//CPUSide
-    labSel.addAcceptedLabel(34);//Monitor
-    labSel.addAcceptedLabel(22);//printerFront
-    labSel.addAcceptedLabel(112);//printerSide
-    labSel.addAcceptedLabel(117);//printerTop
-    map<int,int> labelmap;
-    readLabelMap(labelMapFile,labelmap);
-#endif
-    Terminal * temp;
-    for (int i = 1; i <= maxSegIndex; i++) {
-        temp = new Terminal(i-1); // index is segment Number -1 
-        temp->setNeighbors( neighbors[i],maxSegIndex);
-        terminals.push_back(temp);
-        
-        
-        {
-#ifdef FILTER_LABELS        
-        if(labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
-#endif
-                {
-                pq.pushTerminal(temp);
-                NUMTerminalsToBeParsed++;
-                }
-        }
-        
-        
-    }
-
-    NUMPointsToBeParsed=0;
-    overallMinZ=infinity();
-    for(unsigned int i=0;i<scene.size();i++)
-    {
-        //if(rand()%10 != 1)
-          //  continue;
-        int segIndex=scene.points[i].segment;
-        if(segIndex>0 && segIndex<=maxSegIndex)
-        {
-            if(overallMinZ>scene.points[i].z)
-                overallMinZ=scene.points[i].z;
-            
-            terminals.at(segIndex-1)->addPointIndex(i);
-            
-            
-            {
-#ifdef FILTER_LABELS        
-        if(labSel.acceptLabel(segIndex)) // get labelmap fro gt files
-#endif
-              NUMPointsToBeParsed++;
-            }
-            
-            
-        }
-    }
-    
-    for(unsigned int i=0;i<terminals.size();i++)
-    {
-      //  terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
-        terminals.at(i)->computeFeatures();
-    }
-
-    getSegmentDistanceToBoundaryOptimized(scene,terminals,occlusionChecker->maxDist);
-    
-    occlusionChecker->setmaxDistReady();
-    
-    segMinDistances.setZero(terminals.size(),terminals.size());
-    
-    for(unsigned int i1=0;i1<terminals.size();i1++)
-    {
-            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
-            {
-                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
-                segMinDistances(i1,i2)=minDistance;
-                segMinDistances(i2,i1)=minDistance;
-            }
-    }
-    
-    cout<<"minDistances computed\n"<<endl;
-    cerr<<"minDistances computed\n"<<endl;
+    SymbolPriorityQueue pq(terminals.size());
 
     for(unsigned int i=0;i<terminals.size();i++)
     {
-       // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
-        assert(terminals[i]->getPointIndices().size()>0); 
-        // if this happens, delete this NT. NEED TO CHANGE SIZE OF NEIGHBOR VECTOR
+         pq.pushTerminal(terminals.at(i));
     }
-    
-    Terminal::totalNumTerminals = terminals.size();
+
+
 
     Symbol *min;
     long count = 0;
@@ -356,46 +255,12 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
     }
 }
 
+
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
-    Rule::META_LEARNING=false;
-    assert(Params::closeEnoughThresh==0.05);
-    
-    if(argc!=4&&argc!=5)
-    {
-        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
-        exit(-1);
-    }
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    pcl::io::loadPCDFile<PointT>(argv[3], originalScene);
-        pcl::PointCloud<PointT>::Ptr originalScenePtr=createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
-
-    generatePTIndexMapping(scene,originalScene);
-    cerr<<"origPTR:"<<originalScenePtr->size()<<endl;
-    hogpcd.init(originalScenePtr);
-
-    fileName = string(argv[1]);
-    fileName = fileName.substr(0, fileName.length()-4);
-
-    occlusionChecker = new OccupancyMap<PointT>(scene);
-    //convertToXY(scene,scene2D);
-  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-    map<int, set<int> > neighbors;
-    int maxSegIndex= parseNbrMap(argv[2],neighbors,MAX_SEG_INDEX);
-    cout<<"Scene has "<<scene.size()<<" points."<<endl;
-    
-    char *gtLableFileName=NULL;
-//    if(argc==4)
-//        gtLableFileName=argv[3];
-    
-    string command="rospack find cfg3d";
-    rulePath=exec(command.data());
-    rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
-    
-    if(argc==5)
-        rulePath=rulePath+string(argv[4]);
-    
-    runParse(neighbors, maxSegIndex,gtLableFileName);
+    vector<Terminal *>  terminals;
+    initParsing(argc,argv,terminals);
+    runParse(terminals);
 
     return 0;
     

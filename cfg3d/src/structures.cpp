@@ -40,10 +40,13 @@
 #include "pcl/features/feature.h"
 #include <math.h>
 //sac_model_plane.h
+#include <boost/weak_ptr.hpp>
 
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
+map<int,int> filteredIndexToNonFiltered;
+
 
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
@@ -69,7 +72,7 @@ public:
     const static double onTopPairDefaultOnModelMissing=1000.0;
     const static int timeLimit=4000;
     const static double doubleRuleDivide=100;
-    const static double objectCost=100000000000000000.0;
+    const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=600.0;
 #ifdef META_LEARNING
@@ -78,10 +81,14 @@ public:
     const static double additionalCostThreshold=DBL_MAX;
     const static double closeEnoughThresh=0.1;
 #else
-    const static double costPruningThresh=20000.0;
-    const static double costPruningThreshNonComplex=1000;
-    const static double additionalCostThreshold=500;
-    const static double closeEnoughThresh=0.05;
+//    const static double costPruningThresh=20000.0;
+//    const static double costPruningThreshNonComplex=5000;
+//    const static double additionalCostThreshold=1000;
+    
+    const static double costPruningThresh=          DBL_MAX;
+    const static double closeEnoughThresh=0.1;
+    const static double costPruningThreshNonComplex=DBL_MAX;
+    const static double additionalCostThreshold=DBL_MAX;
 #endif
     const static double featScale=1000;
     
@@ -655,6 +662,9 @@ protected:
     }
     
 public:
+    typedef  Symbol* Ptr;
+    typedef  boost::shared_ptr<Symbol> SPtr;
+    typedef  boost::weak_ptr<Symbol> WPtr;
 
     void undeclareOptimal()
     {
@@ -676,7 +686,7 @@ public:
         return (dummyTypeCheck!=NULL);
     }
     
-    virtual ~Symbol(){};
+    virtual ~Symbol(){}
     static float _getPolygonArea(const vector<cv::Point2f>& cv2D)
     {
         vector<cv::Point2f> contour;
@@ -872,13 +882,15 @@ public:
     }
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
-    virtual bool isSpanExclusive(NonTerminal * nt) = 0;
+    virtual bool isSpanExclusive(Symbol::Ptr sym) = 0;
+    
+    virtual bool isSpanExclusive(AdvancedDynamicBitset & bitset) = 0;
 
     bool isNeighbor(int terminalIndex) {
         return neighbors.test(terminalIndex);
     }
 
-    boost::dynamic_bitset<> & getNeigborTerminalBitset() {
+    AdvancedDynamicBitset & getNeigborTerminalBitset() {
         return neighbors;
     }
 
@@ -936,7 +948,7 @@ public:
         return ColorRGB(avgColor);
     }
     
-    virtual bool declareOptimal() = 0;
+    virtual bool declareOptimal(bool appendToChildrensParents=true) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
     //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
@@ -1239,7 +1251,7 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
-        hogpcd.findHog(pointIndices,hogFeats);
+        hogpcd.findHog(pointIndices,filteredIndexToNonFiltered,hogFeats);
         
     }
     
@@ -1307,7 +1319,12 @@ public:
         neighbors.resize(numTerminals,false);
     }
     
-    bool isSpanExclusive(NonTerminal * nt);
+    bool isSpanExclusive(Symbol::Ptr sym);
+    
+    bool isSpanExclusive(AdvancedDynamicBitset & bitset)
+    {
+        return !(bitset.test(index));        
+    }
 
     
     void computeZSquaredSum() 
@@ -1393,7 +1410,7 @@ public:
         cout << "t\t:" << index << endl;
     }
 
-    bool declareOptimal() {
+    bool declareOptimal(bool appendToChildrensParents=true) {
         isDeclaredOptimal = true;
         return true;
     }
@@ -1674,9 +1691,22 @@ public:
     }
 
     // Returns true if both Symbols do not overlap
-    bool isSpanExclusive(NonTerminal * nt) {
-        return !(spanned_terminals.intersects(nt->spanned_terminals));
+    bool isSpanExclusive(Symbol::Ptr sym) {
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        if(nt==NULL)
+        {
+            Terminal* term=dynamic_cast<Terminal*>(sym);
+            return !spanned_terminals.test(term->getIndex());
+        }
+        else
+           return !(spanned_terminals.intersects(nt->spanned_terminals));
     }
+    
+    bool isSpanExclusive(AdvancedDynamicBitset & bitset)
+    {
+           return !(spanned_terminals.intersects(bitset));
+    }
+    
     /**
      * either non-interse
      * @param nt
@@ -1872,14 +1902,14 @@ public:
             cost += children[i]->getCost();
         cost += additionalCost;
         
-        for (size_t i = 0; i < children.size(); i++)
-        {
-            if(cost < children[i]->getCost())
-            {
-                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
-         //       cost = children[i]->getCost();
-            }
-        }
+//        for (size_t i = 0; i < children.size(); i++)
+//        {
+//            if(cost < children[i]->getCost())
+//            {
+//                cerr<<"WARN:nonMon:"<<cost <<","<< children[i]->getCost()<<endl;
+//                cost = children[i]->getCost();
+//            }
+//        }
         costSet = true;
                 cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
@@ -2006,15 +2036,19 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal() {
+    bool declareOptimal(bool appendToChildrensParents=true) {
         if(isDeclaredOptimal)
             return true;
         isDeclaredOptimal = true;
-        
-        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) {
-            (*it)->appendOptimalParents(this);
-        }
 
+        if (appendToChildrensParents)
+        {
+            for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++)
+            {
+                (*it)->appendOptimalParents(this);
+            }
+        }
+        
         computeNeighborTerminalSet();
         assert(costSet); // cost must be set before adding it to pq
         computeFeatures();
@@ -2112,6 +2146,8 @@ public:
     {
         numObjectsSpanned=0;
     }
+    
+    virtual ~NonTerminalIntermediate() {}
 
 };
 
@@ -2314,8 +2350,15 @@ bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const
  * @param nt
  * @return 
  */
-bool Terminal::isSpanExclusive(NonTerminal* nt) {
-    return !(nt->spanned_terminals.test(index));
+bool Terminal::isSpanExclusive(Symbol::Ptr sym) {
+        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        if(nt==NULL)
+        {
+            Terminal* term=dynamic_cast<Terminal*>(sym);
+            return getIndex()!=term->getIndex();
+        }
+        else
+            return !(nt->spanned_terminals.test(index));
 }
 
 void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo) {
@@ -2364,6 +2407,8 @@ public:
     Plane() : NonTerminal() {
         planeParamsComputed = false;
     }
+    
+    virtual ~Plane() {}
     
     virtual void computeNumSpannedObjects()
     {
@@ -2528,7 +2573,8 @@ public:
         {
             cerr<<"negEig:"<<sumSquaredDistances<<endl;
         }
-        setAbsoluteCost(0);
+        //setAbsoluteCost(0);
+        setAdditionalCost(sumSquaredDistances);
     }
     
     /**
@@ -2616,6 +2662,8 @@ public:
     {
         return getPlaneChild()->getPlaneNormal();
     }
+    
+    virtual ~PlanarPrimitive() {}
 };
 
     bool Symbol::isPlanarPrimitive()
@@ -2899,7 +2947,19 @@ protected:
     vector<float> features;
     ofstream featureFile;
     bool modelFileMissing;
+    
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        assert(false); // all rules in use must have implemented this
+    }
+    
+    set<string> getChildrenTypesAsSet()
+    {
+        vector<string> ct=getChildrenTypes();
+        return set<string>(ct.begin(),ct.end());
+    }
+    
     static bool META_LEARNING;
     string filename;
     /**
@@ -2912,6 +2972,11 @@ public:
     vector<ProbabilityDistribution*> g; // not used
     
     MultiVariateProbabilityDistribution * pdist;
+    
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        assert(false); // all subclasses currently in use must have implemented it
+    }
     
     Rule()
     {
@@ -3340,7 +3405,7 @@ class SingleRule : public Rule
     virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
     {
         RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleInference(RHS_extracted,terminals);
+        NonTerminal * newNT=applyRuleInference(RHS_extracted);
         
         if(newNT!=NULL)
         {
@@ -3358,6 +3423,14 @@ class SingleRule : public Rule
 
     bool learning;
 public:
+    
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(RHS_Type).name());      
+        return ret;
+    }
+    
     virtual double getCostScaleFactor()
     {
         return 1.0;
@@ -3411,7 +3484,7 @@ public:
 //        assert(3 == 2);
 //    }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type* input) {
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
@@ -3429,7 +3502,7 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         writeFeaturesToFile();
@@ -3440,9 +3513,9 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         if (Rule::META_LEARNING && this->pdist == NULL)
         {
             LHS->setAdditionalCost(0);
@@ -3452,7 +3525,7 @@ public:
         
         // to be replace by generic features
         computeFeatures(RHS);
-        if(setCost(LHS, RHS,terminals))
+        if(setCost(LHS, RHS))
              return LHS;
         else
         {
@@ -3460,8 +3533,12 @@ public:
             return NULL;
         }
     }
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<RHS_Type*>(children.at(0)));
+    }
 
-    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS)
     {
         LHS_Type * LHS = new LHS_Type();
         LHS->addChild(RHS);
@@ -3529,7 +3606,7 @@ protected:
             if ( nt->isOfSubClass<RHS_Type2>())
             {
                 RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -3554,7 +3631,7 @@ protected:
             if ( nt->isOfSubClass<RHS_Type1>())
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -3840,6 +3917,14 @@ public:
      * @param output
      * @param input
      */
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(RHS_Type1).name());
+        ret.push_back(typeid(RHS_Type2).name());
+        
+        return ret;
+    }
     
     const static int NUM_FEATS_PER_PAIR=26;
     
@@ -3883,7 +3968,7 @@ public:
         pairFeats.pushToVector(features);
     }
     
-    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2, vector<Terminal*> & terminals)
+    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2)
     {
         features.clear();
         
@@ -3921,7 +4006,7 @@ public:
 //        output->appendFeatures(features);
     }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals) {
+    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
         if(numIntermediates==0)
@@ -3944,19 +4029,21 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
-        appendAllFeatures(LHS,RHS1,RHS2,terminals);
+        appendAllFeatures(LHS,RHS1,RHS2);
         writeFeaturesToFile();
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
+        assert(RHS1!=NULL);
+        assert(RHS2!=NULL);
         if(RHS1->getMinDistance(RHS2)>0.4)
             return NULL;
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         
         // below to be replaced by generic learned rules
         
@@ -3969,8 +4056,8 @@ public:
                 return LHS;
             }
             
-            appendAllFeatures(LHS, RHS1, RHS2, terminals);
-            if (setCost(LHS, RHS1, RHS2, terminals))
+            appendAllFeatures(LHS, RHS1, RHS2);
+            if (setCost(LHS, RHS1, RHS2))
             {
                 return LHS;
             }
@@ -4025,7 +4112,13 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2, vector<Terminal*> & terminals)
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<RHS_Type1*>(children.at(0)),dynamic_cast<RHS_Type2*>(children.at(1)));
+    }
+    
+    
+    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2)
     {
         assert(typeid(*RHS1)==typeid(RHS_Type1));
         assert(typeid(*RHS2)==typeid(RHS_Type2));
@@ -4127,6 +4220,19 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
 }
 class RPlaneSeg : public Rule {
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(Terminal).name());
+        
+        return ret;
+    }
+    
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(children.at(0));
+    }
+    
 
     Plane * applyRuleInference(Symbol * extractedSym)
     {
@@ -4167,6 +4273,13 @@ public:
 // Manual rules that we need.
 class RPlane_PlaneSeg : public Rule {
 public:
+    virtual vector<string> getChildrenTypes()
+    {
+        vector<string> ret;
+        ret.push_back(typeid(Plane).name());
+        ret.push_back(typeid(Terminal).name());        
+        return ret;
+    }
     
     int get_Nof_RHS_symbols() {
         return 2;
@@ -4193,6 +4306,11 @@ public:
            LHS->declareOptimal();
        }
         return LHS;
+    }
+    
+    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(dynamic_cast<Plane*>(children.at(0)),dynamic_cast<Terminal*>(children.at(1)));
     }
 
     Plane * applyRuleLearning(Plane * RHS_plane, Terminal *RHS_seg) {
@@ -4340,7 +4458,7 @@ public:
     
     virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(this->cost);
@@ -4350,9 +4468,9 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS, terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS);
         
         // to be replace by generic features
         additionalProcessing(LHS,RHS);
@@ -4527,7 +4645,7 @@ public:
         this->features.push_back((baseMaxZ - RHS2->getMinZ())*Params::featScale);
     }
     
-    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
         LHS_Type * LHS = new LHS_Type();
         if(RHS1!=NULL)
@@ -4552,7 +4670,7 @@ public:
     virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
     {
         assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
@@ -4584,9 +4702,9 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2,terminals);
+        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
         
         if(Rule::META_LEARNING && this->pdist==NULL)
         {
@@ -4597,7 +4715,7 @@ public:
         
             appendMainFeats(RHS1, RHS2);
 	this->numIntermediates=1;
-             if(!setCost(LHS, RHS1, RHS2, terminals)) // set main cost
+             if(!setCost(LHS, RHS1, RHS2)) // set main cost
              {
                 delete LHS;
                 return NULL;                 
@@ -4690,7 +4808,7 @@ public:
             if ( nt->isOfSubClass<RHS_Type1>())
             {
                 RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
-                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted,terminals), pqueue);
+                addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
         }
@@ -4700,7 +4818,7 @@ public:
         {
             //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
             //occFloor->setBaseHallucinated(true);
-            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted,terminals);
+            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted);
             if(lhsOcc!=NULL)
                 lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
             addToPqueueIfNotDuplicate(lhsOcc, pqueue);            
@@ -4723,7 +4841,6 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
-map<int,int> filteredIndexToNonFiltered;
 void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
 {
     {//braces to restrict scope of iterators .. to prevent accidental use
@@ -4762,4 +4879,132 @@ void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT
         
     }    
 }
+
+void initParsing(int argc, char** argv,vector<Terminal *> & terminals)
+{
+    Rule::META_LEARNING=false;
+    //assert(Params::additionalCostThreshold==1000);
+    if(argc!=4&&argc!=5)
+    {
+        cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
+        exit(-1);
+    }
+    pcl::io::loadPCDFile<PointT>(argv[1], scene);
+    pcl::io::loadPCDFile<PointT>(argv[3], originalScene);
+        pcl::PointCloud<PointT>::Ptr originalScenePtr=createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
+
+    generatePTIndexMapping(scene,originalScene);
+    cerr<<"origPTR:"<<originalScenePtr->size()<<endl;
+    hogpcd.init(originalScenePtr);
+
+    fileName = string(argv[1]);
+    fileName = fileName.substr(0, fileName.length()-4);
+
+    occlusionChecker = new OccupancyMap<PointT>(scene);
+    //convertToXY(scene,scene2D);
+  //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
+    map<int, set<int> > neighbors;
+    int maxSegIndex= parseNbrMap(argv[2],neighbors,MAX_SEG_INDEX);
+    cout<<"Scene has "<<scene.size()<<" points."<<endl;
+    
+    
+    string command="rospack find cfg3d";
+    rulePath=exec(command.data());
+    rulePath=rulePath.substr(0,rulePath.length()-1)+"/rules";
+    
+    if(argc==5)
+        rulePath=rulePath+string(argv[4]);
+    
+    
+    NUMTerminalsToBeParsed=0;
+#ifdef FILTER_LABELS
+    LabelSelector labSel;
+    labSel.addAcceptedLabel(1);//Wall
+    labSel.addAcceptedLabel(2);//Floor
+    map<int,int> labelmap;
+    readLabelMap(labelMapFile,labelmap);
+#endif
+    
+    Terminal * temp;
+    for (int i = 1; i <= maxSegIndex; i++) {
+        temp = new Terminal(i-1); // index is segment Number -1 
+        temp->setNeighbors( neighbors[i],maxSegIndex);
+        terminals.push_back(temp);
+        
+        
+        {
+#ifdef FILTER_LABELS        
+        if(labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
+#endif
+                {
+                NUMTerminalsToBeParsed++;
+                }
+        }
+        
+        
+    }
+
+    NUMPointsToBeParsed=0;
+    overallMinZ=infinity();
+    for(unsigned int i=0;i<scene.size();i++)
+    {
+        int segIndex=scene.points[i].segment;
+        if(segIndex>0 && segIndex<=maxSegIndex)
+        {
+            if(overallMinZ>scene.points[i].z)
+                overallMinZ=scene.points[i].z;
+            
+            terminals.at(segIndex-1)->addPointIndex(i);
+            
+            
+            {
+#ifdef FILTER_LABELS        
+        if(labSel.acceptLabel(segIndex)) // get labelmap fro gt files
+#endif
+              NUMPointsToBeParsed++;
+            }
+            
+            
+        }
+    }
+    
+    for(unsigned int i=0;i<terminals.size();i++)
+    {
+      //  terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
+        terminals.at(i)->computeFeatures();
+    }
+
+    getSegmentDistanceToBoundaryOptimized(scene,terminals,occlusionChecker->maxDist);
+    
+    occlusionChecker->setmaxDistReady();
+    
+    segMinDistances.setZero(terminals.size(),terminals.size());
+    
+    for(unsigned int i1=0;i1<terminals.size();i1++)
+    {
+            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
+            {
+                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
+                segMinDistances(i1,i2)=minDistance;
+                segMinDistances(i2,i1)=minDistance;
+            }
+    }
+    
+    cout<<"minDistances computed\n"<<endl;
+    cerr<<"minDistances computed\n"<<endl;
+
+    for(unsigned int i=0;i<terminals.size();i++)
+    {
+       // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
+        assert(terminals[i]->getPointIndices().size()>0); 
+        // if this happens, delete this NT. NEED TO CHANGE SIZE OF NEIGHBOR VECTOR
+    }
+    
+    Terminal::totalNumTerminals = terminals.size();    
+    
+    assert(maxSegIndex==(int)terminals.size());
+
+    
+}
+
 #endif
