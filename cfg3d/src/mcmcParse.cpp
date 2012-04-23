@@ -151,10 +151,12 @@ class Forest
     vector<Move::SPtr> moves;
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
+    Scene *bestSceneSoFar;
+    
 public:
     const static double ADDITIONAL_COMPONENT_PENALTY=200;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
-    const static int NUM_MCMC_ITERATIONS=1000000;
+    const static int NUM_MCMC_ITERATIONS=100000000;
 
 /**
      * not supposed to deal with tree-move operation
@@ -166,6 +168,7 @@ public:
     {
         this->rulesDB=rulesDB;
         curNegLogProb = 0;
+        bestSceneSoFar=NULL;
         for (unsigned int i = 0; i < terminals.size(); i++)
         {
             terminals.at(i)->declareOptimal(false);
@@ -253,6 +256,26 @@ public:
         cerr<<"adTr:"<<tree->getName()<<endl;
         addNewMoves(tree,trees.size()-1);
         curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
+        
+        if(tree->isOfSubClass<SupportComplex<Floor> >() )
+        {
+                        Scene * LHS= new Scene();
+                LHS->addChild(tree);
+                LHS->computeSpannedTerminals();
+                assert(tree->getNumPoints()!=0);
+                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
+                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
+//                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
+                {
+                    delete bestSceneSoFar; // delete earlier best secene
+                    bestSceneSoFar = LHS;
+                }
+                else
+                    delete LHS;
+
+        }
     }
     
     /**
@@ -290,6 +313,7 @@ public:
     int getRandInt(int range)
     {
             int ret= (int)(getRandFloat(1.0)*range);
+            assert(ret <= range);
             cerr<<"rand:"<<ret<<endl;
             return ret;
     }
@@ -405,6 +429,12 @@ public:
         {
             int nm=sampleNextMoveUniformApprox();
             moves.at(nm)->applyMove(*this);
+          //  int iter=i*100/NUM_MCMC_ITERATIONS;
+            if(bestSceneSoFar!=NULL && (i % (NUM_MCMC_ITERATIONS/100))==0)
+            {
+                fileName=fileName+"_";
+                bestSceneSoFar->printData();
+            }
         }
     }
 };
@@ -677,7 +707,7 @@ public:
                 cfor.addTree(*it);
             }
         }
-      //  delete delNode; //TODO: memory leak possible
+        delete nt; //TODO: memory leak possible
         
     }
     

@@ -67,7 +67,7 @@ HOGPCD hogpcd;
 class Params
 {
 public:
-    const static double missPenalty=900000.0;
+    const static double missPenalty=90000.0;
     const static double onTopPairDivide=50;
     const static double onTopPairDefaultOnModelMissing=500.0;
     const static int timeLimit=500;
@@ -696,7 +696,7 @@ public:
         return (dummyTypeCheck!=NULL);
     }
     
-    virtual ~Symbol(){};
+    virtual ~Symbol(){}
     static float _getPolygonArea(const vector<cv::Point2f>& cv2D)
     {
         vector<cv::Point2f> contour;
@@ -2417,6 +2417,8 @@ public:
     Plane() : NonTerminal() {
         planeParamsComputed = false;
     }
+    
+    virtual ~Plane() {}
     
     virtual void computeNumSpannedObjects()
     {
