@@ -71,6 +71,7 @@ public:
                 if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
                 {
                     bestSceneSoFar = LHS;
+                    cerr<<"bsc:"<<LHS->getCost()<<endl;
                 }
             }
             

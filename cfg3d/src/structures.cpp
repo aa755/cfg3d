@@ -67,41 +67,31 @@ HOGPCD hogpcd;
 class Params
 {
 public:
-    const static double missPenalty=90000.0;
+    const static double missPenalty=                90000.0;
     const static double onTopPairDivide=50;
-    const static double onTopPairDefaultOnModelMissing=500.0;
-    const static int timeLimit=500;
-    const static double doubleRuleDivide=60;
+    const static double onTopPairDefaultOnModelMissing=1000.0;
+    const static int timeLimit=4000;
+    const static double doubleRuleDivide=100;
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
-    const static double floorOcclusionPenalty=2000000.0;
+    const static double floorOcclusionPenalty=600.0;
 #ifdef META_LEARNING
     const static double costPruningThresh=          DBL_MAX;
   const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
+    const static double closeEnoughThresh=0.1;
 #else
 //    const static double costPruningThresh=20000.0;
 //    const static double costPruningThreshNonComplex=5000;
 //    const static double additionalCostThreshold=1000;
     
     const static double costPruningThresh=          DBL_MAX;
+    const static double closeEnoughThresh=0.1;
     const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
 #endif
     const static double featScale=1000;
-    const static double closeEnoughThresh=0.05;
     
-//    const static double missPenalty=9000;
-//    const static double onTopPairDivide=5;
-//    const static double onTopPairDefaultOnModelMissing=50;
-//    const static int timeLimit=2000;
-//    const static double doubleRuleDivide=10;
-//    const static double objectCost=60;
-//    const static double maxFloorHeight=0.05;
-//    const static double floorOcclusionPenalty=20;
-//    const static double costPruningThresh=150;
-//    const static double costPruningThreshNonComplex=45;
-//    const static double featScale=1000;        
 };
 
 
@@ -4756,6 +4746,7 @@ public:
         }
         
             appendMainFeats(RHS1, RHS2);
+	this->numIntermediates=1;
              if(!setCost(LHS, RHS1, RHS2)) // set main cost
              {
                 delete LHS;
@@ -4809,7 +4800,10 @@ public:
 
             }
 
+        if( RHS1->objectsOnTop.size() !=0)
             LHS->setAdditionalCost(additionalCost /( RHS1->objectsOnTop.size() * Params::onTopPairDivide) - log(Params::objectCost));
+	else
+            LHS->setAdditionalCost(additionalCost /(  Params::onTopPairDivide) - log(Params::objectCost));
 
 
 
