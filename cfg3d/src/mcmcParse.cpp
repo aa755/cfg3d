@@ -294,6 +294,26 @@ public:
         trees.at(index)=tree;
         curNegLogProb+=tree->getCost();
         addNewMoves(tree,index);
+        
+        if(tree->isOfSubClass<SupportComplex<Floor> >() )
+        {
+                        Scene * LHS= new Scene();
+                LHS->addChild(tree);
+                LHS->computeSpannedTerminals();
+                assert(tree->getNumPoints()!=0);
+                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
+                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
+//                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
+                {
+                    delete bestSceneSoFar; // delete earlier best secene
+                    bestSceneSoFar = LHS;
+                }
+                else
+                    delete LHS;
+
+        }
     }
     
     
