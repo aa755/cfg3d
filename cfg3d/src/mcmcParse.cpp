@@ -136,7 +136,7 @@ typedef  boost::shared_ptr<Move> SPtr;
      * @return Q(f',f) where f' is the forest which will be generated when
      * applyMove is called on f
      */
-    virtual double getTransitionProbUnnormalized(double curProb /* = 0 */)
+    virtual double getTransitionProbUnnormalized()
     {
         assert(transProbSet);
         return transProb;
@@ -157,7 +157,7 @@ class Forest
     Scene *bestSceneSoFar;
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=2000;
+    const static double ADDITIONAL_COMPONENT_PENALTY=200;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
     const static int NUM_MCMC_ITERATIONS=100000000;
 
@@ -209,11 +209,16 @@ public:
         return delMoves;
     }
     
+    void print()
+    {
+        Scene::printAllScenes(trees);
+    }
+    
     void deleteTree(int index)
     {
         
-        Symbol::Ptr oldTree=trees.at(index);
-        curNegLogProb-=(oldTree->getCost()+ADDITIONAL_COMPONENT_PENALTY);
+//        Symbol::Ptr oldTree=trees.at(index);
+//        curNegLogProb-=(oldTree->getCost()+ADDITIONAL_COMPONENT_PENALTY);
         
         vector<Move::SPtr> delMoves=updateMovesOnDeletion(index);
 
@@ -258,27 +263,27 @@ public:
         trees.push_back(tree);
         cerr<<"adTr:"<<tree->getName()<<endl;
         addNewMoves(tree,trees.size()-1);
-        curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
+//        curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
         
-        if(tree->isOfSubClass<SupportComplex<Floor> >() )
-        {
-                        Scene * LHS= new Scene();
-                LHS->addChild(tree);
-                LHS->computeSpannedTerminals();
-                assert(tree->getNumPoints()!=0);
-                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
-                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
-                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
-//                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
-                {
-                    delete bestSceneSoFar; // delete earlier best secene
-                    bestSceneSoFar = LHS;
-                }
-                else
-                    delete LHS;
-
-        }
+//        if(tree->isOfSubClass<SupportComplex<Floor> >() )
+//        {
+//                        Scene * LHS= new Scene();
+//                LHS->addChild(tree);
+//                LHS->computeSpannedTerminals();
+//                assert(tree->getNumPoints()!=0);
+//                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
+//                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+//                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
+////                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+//                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
+//                {
+//                    delete bestSceneSoFar; // delete earlier best secene
+//                    bestSceneSoFar = LHS;
+//                }
+//                else
+//                    delete LHS;
+//
+//        }
     }
     
     /**
@@ -288,11 +293,11 @@ public:
      */
     void replaceTree(int index,Symbol::Ptr tree)
     {
-        Symbol::Ptr oldTree=trees.at(index);
-        curNegLogProb-=oldTree->getCost();
+//        Symbol::Ptr oldTree=trees.at(index);
+//        curNegLogProb-=oldTree->getCost();
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
-        curNegLogProb+=tree->getCost();
+//        curNegLogProb+=tree->getCost();
         addNewMoves(tree,index);
         
         if(tree->isOfSubClass<SupportComplex<Floor> >() )
@@ -426,7 +431,7 @@ public:
             count++;
             Move::SPtr selMove=moves.at(selectedMove);
             
-            double factor1=selMove->getTransitionProbUnnormalized(curNegLogProb); // newProb/oldProb ; p(x')/p(x)
+            double factor1=selMove->getTransitionProbUnnormalized(); // newProb/oldProb ; p(x')/p(x)
 //            cerr<<"factor1:"<<factor1<<endl;
             
             double factor2=1.0; // approximation 
@@ -446,7 +451,7 @@ public:
                 
         }
     }
-    
+
     void runMCMC()
     {
         
@@ -454,20 +459,21 @@ public:
         {
             int nm=sampleNextMoveUniformApprox();
             moves.at(nm)->applyMove(*this);
+            curNegLogProb+=moves.at(nm)->getCostDelta();
           //  int iter=i*100/NUM_MCMC_ITERATIONS;
-            if( (i % (NUM_MCMC_ITERATIONS/100))==0)
-            {
-                if(bestSceneSoFar!=NULL)
-                {
-                        fileName=fileName+"_";
-                        bestSceneSoFar->printData();
-                }
-                else
-                {
-                    cerr<<i<<":NULL\n";
-                }
-                
-            }
+//            if( (i % (NUM_MCMC_ITERATIONS/100))==0)
+//            {
+//                if(bestSceneSoFar!=NULL)
+//                {
+//                        fileName=fileName+"_";
+//                        bestSceneSoFar->printData();
+//                }
+//                else
+//                {
+//                    cerr<<i<<":NULL\n";
+//                }
+//                
+//            }
         }
     }
 };

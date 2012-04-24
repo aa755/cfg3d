@@ -2247,10 +2247,10 @@ public:
         
     }
     
-    static void printAllScenes(vector<VisualObject*> & identifiedScenes)
+    static void printAllScenes(vector<Symbol *> & identifiedScenes)
     {
         initFiles();
-        vector<VisualObject*>::iterator it;
+        vector< Symbol *>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             printData(*it);
@@ -2281,16 +2281,19 @@ public:
         printData(root);
         closeFiles();
     }
-    static void printData(NonTerminal * root, bool onlyGraphVis=false)
+    static void printData(Symbol * root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut = scene;
         
         graphvizFile << root->getName() << " ;\n";
 
-
+        NonTerminal * nroot=dynamic_cast<NonTerminal *>(root);
+        if(nroot==NULL)
+            return;
+        
         stack<NonTerminal*> parseTreeNodes;
-        parseTreeNodes.push(root);
+        parseTreeNodes.push(nroot);
 
         scene.width = 1;
         scene.height = scene.size();
