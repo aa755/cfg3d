@@ -155,6 +155,9 @@ class Forest
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
     Scene *bestSceneSoFar;
+    string origFileName;
+    double bestCostSoFar;
+    
     
 public:
     const static double ADDITIONAL_COMPONENT_PENALTY=200;
@@ -454,12 +457,20 @@ public:
 
     void runMCMC()
     {
-        
+        origFileName=fileName;
+        bestCostSoFar=infinity();
         for(int i=0;i<NUM_MCMC_ITERATIONS;i++)
         {
             int nm=sampleNextMoveUniformApprox();
-            moves.at(nm)->applyMove(*this);
-            curNegLogProb+=moves.at(nm)->getCostDelta();
+            Move::SPtr selMove=moves.at(nm);
+            selMove->applyMove(*this);
+            curNegLogProb+=(selMove->getCostDelta());
+            if(bestCostSoFar>curNegLogProb)
+            {
+                bestCostSoFar=curNegLogProb;
+                fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
+                print();
+            }
           //  int iter=i*100/NUM_MCMC_ITERATIONS;
 //            if( (i % (NUM_MCMC_ITERATIONS/100))==0)
 //            {
