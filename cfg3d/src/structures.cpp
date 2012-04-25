@@ -4274,7 +4274,9 @@ public:
         Plane * LHS = new Plane();
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
-        LHS->computePlaneParamsAndSetCost();
+//        LHS->computePlaneParamsAndSetCost();
+        LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
@@ -4335,7 +4337,9 @@ public:
         //TODO : FIRST COMPUTE PLANE PARAMS FROM JUST THIS AND THEN 
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
-        LHS->computePlaneParamsAndSetCost();
+//        LHS->computePlaneParamsAndSetCost();
+        LHS->computePlaneParamsAndEigens(); // also computes feats
+        LHS->setAdditionalCost(0);
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();

@@ -102,6 +102,7 @@ protected:
     }
     
 public:
+    typedef SupportComplex<Floor> SCENE_TYPE;
     void resetCostDelta()
     {
         costDelta=0;
@@ -160,9 +161,10 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=200;
-    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
-    const static int NUM_MCMC_ITERATIONS=100000000;
+    const static double ADDITIONAL_COMPONENT_PENALTY=100;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-50;
+    const static int NUM_MCMC_ITERATIONS=10000000;
+    const static int NON_FLOORCOMPLEX_PENALTY=0;
 
 /**
      * not supposed to deal with tree-move operation
@@ -347,7 +349,7 @@ public:
     {
             int ret= (int)(getRandFloat(1.0)*(range-1));
             assert(ret < range);
-            cerr<<"rand:"<<ret<<endl;
+        //    cerr<<"rand:"<<ret<<endl;
             return ret;
     }
     
@@ -441,16 +443,16 @@ public:
             // can write a dry run version of applyMove to estimate new # moves
             
             double ratio=factor1*factor2;
-            cerr<<"rat:"<<ratio<<",#n:"<<trees.size()<<endl;
+//            cerr<<"rat:"<<ratio<<",#n:"<<trees.size()<<endl;
             
             if(ratio>1.0 || getRandFloat(1.0)<=ratio)
             {
-                cerr<<"#tri= "<<count<<endl;
-                cerr<<"sMv:"<<selMove->toString()<<endl;
+//                cerr<<"#tri= "<<count<<endl;
+//                cerr<<"sMv:"<<selMove->toString()<<endl;
                 return selectedMove;
             }
             else
-                cerr<<"rMv:"<<selMove->toString()<<endl;
+//                cerr<<"rMv:"<<selMove->toString()<<endl;
                 
         }
     }
@@ -496,6 +498,9 @@ void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
     if (!(newNode->isOfSubClass<Terminal > () || newNode->isOfSubClass<Plane> ()))
         costDelta += Forest::ADDITIONAL_PLANE_TERMINAL_PENALTY;
 
+    if (!(newNode->isOfSubClass<SCENE_TYPE > () ))
+        costDelta += Forest::NON_FLOORCOMPLEX_PENALTY;
+    
 }
 
 void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
@@ -504,6 +509,9 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
 
     if (!(remNode->isOfSubClass<Terminal > () || remNode->isOfSubClass<Plane> ()))
         costDelta -= Forest::ADDITIONAL_PLANE_TERMINAL_PENALTY;
+
+    if (!(remNode->isOfSubClass<SCENE_TYPE > () ))
+        costDelta -= Forest::NON_FLOORCOMPLEX_PENALTY;
 }
 
 /**
