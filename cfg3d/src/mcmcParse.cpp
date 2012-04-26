@@ -462,8 +462,11 @@ public:
     {
         origFileName=fileName;
         bestCostSoFar=infinity();
-        for(int i=0;i<NUM_MCMC_ITERATIONS;i++)
+        TicToc timer;
+        int iter=0;
+        while(timer.toc()<Params::timeLimit)
         {
+            iter++;
             int nm=sampleNextMoveUniformApprox();
             Move::SPtr selMove=moves.at(nm);
             selMove->applyMove(*this);
@@ -471,7 +474,7 @@ public:
             if(bestCostSoFar>curNegLogProb)
             {
                 bestCostSoFar=curNegLogProb;
-                fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
+              //  fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
                 print();
             }
           //  int iter=i*100/NUM_MCMC_ITERATIONS;

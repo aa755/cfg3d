@@ -70,7 +70,7 @@ public:
     const static double missPenalty=                90000.0;
     const static double onTopPairDivide=50;
     const static double onTopPairDefaultOnModelMissing=1000.0;
-    const static int timeLimit=4000;
+    const static int timeLimit=2000;
     const static double doubleRuleDivide=100;
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;

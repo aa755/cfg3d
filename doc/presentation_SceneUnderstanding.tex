@@ -109,4 +109,16 @@ P(x,t)&=&P(x|t)P(t) \\
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Better Model}
+\begin{eqnarray}
+P(x,t)&=&P(x|t)P(t) \\
+&=& \prod_{n \in t}{P(x_{children(n)} |rule(n) )P(rule(n))}
+\end{eqnarray}
+
+\begin{eqnarray}
+P(x,t)&=& \frac{1}{Z(w)}{exp(-\sum_{n \in t}{{w_{rule(n)}}^T x_{children(n)}})}
+\end{eqnarray}
+
+\end{frame}
+
 \end{document} 
