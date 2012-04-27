@@ -161,11 +161,11 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=100;
+    const static double ADDITIONAL_COMPONENT_PENALTY=150;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-50;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=4000;
+    const static int timeLimit=2000;
 
 /**
      * not supposed to deal with tree-move operation
@@ -446,7 +446,7 @@ public:
             double ratio=factor1*factor2;
 //            cerr<<"rat:"<<ratio<<",#n:"<<trees.size()<<endl;
             
-            if(ratio>1.0 || getRandFloat(1.0)<=ratio)
+            if(ratio>1.0 || getRandFloat(1.0)<ratio)
             {
 //                cerr<<"#tri= "<<count<<endl;
 //                cerr<<"sMv:"<<selMove->toString()<<endl;
