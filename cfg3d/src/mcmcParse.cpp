@@ -87,6 +87,10 @@ public:
         return lookupRule(childTypeSet);
     }
     
+    const vector<RulePtr> & getRulesMakingPlanarPrimitives()
+    {
+        return planarPrimitiveRules;
+    }
 };
 
 class Move
@@ -771,7 +775,7 @@ public:
         NonTerminal *nt = dynamic_cast<NonTerminal*>(mergeNode); 
         assert(nt!=NULL);
         assert(nt->children.size()==1);
-        Plane * rhs=dynamic_cast<Plane *>(nt->getChild(0));
+        rhs=dynamic_cast<Plane *>(nt->getChild(0));
         assert(rhs!=NULL);
         
         mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
@@ -872,6 +876,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     //single rule
 
+    
     const vector<RulePtr> & rules = rulesDB->lookupSingleRule(tree);
     for(int i=0;i<(int)rules.size();i++)
     {
@@ -909,6 +914,20 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     // add the delete move for this new node
     if(tree->isOfSubClass<NonTerminal>())
         moves.push_back(Move::SPtr(new SplitMove(*this, index)));
+
+    if (tree->isOfSubClass<PlanarPrimitive > ())
+    {
+        const vector<RulePtr> & rules = rulesDB->getRulesMakingPlanarPrimitives();
+        for (int i = 0; i < (int) rules.size(); i++)
+        {
+            RulePtr rule = rules.at(i);
+            Move::SPtr newMerge = (Move::SPtr(new MutatePlanarPrimitiveMove(*this, index, rule)));
+            if (newMerge->moveCreationSucceded())
+                moves.push_back(newMerge);
+        }
+
+    }
+    
 
 
 }
