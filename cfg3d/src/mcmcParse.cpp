@@ -171,11 +171,11 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=140;
-    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
+    const static double ADDITIONAL_COMPONENT_PENALTY=150;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-90;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=1000;
+    const static int timeLimit=2000;
 
 /**
      * not supposed to deal with tree-move operation
@@ -454,12 +454,12 @@ public:
             // can write a dry run version of applyMove to estimate new # moves
             
             double ratio=factor1*factor2;
-//            cerr<<"rat:"<<ratio<<",#n:"<<trees.size()<<endl;
             
             if(ratio>1.0 || getRandFloat(1.0)<ratio)
             {
-//                cerr<<"#tri= "<<count<<endl;
-//                cerr<<"sMv:"<<selMove->toString()<<endl;
+            
+                cerr<<"#tri= "<<count<<endl;
+                cerr<<"sMv:"<<selMove->toString()<<",rat:"<<ratio<<",#n:"<<trees.size()<<endl;
                 return selectedMove;
             }
 //            else
@@ -588,7 +588,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         if(mergeResult==NULL)
         {
-            cerr<<"mf:"<<toString()<<endl;
+            cerr<<"mf:"<<mergeNode1->getName()+","+mergeNode2->getName()<<":"<<typeid(*mergeRule).name()<<endl;
             return;
         }
 
@@ -604,7 +604,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     
     virtual string toString()
     {
-        return typeid(*mergeRule).name();
+        return mergeNode1->getName()+","+mergeNode2->getName()+"->"+mergeResult->getName();
     }
     
     virtual void applyMove(Forest & cfor)
@@ -672,6 +672,11 @@ protected:
 public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
     
+    virtual string toString()
+    {
+        return mergeNode->getName()+"->"+mergeResult->getName();
+    }
+    
     vector<Symbol::Ptr> marshalParams()
     {
         vector<Symbol::Ptr> nodes;
@@ -714,10 +719,6 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return (mergeResult!=NULL);
     }
     
-    virtual string toString()
-    {
-        return typeid(*mergeRule).name();
-    }
     
     virtual void applyMove(Forest & cfor)
     {
@@ -728,8 +729,14 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         cfor.replaceTree(mergeIndex,mergeResult);
         
+        singleMoveAdditionalWork();
+        
     }
     
+    virtual void singleMoveAdditionalWork()
+    {
+        
+    }
     
     virtual bool isInvalidatedOnDeletion(int index)
     {
@@ -785,6 +792,7 @@ public:
             return;
           mergeResult->declareOptimal(false);
         
+          assert(typeid(*mergeResult)!=typeid(*mergeNode)); // this is useless
         adjustCostDeltaForNodeAddition(mergeResult);
         adjustCostDeltaForNodeRemoval(mergeNode);
         setTransProbFromDelta();        
@@ -792,7 +800,12 @@ public:
     
     virtual string toString()
     {
-        return string("mut:")+typeid(*mergeNode).name()+"->"+typeid(*mergeResult).name();
+        return string("mut:")+mergeNode->getName()+"->"+mergeResult->getName();
+    }
+    
+    virtual void singleMoveAdditionalWork()
+    {
+        delete mergeNode;
     }
     
 };
@@ -807,7 +820,7 @@ public:
     {
         this->delIndex=delIndex;
         delNode=cfor.getTree(delIndex);
-        desc="del:"+string(typeid(*delNode).name());
+        desc="del:"+delNode->getName();
         NonTerminal * nt=dynamic_cast<NonTerminal*>(delNode);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
         adjustCostDeltaForNodeRemoval(delNode);
@@ -904,10 +917,8 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
                     Move::SPtr newMerge=Move::SPtr(new MergeMove(*this, index, it - trees.begin(), rul));
                     if(newMerge->moveCreationSucceded())
                         moves.push_back(newMerge);
-                    
                 }
             }
-
         }
     }
 
@@ -915,15 +926,19 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     if(tree->isOfSubClass<NonTerminal>())
         moves.push_back(Move::SPtr(new SplitMove(*this, index)));
 
+    // mutation
     if (tree->isOfSubClass<PlanarPrimitive > ())
     {
         const vector<RulePtr> & rules = rulesDB->getRulesMakingPlanarPrimitives();
         for (int i = 0; i < (int) rules.size(); i++)
         {
             RulePtr rule = rules.at(i);
-            Move::SPtr newMerge = (Move::SPtr(new MutatePlanarPrimitiveMove(*this, index, rule)));
-            if (newMerge->moveCreationSucceded())
-                moves.push_back(newMerge);
+            if(rule->getLHSType()!=string(typeid(*tree).name()))
+            {
+                Move::SPtr newMerge = (Move::SPtr(new MutatePlanarPrimitiveMove(*this, index, rule)));
+                if (newMerge->moveCreationSucceded())
+                    moves.push_back(newMerge);
+            }
         }
 
     }

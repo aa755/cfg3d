@@ -2999,6 +2999,11 @@ public:
         return set<string>(ct.begin(),ct.end());
     }
     
+    virtual string getLHSType()
+    {
+        assert(false);  // all rules in use must have implemented this
+    }
+    
     static bool META_LEARNING;
     string filename;
     /**
@@ -3484,6 +3489,11 @@ public:
         vector<string> ret;
         ret.push_back(typeid(RHS_Type).name());      
         return ret;
+    }
+    
+    virtual string getLHSType()
+    {
+        return typeid(LHS_Type).name();
     }
     
     virtual double getCostScaleFactor()
@@ -3980,6 +3990,10 @@ public:
         
         return ret;
     }
+    virtual string getLHSType()
+    {
+        return typeid(LHS_Type).name();
+    }
     
     const static int NUM_FEATS_PER_PAIR=26;
     
@@ -4283,6 +4297,10 @@ public:
         
         return ret;
     }
+    virtual string getLHSType()
+    {
+        return typeid(Plane).name();
+    }
     
     virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
@@ -4346,6 +4364,10 @@ public:
     void get_typenames(vector<string> & names) {
         names.push_back(typeid (Plane).name());
         names.push_back(typeid (Terminal).name());
+    }
+    virtual string getLHSType()
+    {
+        return typeid(Plane).name();
     }
     
     Plane* applyRuleInference(Plane * RHS_plane, Terminal *RHS_seg) {
