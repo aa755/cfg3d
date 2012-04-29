@@ -2988,6 +2988,11 @@ public:
         assert(false); // all rules in use must have implemented this
     }
     
+    virtual bool makesPlanarPrimitive()
+    {
+        return false;
+    }
+    
     set<string> getChildrenTypesAsSet()
     {
         vector<string> ct=getChildrenTypes();
@@ -3456,8 +3461,24 @@ class SingleRule : public Rule
     }
 
     bool learning;
+    
+    bool makesPlanarPrimitive(boost::mpl::true_ const &)
+    {
+        return true;
+    }
+    
+    bool makesPlanarPrimitive(boost::mpl::false_ const &)
+    {
+        return false;
+    }
+    
 public:
     
+    virtual bool makesPlanarPrimitive()
+    {
+        return makesPlanarPrimitive(typename boost::is_base_of<PlanarPrimitive,LHS_Type>::type());
+    }
+             
     virtual vector<string> getChildrenTypes()
     {
         vector<string> ret;

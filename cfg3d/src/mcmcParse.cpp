@@ -27,6 +27,7 @@ class Forest;
 class RulesDB
 {
     vector<RulePtr>  rules;
+    vector<RulePtr>  planarPrimitiveRules;
     map<set<string>, vector<RulePtr> > childTypeToRule; // same LHS can have multiple RHS; Wall, Floor -> Plane
     vector<RulePtr> emptyRules;
 public:
@@ -46,6 +47,11 @@ public:
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             childTypeToRule[(*it)->getChildrenTypesAsSet()].push_back(*it);
+            if((*it)->makesPlanarPrimitive())
+            {
+                cerr<<"ppr:"<<typeid(*(*it)).name()<<endl;
+                planarPrimitiveRules.push_back(*it);
+            }
         }
         cerr<<"rules map has size: "<<childTypeToRule.size()<<endl;
         
@@ -405,7 +411,7 @@ public:
             cerr<<"old #moves:"<<moves.size()<<endl;
             Forest newF=*this;
 //            selMove->applyMove(newF);
-            cerr<<"selMove:"<<selMove->toString()<<endl;
+            cerr<<"selMove:"<< selMove->toString() <<endl;
             newF.moves.at(selectedMove)->applyMove(newF);
             cerr<<"new #moves:"<<newF.moves.size()<<endl;
             
@@ -653,6 +659,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
  */
 class SingleRuleMove: public Move
 {
+protected:
     int mergeIndex;
     Symbol::Ptr mergeNode; // store nodes also for additional safety check
     RulePtr mergeRule;
@@ -691,6 +698,10 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         adjustCostDeltaForNodeAddition(mergeResult);
         adjustCostDeltaForNodeRemoval(mergeNode);
         setTransProbFromDelta();
+        
+    }
+    SingleRuleMove()
+    {
         
     }
     
@@ -738,6 +749,49 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     }
 };
 
+class MutatePlanarPrimitiveMove : public SingleRuleMove
+{
+protected:
+    Plane * rhs;
+public:
+    vector<Symbol::Ptr> marshalParams()
+    {
+        vector<Symbol::Ptr> nodes;
+        nodes.push_back(rhs);
+        return nodes;
+    }
+    
+    MutatePlanarPrimitiveMove(Forest & cfor, int mergeIndex, RulePtr mergeRule)
+    {
+        this->mergeIndex=mergeIndex;
+        this->mergeRule=mergeRule;
+        
+        mergeNode=cfor.getTree(mergeIndex);
+
+        NonTerminal *nt = dynamic_cast<NonTerminal*>(mergeNode); 
+        assert(nt!=NULL);
+        assert(nt->children.size()==1);
+        Plane * rhs=dynamic_cast<Plane *>(nt->getChild(0));
+        assert(rhs!=NULL);
+        
+        mergeResult=mergeRule->applyRuleMarshalledParams(marshalParams());
+      
+//        assert(mergeResult!=NULL);
+        if(mergeResult==NULL)
+            return;
+          mergeResult->declareOptimal(false);
+        
+        adjustCostDeltaForNodeAddition(mergeResult);
+        adjustCostDeltaForNodeRemoval(mergeNode);
+        setTransProbFromDelta();        
+    }
+    
+    virtual string toString()
+    {
+        return string("mut:")+typeid(*mergeNode).name()+"->"+typeid(*mergeResult).name();
+    }
+    
+};
 class SplitMove: public Move
 {
     int delIndex;
