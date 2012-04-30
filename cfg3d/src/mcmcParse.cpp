@@ -474,7 +474,7 @@ public:
         bestCostSoFar=infinity();
         TicToc timer;
         int iter=0;
-        while(timer.toc()<Params::timeLimit)
+        while(timer.toc()<timeLimit)
         {
             iter++;
             int nm=sampleNextMoveUniformApprox();
