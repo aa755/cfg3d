@@ -86,7 +86,7 @@ public:
 //    const static double additionalCostThreshold=1000;
     
     const static double costPruningThresh=          DBL_MAX;
-    const static double closeEnoughThresh=0.1;
+    const static double closeEnoughThresh=0.05;
     const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
 #endif
@@ -4564,7 +4564,7 @@ public:
         double ac=std::max(0,(3-(int)RHSExpanded.size()) );
         assert(ac>0);
         assert(ac<3);
-        LHS->setAdditionalCost(5*ac);
+        LHS->setAdditionalCost(25*ac);
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
