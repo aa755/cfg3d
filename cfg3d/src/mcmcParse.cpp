@@ -171,11 +171,11 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=150;
-    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-90;
+    const static double ADDITIONAL_COMPONENT_PENALTY=140;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-100;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=2000;
+    const static int timeLimit=400;
 
 /**
      * not supposed to deal with tree-move operation

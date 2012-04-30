@@ -4557,7 +4557,14 @@ public:
         // to be replace by generic features
         additionalProcessing(LHS,RHS);
         computeFeatures(RHS);
-        LHS->setAdditionalCost(0);
+        
+        vector<Symbol*> RHSExpanded;
+        RHS->expandIntermediates(RHSExpanded);
+
+        double ac=std::max(0,(3-(int)RHSExpanded.size()) );
+        assert(ac>0);
+        assert(ac<3);
+        LHS->setAdditionalCost(5*ac);
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
