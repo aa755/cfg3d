@@ -171,7 +171,7 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=140;
+    const static double ADDITIONAL_COMPONENT_PENALTY=250;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;

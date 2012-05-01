@@ -1,2 +1,2 @@
-EXTRA_CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=-std=c++0x
+EXTRA_CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=-fomit-frame-pointer -ffast-math -Wall
 include $(shell rospack find mk)/cmake.mk
