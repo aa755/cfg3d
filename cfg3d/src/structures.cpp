@@ -2608,7 +2608,7 @@ public:
             cerr<<"negEig:"<<sumSquaredDistances<<endl;
         }
         //setAbsoluteCost(0);
-        setAdditionalCost(sumSquaredDistances);
+        setAdditionalCost(500.0*sumSquaredDistances/getNumPoints());
     }
     
     /**
@@ -4314,8 +4314,10 @@ public:
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
 //        LHS->computePlaneParamsAndSetCost();
-        LHS->computePlaneParamsAndEigens(); // also computes feats
-        LHS->setAdditionalCost(0);
+//        LHS->computePlaneParamsAndEigens(); // also computes feats
+//        LHS->setAdditionalCost(0);
+        LHS->computePlaneParamsAndSetCost();
+        
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
@@ -4380,9 +4382,9 @@ public:
         //TODO : FIRST COMPUTE PLANE PARAMS FROM JUST THIS AND THEN 
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
-//        LHS->computePlaneParamsAndSetCost();
-        LHS->computePlaneParamsAndEigens(); // also computes feats
-        LHS->setAdditionalCost(0);
+//        LHS->computePlaneParamsAndEigens(); // also computes feats
+//        LHS->setAdditionalCost(0);
+        LHS->computePlaneParamsAndSetCost();
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
