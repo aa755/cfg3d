@@ -175,7 +175,7 @@ public:
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=400;
+    const static int timeLimit=1000;
 
 /**
      * not supposed to deal with tree-move operation
