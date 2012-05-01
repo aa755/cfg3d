@@ -40,7 +40,7 @@
 # define MAXFEATNUM 99999999 /* maximum feature number (must be in
 			  	valid range of FNUM type and long int!) */
 
-# define LINEAR  0           /* linear kernel type */
+# define LINEAR_KERNEL  0           /* linear kernel type */
 # define POLY    1           /* polynomial kernel type */
 # define RBF     2           /* rbf kernel type */
 # define SIGMOID 3           /* sigmoid kernel type */

@@ -2,7 +2,7 @@
 //#include "mex.h"
 #include <stdlib.h>
 // small value, used to avoid division by zero
-#define eps 0.0001
+#define eps_hog 0.0001
 #include <opencv/cv.h>
 
 #include <opencv/highgui.h>
@@ -395,13 +395,13 @@ void process(const double *im, const int *dims) {
       double *src, *p, n1, n2, n3, n4;
 
       p = norm + (x+1)*blocks[0] + y+1;
-      n1 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps);
+      n1 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps_hog);
       p = norm + (x+1)*blocks[0] + y;
-      n2 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps);
+      n2 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps_hog);
       p = norm + x*blocks[0] + y+1;
-      n3 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps);
+      n3 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps_hog);
       p = norm + x*blocks[0] + y;      
-      n4 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps);
+      n4 = 1.0 / sqrt(*p + *(p+1) + *(p+blocks[0]) + *(p+blocks[0]+1) + eps_hog);
 
       double t1 = 0;
       double t2 = 0;

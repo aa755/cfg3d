@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
     parse_document(line,words,&doc_label,&queryid,&slackid,&costfactor,&wnum,
 		   max_words_doc,&comment);
     totdoc++;
-    if(model->kernel_parm.kernel_type == LINEAR) {/* For linear kernel,     */
+    if(model->kernel_parm.kernel_type == LINEAR_KERNEL) {/* For linear kernel,     */
       for(j=0;(words[j]).wnum != 0;j++) {     /* check if feature numbers   */
 	if((words[j]).wnum>model->totwords)   /* are not larger than in     */
 	  (words[j]).wnum=0;                  /* model. Remove feature if   */
@@ -82,7 +82,7 @@ int main (int argc, char* argv[])
     doc = create_example(-1,0,0,0.0,create_svector(words,comment,1.0));
     t1=get_runtime();
 
-    if(model->kernel_parm.kernel_type == LINEAR) {   /* linear kernel */
+    if(model->kernel_parm.kernel_type == LINEAR_KERNEL) {   /* linear kernel */
       dist=classify_example_linear(model,doc);
     }
     else {                                           /* non-linear kernel */

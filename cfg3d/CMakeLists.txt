@@ -62,7 +62,7 @@ rosbuild_add_executable(getLabelmapMajorityVoting src/getLabelmapMajorityVoting.
 #rosbuild_add_executable(merger src/merger.cpp)
 rosbuild_add_executable(labeler src/labeler.cpp)
 rosbuild_add_executable(mcmcParse src/mcmcParse.cpp)
-#rosbuild_add_executable(svm_cfg_classify src/svm_struct_api.cpp src/svm_struct/svm_struct_classify.cpp src/svm_light/svm_common.cpp src/svm_struct/svm_struct_common.cpp )
+rosbuild_add_executable(svm_cfg_classify src/svm_struct_api.cpp )
         
 #rosbuild_add_executable(rulesGenerator src/rulesGenerator.cpp)
 #rosbuild_add_executable(generatedLearner src/generatedLearner.cpp)

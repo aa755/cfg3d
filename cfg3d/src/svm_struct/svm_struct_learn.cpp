@@ -87,7 +87,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
   else if(sparm->slack_norm == 2) {
     lparm->svm_c=999999999999999.0; /* upper bound C must never be reached */
     lparm->sharedslack=0;
-    if(kparm->kernel_type != LINEAR) {
+    if(kparm->kernel_type != LINEAR_KERNEL) {
       printf("ERROR: Kernels are not implemented for L2 slack norm!"); 
       fflush(stdout);
       exit(0); 
@@ -119,7 +119,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
   /* set initial model and slack variables*/
   svmModel=(MODEL *)my_malloc(sizeof(MODEL));
   lparm->epsilon_crit=epsilon;
-  if(kparm->kernel_type != LINEAR)
+  if(kparm->kernel_type != LINEAR_KERNEL)
     kcache=kernel_cache_init(MAX(cset.m,1),lparm->kernel_cache_size);
   svm_learn_optimization(cset.lhs,cset.rhs,cset.m,sizePsi+n,
 			 lparm,kparm,kcache,svmModel,alpha);
@@ -134,7 +134,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
     fycache=(SVECTOR **)my_malloc(n*sizeof(SVECTOR *));
     for(i=0;i<n;i++) {
       fy=psi(ex[i].x,ex[i].y,sm,sparm);
-      if(kparm->kernel_type == LINEAR) {
+      if(kparm->kernel_type == LINEAR_KERNEL) {
 	diff=add_list_ss(fy); /* store difference vector directly */
 	free_svector(fy);
 	fy=diff;
@@ -266,7 +266,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	      /**** resize constraint matrix and add new constraint ****/
 	      cset.m++;
 	      cset.lhs=(DOC **)realloc(cset.lhs,sizeof(DOC *)*cset.m);
-	      if(kparm->kernel_type == LINEAR) {
+	      if(kparm->kernel_type == LINEAR_KERNEL) {
 		diff=add_list_ss(fy); /* store difference vector directly */
 		if(sparm->slack_norm == 1) 
 		  cset.lhs[cset.m-1]=create_example(cset.m-1,0,i+1,1,
@@ -324,7 +324,7 @@ void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	    svmModel=(MODEL *)my_malloc(sizeof(MODEL));
 	    /* Always get a new kernel cache. It is not possible to use the
 	       same cache for two different training runs */
-	    if(kparm->kernel_type != LINEAR)
+	    if(kparm->kernel_type != LINEAR_KERNEL)
 	      kcache=kernel_cache_init(MAX(cset.m,1),lparm->kernel_cache_size);
 	    /* Run the QP solver on cset. */
 	    svm_learn_optimization(cset.lhs,cset.rhs,cset.m,sizePsi+n,
@@ -569,7 +569,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
   for(i=0;i<n;i++) {
     if(USE_FYCACHE) {
       fy=psi(ex[i].x,ex[i].y,sm,sparm);
-      if(kparm->kernel_type == LINEAR) { /* store difference vector directly */
+      if(kparm->kernel_type == LINEAR_KERNEL) { /* store difference vector directly */
 	diff=add_list_sort_ss_r(fy,COMPACT_ROUNDING_THRESH); 
 	free_svector(fy);
 	fy=diff;
@@ -592,7 +592,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
       }
   }
   
-  if(kparm->kernel_type == LINEAR)
+  if(kparm->kernel_type == LINEAR_KERNEL)
     lhs_n=create_nvector(sm->sizePsi);
 
   /* randomize order or training examples */
@@ -696,7 +696,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	/* do not use constraint from cache */
 	rt1=get_runtime();
 	cached_constraint=0;
-	if(kparm->kernel_type == LINEAR)
+	if(kparm->kernel_type == LINEAR_KERNEL)
 	  clear_nvector(lhs_n,sm->sizePsi);
 	progress=0;
 	rt_total+=MAX(get_runtime()-rt1,0);
@@ -711,7 +711,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	  find_most_violated_constraint(&fydelta,&rhs_i,&ex[i],fycache[i],n,
 				      sm,sparm,&rt_viol,&rt_psi,&argmax_count);
 	  /* add current fy-fybar to lhs of constraint */
-	  if(kparm->kernel_type == LINEAR) {
+	  if(kparm->kernel_type == LINEAR_KERNEL) {
 	    add_list_n_ns(lhs_n,fydelta,1.0); /* add fy-fybar to sum */
 	    free_svector(fydelta);
 	  }
@@ -728,7 +728,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 	rt1=get_runtime();
 
 	/* create sparse vector from dense sum */
-	if(kparm->kernel_type == LINEAR)
+	if(kparm->kernel_type == LINEAR_KERNEL)
 	  lhs=create_svector_n_r(lhs_n,sm->sizePsi,NULL,1.0,
 				 COMPACT_ROUNDING_THRESH);
 	doc=create_example(cset.m,0,1,1,lhs);
@@ -845,7 +845,7 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
     alphasum=0;
     for(i=0; i<cset.m; i++)  
       alphasum+=alpha[i]*cset.rhs[i];
-    if(kparm->kernel_type == LINEAR)
+    if(kparm->kernel_type == LINEAR_KERNEL)
       modellength=model_length_n(svmModel);
     else
       modellength=model_length_s(svmModel);
@@ -1141,7 +1141,7 @@ double add_constraint_to_constraint_cache(CCACHE *ccache, MODEL *svmModel, int e
   if(viol_gain > gainthresh) {
     fydelta_new=fydelta;
     if(struct_verbosity>=2) rt2=get_runtime();
-    if(svmModel->kernel_parm.kernel_type == LINEAR) {
+    if(svmModel->kernel_parm.kernel_type == LINEAR_KERNEL) {
       if(COMPACT_CACHED_VECTORS == 1) { /* eval sum for linear */
 	fydelta_new=add_list_sort_ss_r(fydelta,COMPACT_ROUNDING_THRESH);  
 	free_svector(fydelta);

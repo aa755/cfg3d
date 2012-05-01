@@ -174,7 +174,7 @@ void svm_learn_classification(DOC **docs, double *class, long int
   }
 
   /* caching makes no sense for linear kernel */
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     /* kernel_cache = NULL; */
   } 
 
@@ -193,7 +193,7 @@ void svm_learn_classification(DOC **docs, double *class, long int
       if(alpha[i]<0) alpha[i]=0;
       if(alpha[i]>learn_parm->svm_cost[i]) alpha[i]=learn_parm->svm_cost[i];
     }
-    if(kernel_cache && (kernel_parm->kernel_type != LINEAR)) {
+    if(kernel_cache && (kernel_parm->kernel_type != LINEAR_KERNEL)) {
       for(i=0;i<totdoc;i++)     /* fill kernel cache with unbounded SV */
 	if((alpha[i]>0) && (alpha[i]<learn_parm->svm_cost[i]) 
 	   && (kernel_cache_space_available(kernel_cache))) 
@@ -610,7 +610,7 @@ void svm_learn_regression(DOC **docs, double *value, long int totdoc,
   }
 
   /* caching makes no sense for linear kernel */
-  if((kernel_parm->kernel_type == LINEAR) && (*kernel_cache)) {
+  if((kernel_parm->kernel_type == LINEAR_KERNEL) && (*kernel_cache)) {
     printf("WARNING: Using a kernel cache for linear case will slow optimization down!\n");
   } 
 
@@ -760,7 +760,7 @@ void svm_learn_ranking(DOC **docs, double *rankvalue, long int totdoc,
 	/* cost=(docs[i]->costfactor+docs[j]->costfactor)/2.0; */
 	cost=1;
 	if(rankvalue[i] > rankvalue[j]) {
-	  if(kernel_parm->kernel_type == LINEAR)
+	  if(kernel_parm->kernel_type == LINEAR_KERNEL)
 	    docdiff[k]=create_example(k,0,0,cost,
 				      sub_ss(docs[i]->fvec,docs[j]->fvec));
 	  else {
@@ -778,7 +778,7 @@ void svm_learn_ranking(DOC **docs, double *rankvalue, long int totdoc,
 	  k++;
 	}
 	else if(rankvalue[i] < rankvalue[j]) {
-	  if(kernel_parm->kernel_type == LINEAR)
+	  if(kernel_parm->kernel_type == LINEAR_KERNEL)
 	    docdiff[k]=create_example(k,0,0,cost,
 				      sub_ss(docs[j]->fvec,docs[i]->fvec));
 	  else {
@@ -1007,7 +1007,7 @@ void svm_learn_optimization(DOC **docs, double *rhs, long int
     }
     index = (long *)my_malloc(sizeof(long)*totdoc);
     index2dnum = (long *)my_malloc(sizeof(long)*(totdoc+11));
-    if(kernel_parm->kernel_type == LINEAR) {
+    if(kernel_parm->kernel_type == LINEAR_KERNEL) {
       weights=(double *)my_malloc(sizeof(double)*(totwords+1));
       clear_nvector(weights,totwords); /* set weights to zero */
       aicache=NULL;
@@ -1022,7 +1022,7 @@ void svm_learn_optimization(DOC **docs, double *rhs, long int
       if(alpha[i]<0) alpha[i]=0;
       if(alpha[i]>learn_parm->svm_cost[i]) alpha[i]=learn_parm->svm_cost[i];
     }
-    if(kernel_cache && (kernel_parm->kernel_type != LINEAR)) {
+    if(kernel_cache && (kernel_parm->kernel_type != LINEAR_KERNEL)) {
       for(i=0;i<totdoc;i++)     /* fill kernel cache with unbounded SV */
 	if((alpha[i]>0) && (alpha[i]<learn_parm->svm_cost[i]) 
 	   && (kernel_cache_space_available(kernel_cache))) 
@@ -1057,7 +1057,7 @@ void svm_learn_optimization(DOC **docs, double *rhs, long int
   }
 
   /* caching makes no sense for linear kernel */
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     /* kernel_cache = NULL; */
   } 
 
@@ -1258,7 +1258,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
   QP qp;            /* buffer for one quadratic program */
 
   epsilon_crit_org=learn_parm->epsilon_crit; /* save org */
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     learn_parm->epsilon_crit=2.0;
     /* kernel_cache=NULL; */  /* caching makes no sense for linear kernel */
   } 
@@ -1284,7 +1284,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
   qp.opt_xinit = (double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
   qp.opt_low=(double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
   qp.opt_up=(double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     weights=create_nvector(totwords);
     clear_nvector(weights,totwords); /* set weights to zero */
   }
@@ -1398,7 +1398,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
         already_chosen=0;
 	if((minl(learn_parm->svm_newvarsinqp,
 		 learn_parm->svm_maxqpsize-choosenum)>=4) 
-	   && (kernel_parm->kernel_type != LINEAR)) {
+	   && (kernel_parm->kernel_type != LINEAR_KERNEL)) {
 	  /* select part of the working set from cache */
 	  already_chosen=select_next_qp_subproblem_grad(
 			      label,unlabeled,a,lin,c,totdoc,
@@ -1512,8 +1512,8 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
     noshrink=0;
     if((!retrain) && (inactivenum>0) 
        && ((!learn_parm->skip_final_opt_check) 
-	   || (kernel_parm->kernel_type == LINEAR))) { 
-      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR)) 
+	   || (kernel_parm->kernel_type == LINEAR_KERNEL))) { 
+      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR_KERNEL)) 
 	 || (verbosity>=2)) {
 	if(verbosity==1) {
 	  printf("\n");
@@ -1538,7 +1538,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
       if((*maxdiff) > learn_parm->epsilon_crit) 
 	retrain=1;
       timing_profile->time_shrink+=get_runtime()-t1;
-      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR)) 
+      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR_KERNEL)) 
 	 || (verbosity>=2)) {
 	printf("done.\n");  fflush(stdout);
         printf(" Number of inactive variables = %ld\n",inactivenum);
@@ -1577,7 +1577,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
 					     transductcycle,kernel_parm,
 					     learn_parm);
       epsilon_crit_org=learn_parm->epsilon_crit;
-      if(kernel_parm->kernel_type == LINEAR)
+      if(kernel_parm->kernel_type == LINEAR_KERNEL)
 	learn_parm->epsilon_crit=1; 
       transductcycle++;
       /* reset watchdog */
@@ -1619,7 +1619,7 @@ long optimize_to_convergence(DOC **docs, long int *label, long int totdoc,
 				   model,&inconsistentnum,inconsistent);
       }
       if(retrain) {
-	if(kernel_parm->kernel_type == LINEAR) { /* reinit shrinking */
+	if(kernel_parm->kernel_type == LINEAR_KERNEL) { /* reinit shrinking */
 	  learn_parm->epsilon_crit=2.0;
 	} 
       }
@@ -1700,7 +1700,7 @@ long optimize_to_convergence_sharedslack(DOC **docs, long int *label,
 		       shared slacks */
 
   epsilon_crit_org=learn_parm->epsilon_crit; /* save org */
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     learn_parm->epsilon_crit=2.0;
     /* kernel_cache=NULL; */  /* caching makes no sense for linear kernel */
   } 
@@ -1729,7 +1729,7 @@ long optimize_to_convergence_sharedslack(DOC **docs, long int *label,
   qp.opt_xinit = (double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
   qp.opt_low=(double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
   qp.opt_up=(double *)my_malloc(sizeof(double)*learn_parm->svm_maxqpsize);
-  if(kernel_parm->kernel_type == LINEAR) {
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {
     weights=create_nvector(totwords);
     clear_nvector(weights,totwords); /* set weights to zero */
   }
@@ -1827,7 +1827,7 @@ long optimize_to_convergence_sharedslack(DOC **docs, long int *label,
 	already_chosen=0;
 	if((minl(learn_parm->svm_newvarsinqp,
 		 learn_parm->svm_maxqpsize-choosenum)>=4) 
-	   && (kernel_parm->kernel_type != LINEAR)) {
+	   && (kernel_parm->kernel_type != LINEAR_KERNEL)) {
 	  /* select part of the working set from cache */
 	  already_chosen=select_next_qp_subproblem_grad(
 			      label,unlabeled,a,lin,c,totdoc,
@@ -1989,8 +1989,8 @@ long optimize_to_convergence_sharedslack(DOC **docs, long int *label,
 
     if((!retrain) && (inactivenum>0) 
        && ((!learn_parm->skip_final_opt_check) 
-	   || (kernel_parm->kernel_type == LINEAR))) { 
-      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR)) 
+	   || (kernel_parm->kernel_type == LINEAR_KERNEL))) { 
+      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR_KERNEL)) 
 	 || (verbosity>=2)) {
 	if(verbosity==1) {
 	  printf("\n");
@@ -2025,7 +2025,7 @@ long optimize_to_convergence_sharedslack(DOC **docs, long int *label,
       if((*maxdiff) > learn_parm->epsilon_crit) 
 	retrain=1;
       timing_profile->time_shrink+=get_runtime()-t1;
-      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR)) 
+      if(((verbosity>=1) && (kernel_parm->kernel_type != LINEAR_KERNEL)) 
 	 || (verbosity>=2)) {
 	printf("done.\n");  fflush(stdout);
         printf(" Number of inactive variables = %ld\n",inactivenum);
@@ -2408,7 +2408,7 @@ long check_optimality(MODEL *model, long int *label, long int *unlabeled,
   long i,ii,retrain;
   double dist,ex_c,target;
 
-  if(kernel_parm->kernel_type == LINEAR) {  /* be optimistic */
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {  /* be optimistic */
     learn_parm->epsilon_shrink=-learn_parm->epsilon_crit+epsilon_crit_org;  
   }
   else {  /* be conservative */
@@ -2474,7 +2474,7 @@ long check_optimality_sharedslack(DOC **docs, MODEL *model, long int *label,
   long i,ii,retrain;
   double dist,dist_noslack,ex_c=0,target;
 
-  if(kernel_parm->kernel_type == LINEAR) {  /* be optimistic */
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) {  /* be optimistic */
     learn_parm->epsilon_shrink=-learn_parm->epsilon_crit/2.0;
   }
   else {  /* be conservative */
@@ -3340,7 +3340,7 @@ long shrink_problem(DOC **docs,
     if(verbosity>=2) {
       printf(" Shrinking..."); fflush(stdout);
     }
-    if(kernel_parm->kernel_type != LINEAR) { /*  non-linear case save alphas */
+    if(kernel_parm->kernel_type != LINEAR_KERNEL) { /*  non-linear case save alphas */
       a_old=(double *)my_malloc(sizeof(double)*totdoc);
       shrink_state->a_history[shrink_state->deactnum]=a_old;
       for(i=0;i<totdoc;i++) {
@@ -3361,7 +3361,7 @@ long shrink_problem(DOC **docs,
     }
     activenum=compute_index(shrink_state->active,totdoc,active2dnum);
     shrink_state->deactnum++;
-    if(kernel_parm->kernel_type == LINEAR) { 
+    if(kernel_parm->kernel_type == LINEAR_KERNEL) { 
       shrink_state->deactnum=0;
     }
     if(verbosity>=2) {
@@ -3403,7 +3403,7 @@ void reactivate_inactive_examples(long int *label,
   double ex_c,target;
   SVECTOR *f;
 
-  if(kernel_parm->kernel_type == LINEAR) { /* special linear case */
+  if(kernel_parm->kernel_type == LINEAR_KERNEL) { /* special linear case */
     /* clear_vector_n(weights,totwords);  set weights to zero */
     a_old=shrink_state->last_a;    
     for(i=0;i<totdoc;i++) {
@@ -3489,7 +3489,7 @@ void reactivate_inactive_examples(long int *label,
       }
     }
   }
-  if(kernel_parm->kernel_type != LINEAR) { /* update history for non-linear */
+  if(kernel_parm->kernel_type != LINEAR_KERNEL) { /* update history for non-linear */
     for(i=0;i<totdoc;i++) {
       (shrink_state->a_history[shrink_state->deactnum-1])[i]=a[i];
     }

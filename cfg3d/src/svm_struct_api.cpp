@@ -21,6 +21,9 @@
 #include <string.h>
 #include "svm_struct/svm_struct_common.h"
 #include "svm_struct_api.h"
+#include "svm_struct/svm_struct_classify.cpp"
+#include "svm_light/svm_common.cpp"
+#include "svm_struct/svm_struct_common.cpp"
 
 void        svm_struct_learn_api_init(int argc, char* argv[])
 {
@@ -98,21 +101,21 @@ CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm,
     c.rhs=NULL;
     c.m=0;
   }
-  else { /* add constraints so that all learned weights are
-            positive. WARNING: Currently, they are positive only up to
-            precision epsilon set by -e. */
-    c.lhs=my_malloc(sizeof(DOC *)*sizePsi);
-    c.rhs=my_malloc(sizeof(double)*sizePsi);
-    for(i=0; i<sizePsi; i++) {
-      words[0].wnum=i+1;
-      words[0].weight=1.0;
-      words[1].wnum=0;
-      /* the following slackid is a hack. we will run into problems,
-         if we have move than 1000000 slack sets (ie examples) */
-      c.lhs[i]=create_example(i,0,1000000+i,1,create_svector(words,"",1.0));
-      c.rhs[i]=0.0;
-    }
-  }
+//  else { /* add constraints so that all learned weights are
+//            positive. WARNING: Currently, they are positive only up to
+//            precision epsilon set by -e. */
+//    c.lhs=my_malloc(sizeof(DOC *)*sizePsi);
+//    c.rhs=my_malloc(sizeof(double)*sizePsi);
+//    for(i=0; i<sizePsi; i++) {
+//      words[0].wnum=i+1;
+//      words[0].weight=1.0;
+//      words[1].wnum=0;
+//      /* the following slackid is a hack. we will run into problems,
+//         if we have move than 1000000 slack sets (ie examples) */
+//      c.lhs[i]=create_example(i,0,1000000+i,1,create_svector(words,"",1.0));
+//      c.rhs[i]=0.0;
+//    }
+//  }
   return(c);
 }
 

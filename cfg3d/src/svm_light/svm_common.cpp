@@ -33,7 +33,7 @@ double classify_example(MODEL *model, DOC *ex)
   register long i;
   register double dist;
 
-  if((model->kernel_parm.kernel_type == LINEAR) && (model->lin_weights))
+  if((model->kernel_parm.kernel_type == LINEAR_KERNEL) && (model->lin_weights))
     return(classify_example_linear(model,ex));
 	   
   dist=0;
@@ -93,7 +93,7 @@ double single_kernel(KERNEL_PARM *kernel_parm, SVECTOR *a, SVECTOR *b)
 {
   kernel_cache_statistic++;
   switch(kernel_parm->kernel_type) {
-    case LINEAR: /* linear */ 
+    case LINEAR_KERNEL: /* linear */ 
             return(sprod_ss(a,b)); 
     case POLY:   /* polynomial */
             return(pow(kernel_parm->coef_lin*sprod_ss(a,b)+kernel_parm->coef_const,(double)kernel_parm->poly_degree)); 
@@ -757,7 +757,7 @@ double model_length_n(MODEL *model)
   double   sum,*weight_n;
   SVECTOR  *weight;
 
-  if(model->kernel_parm.kernel_type != LINEAR) {
+  if(model->kernel_parm.kernel_type != LINEAR_KERNEL) {
     printf("ERROR: model_length_n applies only to linear kernel!\n");
     exit(1);
   }
@@ -997,7 +997,7 @@ MATRIX *transpose_matrix(MATRIX *matrix)
 
 
 MATRIX *cholesky_matrix(MATRIX *A)
-/* Given a positive-definite symmetric matrix A[0..n-1][0..n-1], this routine constructs its Cholesky decomposition, A = L · LT . On input, only the upper triangle of A need be given; A is not modified. The Cholesky factor L is returned in the lower triangle. */ 
+/* Given a positive-definite symmetric matrix A[0..n-1][0..n-1], this routine constructs its Cholesky decomposition, A = L ï¿½ LT . On input, only the upper triangle of A need be given; A is not modified. The Cholesky factor L is returned in the lower triangle. */ 
 {
   int i,j,k,n;
   double sum;
@@ -1030,7 +1030,7 @@ MATRIX *cholesky_matrix(MATRIX *A)
 }
 
 double *find_indep_subset_of_matrix(MATRIX *A, double epsilon)
-/* Given a positive-semidefinite symmetric matrix A[0..n-1][0..n-1], this routine finds a subset of rows and colums that is linear independent. To do this, it constructs the Cholesky decomposition, A = L · LT. On input, only the upper triangle of A need be given; A is not modified. The routine returns a vector in which non-zero elements indicate the linear independent subset. epsilon is the amount by which the diagonal entry of L has to be greater than zero. */ 
+/* Given a positive-semidefinite symmetric matrix A[0..n-1][0..n-1], this routine finds a subset of rows and colums that is linear independent. To do this, it constructs the Cholesky decomposition, A = L ï¿½ LT. On input, only the upper triangle of A need be given; A is not modified. The routine returns a vector in which non-zero elements indicate the linear independent subset. epsilon is the amount by which the diagonal entry of L has to be greater than zero. */ 
 {
   int i,j,k,n;
   double sum,*indep;
@@ -1231,7 +1231,7 @@ void write_model(char *modelfile, MODEL *model)
   }
 
   /* Replace SV with single weight vector */
-  if(0 && model->kernel_parm.kernel_type == LINEAR) {
+  if(0 && model->kernel_parm.kernel_type == LINEAR_KERNEL) {
     if(verbosity>=1) {
       printf("(compacting..."); fflush(stdout);
     }
@@ -1657,7 +1657,7 @@ void set_learning_defaults(LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm)
   learn_parm->compute_loo=0;
   learn_parm->rho=1.0;
   learn_parm->xa_depth=0;
-  kernel_parm->kernel_type=LINEAR;
+  kernel_parm->kernel_type=LINEAR_KERNEL;
   kernel_parm->poly_degree=3;
   kernel_parm->rbf_gamma=1.0;
   kernel_parm->coef_lin=1;
@@ -1668,7 +1668,7 @@ void set_learning_defaults(LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm)
 int check_learning_parms(LEARN_PARM *learn_parm, KERNEL_PARM *kernel_parm)
 {
   if((learn_parm->skip_final_opt_check) 
-     && (kernel_parm->kernel_type == LINEAR)) {
+     && (kernel_parm->kernel_type == LINEAR_KERNEL)) {
     printf("\nIt does not make sense to skip the final optimality check for linear kernels.\n\n");
     learn_parm->skip_final_opt_check=0;
   }    

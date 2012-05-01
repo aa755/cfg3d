@@ -57,7 +57,7 @@ int main (int argc, char* argv[])
   read_documents(docfile,&docs,&target,&totwords,&totdoc);
   if(restartfile[0]) alpha_in=read_alphas(restartfile,totdoc);
 
-  if(kernel_parm.kernel_type == LINEAR) { /* don't need the cache */
+  if(kernel_parm.kernel_type == LINEAR_KERNEL) { /* don't need the cache */
     kernel_cache=NULL;
   }
   else {
@@ -167,7 +167,7 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
     strcpy (modelfile, argv[i+1]);
   }
   if(learn_parm->svm_iter_to_shrink == -9999) {
-    if(kernel_parm->kernel_type == LINEAR) 
+    if(kernel_parm->kernel_type == LINEAR_KERNEL) 
       learn_parm->svm_iter_to_shrink=2;
     else
       learn_parm->svm_iter_to_shrink=100;
@@ -285,7 +285,7 @@ void print_help()
   wait_any_key();
   printf("\nMore details in:\n");
   printf("[1] T. Joachims, Making Large-Scale SVM Learning Practical. Advances in\n");
-  printf("    Kernel Methods - Support Vector Learning, B. Schölkopf and C. Burges and\n");
+  printf("    Kernel Methods - Support Vector Learning, B. Schï¿½lkopf and C. Burges and\n");
   printf("    A. Smola (ed.), MIT Press, 1999.\n");
   printf("[2] T. Joachims, Estimating the Generalization performance of an SVM\n");
   printf("    Efficiently. International Conference on Machine Learning (ICML), 2000.\n");
