@@ -66,6 +66,18 @@ def createDict(fileName,labels):
                 mapping[key] = value
     return mapping
 
+def nodesHavingLabel(fileName,labels):
+    nodeset = set([])
+    file = getFile(fileName)
+    for line in file:
+        vector = line.rstrip('\n').split(',')
+        key = vector[0]
+        assert(not len(vector) == 1) # why failing
+        if (not len(vector) == 1) and (key in labels) :
+            value = vector[1]
+            nodeset.add(value)
+    return nodeset
+
 def createBackwardsDict(fileName,labels):
     mapping = {}
     file = getFile(fileName)
@@ -116,6 +128,7 @@ def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
     labels = getListOfLabels(file3)
     gt = createDict(file1,labels)
     pred = createDict(file2,labels)
+    gtLabeledList = nodesHavingLabel(file1, labels)
 
     totalDict1 = 0
     totalDict2 = 0
@@ -124,14 +137,15 @@ def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
         dict1LabelSet = set([])
         dict2LabelSet = set([])
         if gt.has_key(label):
-            dict1LabelSet = set(gt[label])
+            dict1LabelSet = set(gt[label]) #set of nodes having that label in gt
         if pred.has_key(label):
             dict2LabelSet = set(pred[label])
 
-        dict1LabelSetSize = len(dict1LabelSet)
-        dict2LabelSetSize = len(dict2LabelSet)
+        dict1LabelSetSize = len(dict1LabelSet);
+        dict2LabelSetSize = len(dict2LabelSet.intersection(gtLabeledList))
         intersectionSize = len(dict1LabelSet.intersection(dict2LabelSet))
 
+        assert(binary==False)
         if binary:
             dict1LabelSetSize = roundDown(dict1LabelSetSize)
             dict2LabelSetSize = roundDown(dict2LabelSetSize)

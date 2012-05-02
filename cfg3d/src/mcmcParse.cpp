@@ -97,8 +97,8 @@ class Move
 {
 private:
     double costDelta;
-protected:
     double transProb;
+protected:
     bool transProbSet;
     bool applied;
     
@@ -107,7 +107,7 @@ protected:
      */
     void setTransProbFromDelta()
     {
-        transProb=exp(-costDelta);
+        transProb=exp(-costDelta/10.0);
         transProbSet=true;
     }
     
@@ -171,13 +171,13 @@ class Forest
     
     
 public:
-    const static double ADDITIONAL_COMPONENT_PENALTY=250;
+    const static double ADDITIONAL_COMPONENT_PENALTY=150;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=1000;
+    const static int timeLimit=500;
 
-/**
+   /**
      * not supposed to deal with tree-move operation
      * just remove all the moves which referenced it
      * 
