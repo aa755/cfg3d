@@ -74,8 +74,8 @@ def nodesHavingLabel(fileName,labels):
         key = vector[0]
         assert(not len(vector) == 1) # why failing
         if (not len(vector) == 1) and (key in labels) :
-            value = vector[1]
-            nodeset.add(value)
+            value = vector[1:]
+            nodeset.update(set(value))
     return nodeset
 
 def createBackwardsDict(fileName,labels):
