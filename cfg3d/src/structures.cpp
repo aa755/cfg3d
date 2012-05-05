@@ -979,7 +979,7 @@ public:
         thisScene=NULL;
     }
     
-    void setThisScene(SceneInfo * scn)
+    virtual void setThisScene(SceneInfo * scn)
     {
         thisScene=scn;
     }
@@ -1685,7 +1685,6 @@ protected:
      * version number
      */
     long lastIteration;
-    static int id_counter;
     int numObjectsSpanned;
     
     /**
@@ -1952,11 +1951,16 @@ public:
     NonTerminal() : Symbol()
     {
         costSet = false;
-        id = id_counter++;
         cout << "nNT: " << id << endl;
         numTerminals = 0;
         lastIteration = 0;
         duplicate=false;
+    }
+
+    virtual void setThisScene(SceneInfo * scn)
+    {
+        thisScene=scn;
+        id=thisScene->id_counter++;
     }
     
     friend class NTSetComparison;
@@ -2267,10 +2271,6 @@ class VisualObjects : public NonTerminal{};
 
 class Scene : virtual public NonTerminal
 {
-    static std::ofstream graphvizFile;
-    static std::ofstream NTmembershipFile;
-    static std::ofstream labelmapFile;
-
     
     // the printData below should be used only for the Goal NT type
 public:
@@ -2288,19 +2288,19 @@ public:
         string membersipFileName = thisScene->fileName + "_membership.txt";
         string labelmapFileName = thisScene->fileName + "_labelmap.txt";
 
-        NTmembershipFile.open(membersipFileName.data(), ios::out);
-        labelmapFile.open(labelmapFileName.data(), ios::out);
-        graphvizFile.open(treeFileName.data(), ios::out);
-        graphvizFile << "digraph g{\n"; // Move to postparse printer
+        thisScene->NTmembershipFile.open(membersipFileName.data(), ios::out);
+        thisScene->labelmapFile.open(labelmapFileName.data(), ios::out);
+        thisScene->graphvizFile.open(treeFileName.data(), ios::out);
+        thisScene->graphvizFile << "digraph g{\n"; // Move to postparse printer
         
     }
     
-    static void closeFiles()
+    void closeFiles()
     {
-        graphvizFile << "}\n"; // Move to postparse printer
-        graphvizFile.close(); // Move to postparse printer
-        NTmembershipFile.close();
-        labelmapFile.close();
+        thisScene->graphvizFile << "}\n"; // Move to postparse printer
+        thisScene->graphvizFile.close(); // Move to postparse printer
+        thisScene->NTmembershipFile.close();
+        thisScene->labelmapFile.close();
       //  string halPCDFileName = fileName + "_hallucinated.pcd";
       //  pcl::io::savePCDFile<PointT > (halPCDFileName, scene, true);
         
@@ -2322,12 +2322,12 @@ public:
     {
         initFiles();
         printData(this);
-        graphvizFile << "}\n"; // Move to postparse printer        
-        graphvizFile.close();
+        thisScene->graphvizFile << "}\n"; // Move to postparse printer        
+        thisScene->graphvizFile.close();
         
         string prunedTreeFileName = thisScene->fileName + "_pruned.dot";        
-        graphvizFile.open(prunedTreeFileName.data(), ios::out);
-        graphvizFile << "digraph g{\n"; // Move to postparse printer
+        thisScene->graphvizFile.open(prunedTreeFileName.data(), ios::out);
+        thisScene->graphvizFile << "digraph g{\n"; // Move to postparse printer
         reFormatSubTree(NULL);
         printData(this,true); // pruned parse tree        
         
@@ -2345,7 +2345,7 @@ public:
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut =root->thisScene->scene;
         
-        graphvizFile << root->getName() << " ;\n";
+        root->thisScene->graphvizFile << root->getName() << " ;\n";
 
         NonTerminal * nroot=dynamic_cast<NonTerminal *>(root);
         if(nroot==NULL)
@@ -2364,14 +2364,14 @@ public:
             
             if(!onlyGraphVis)
             {
-                printNodeData(NTmembershipFile, labelmapFile, curNode);
+                printNodeData(root->thisScene->NTmembershipFile, root->thisScene->labelmapFile, curNode);
             }
             
             for (size_t i = 0; i < curNode->getNumChildren(); i++)
             {
                 Symbol * childs = curNode->getChild(i);
 
-                graphvizFile << curName << " -> " << childs->getName() << " ;\n";
+                root->thisScene->graphvizFile << curName << " -> " << childs->getName() << " ;\n";
                 Terminal *childT = dynamic_cast<Terminal *> (childs);
                 if (childT == NULL) // not of type Terminal
                 {
