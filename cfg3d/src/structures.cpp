@@ -45,7 +45,6 @@
 using namespace Eigen;
 using namespace std;
 typedef pcl::PointXYZRGBCamSL PointT;
-map<int,int> filteredIndexToNonFiltered;
 
 
 #include "OccupancyMap.h"
@@ -53,7 +52,6 @@ map<int,int> filteredIndexToNonFiltered;
 #include <boost/random/normal_distribution.hpp>
 #include "HOG.cpp"
 using boost::math::normal;
-string fileName;
 class NonTerminal;
 class Terminal;
 class HallucinatedTerminal;
@@ -62,7 +60,6 @@ public:
     bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
 };
 string rulePath;
-HOGPCD hogpcd;
 
 class Params
 {
@@ -605,7 +602,6 @@ public:
     
 };
 
-Eigen::Matrix<float ,Eigen::Dynamic,  Eigen::Dynamic> segMinDistances;
 
 double pointPointDistance(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
     return sqrt(sqr(point1.x - point2.x) + sqr(point1.y - point2.y) + sqr(point1.z - point2.z));
@@ -617,16 +613,10 @@ Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
 
 typedef set<NonTerminal*, NTSetComparison> NTSet;
 
-pcl::PointCloud<PointT> scene;
-pcl::PointCloud<PointT> originalScene;
-
 PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
     return fromScene.points[pointIndex];
 }
 
-int NUMPointsToBeParsed;
-int NUMTerminalsToBeParsed;
-OccupancyMap<PointT> * occlusionChecker;
 //pcl::PointCloud<pcl::PointXY> scene2D;
 //pcl::PCLBase<pcl::PointXY>::PointCloudConstPtr scene2DPtr;
 
@@ -634,10 +624,84 @@ void printPoint(pcl::PointXYZ point) {
     cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
 }
 
-Vector3d getSceneOrigin()
+class SceneInfo
 {
-    Vector4f orig=scene.sensor_origin_;
-    return Vector3d(orig(0),orig(1),orig(2));
+public:
+    pcl::PointCloud<PointT> scene;
+    pcl::PointCloud<PointT> originalScene;
+    HOGPCD hogpcd;
+    vector<Terminal *> terminals;
+    string fileName;
+    map<int, int> filteredIndexToNonFiltered;
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> segMinDistances;
+    std::ofstream graphvizFile;
+    std::ofstream NTmembershipFile;
+    std::ofstream labelmapFile;
+    int id_counter;
+    OccupancyMap<PointT> * occlusionChecker;
+    int NUMPointsToBeParsed;
+    int NUMTerminalsToBeParsed;
+
+    SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile);
+
+    Vector3d getSceneOrigin()
+    {
+        Vector4f orig = scene.sensor_origin_;
+        return Vector3d(orig(0), orig(1), orig(2));
+    }
+
+    int getNumTerminals()
+    {
+        return terminals.size();
+    }
+    
+    int getNumTerminalsToBeParsed()
+    {
+        return terminals.size();
+    }
+    
+    double getPointCoordinate(int pointIndex, int coordinateIndex)
+    {
+        return scene.points[pointIndex].data[coordinateIndex];
+    }
+
+    void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
+    {
+        {//braces to restrict scope of iterators .. to prevent accidental use
+
+
+            pcl::PointCloud<PointT>::iterator itSrc = src.begin();
+            pcl::PointCloud<PointT>::iterator itDst = dst.begin();
+            for (; (itSrc != src.end() && itDst != dst.end());)
+            {
+                if (isnan((*itSrc).x))
+                {
+                    itSrc++;
+                    continue;
+                }
+                if (isnan((*itDst).x))
+                {
+                    itDst++;
+                    continue;
+                }
+
+                int srcIndex = itSrc - src.begin();
+                int dstIndex = itDst - dst.begin();
+                filteredIndexToNonFiltered[srcIndex] = dstIndex;
+                itSrc++;
+                itDst++;
+            }
+            // the remaining part in this scope is only for safety check
+            while (itSrc != src.points.end() && isnan((*itSrc).x))
+                itSrc++;
+
+            while (itDst != dst.points.end() && isnan((*itDst).x))
+                itDst++;
+
+            assert(itSrc == src.points.end() && itDst == dst.points.end()); // both src and dst must have same number of nonNans
+
+        }
+    }
 };
 
 class Symbol {
@@ -657,6 +721,8 @@ protected:
     pcl::PointXYZ maxxyz;
     double distanceToBoundary;
     HOGFeaturesOfBlock hogFeats;
+
+    
     
     long numPoints; // later, pointIndices might not be computed;
     float avgColor; 
@@ -692,6 +758,7 @@ protected:
     }
     
 public:
+    SceneInfo *thisScene;
     typedef  Symbol* Ptr;
     typedef  boost::shared_ptr<Symbol> SPtr;
     typedef  boost::weak_ptr<Symbol> WPtr;
@@ -741,7 +808,7 @@ public:
         {
             while(other->nextSpannedTerminal(index2))
             {
-                float distance=segMinDistances(index1,index2);
+                float distance=thisScene->segMinDistances(index1,index2);
                 
                 assert(!isnan(distance)); // one of the segments does not exist
                 
@@ -841,8 +908,8 @@ public:
      */
     float inFrontNessof(Symbol * other)
     {
-        Eigen::Vector3d r1=getCentroidVector()-getSceneOrigin();
-        Eigen::Vector3d r2=other->getCentroidVector()-getSceneOrigin();
+        Eigen::Vector3d r1=getCentroidVector()- thisScene->getSceneOrigin();
+        Eigen::Vector3d r2=other->getCentroidVector()-thisScene->getSceneOrigin();
         return (r2.norm()-r1.norm());
     }
     
@@ -909,6 +976,12 @@ public:
     {
         isDeclaredOptimal = false;
         featuresComputed=false;
+        thisScene=NULL;
+    }
+    
+    void setThisScene(SceneInfo * scn)
+    {
+        thisScene=scn;
     }
     void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
 
@@ -1118,10 +1191,6 @@ public:
  */
 class SymbolPriorityQueue;
 
-    double getPointCoordinate(int pointIndex, int coordinateIndex)
-    {
-        return scene.points[pointIndex].data[coordinateIndex];
-    }
     
 float getSmallestDistance (pcl::PointCloud<PointT> &scene, boost::shared_ptr <std::vector<int> >  indices1, boost::shared_ptr <std::vector<int> >  indices2)
 {
@@ -1177,7 +1246,7 @@ protected:
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++)
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
-                    covarianceMatrixWoMean(i, j) += (getPointCoordinate(*it, i) * getPointCoordinate(*it, j));
+                    covarianceMatrixWoMean(i, j) += (thisScene->getPointCoordinate(*it, i) * thisScene->getPointCoordinate(*it, j));
 
     }
     bool start;
@@ -1244,7 +1313,7 @@ public:
             }
             else
             {
-                neighbors[index]=getSmallestDistance(scene, getPointIndicesBoostPtr(),terminals.at(nindex)->getPointIndicesBoostPtr());
+                neighbors[index]=getSmallestDistance(thisScene->scene, getPointIndicesBoostPtr(),terminals.at(nindex)->getPointIndicesBoostPtr());
             }
         }
     }
@@ -1269,7 +1338,7 @@ public:
         centroid.z = 0;
         ColorRGB avg(0,0,0);
         for (size_t i = 0; i < pointIndices.size(); i++) {
-            PointT & point = scene.points[pointIndices[i]];
+            PointT & point = thisScene->scene.points[pointIndices[i]];
             centroid.x += point.x;
             centroid.y += point.y;
             centroid.z += point.z;
@@ -1281,7 +1350,7 @@ public:
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
-        hogpcd.findHog(pointIndices,filteredIndexToNonFiltered,hogFeats);
+        thisScene->hogpcd.findHog(pointIndices,thisScene->filteredIndexToNonFiltered,hogFeats);
         
     }
     
@@ -1310,15 +1379,13 @@ public:
          cvPoints.resize(indices.size());
          for(size_t i=0;i<indices.size();i++)
          {
-             cvPoints.at(i).x=scene.points[indices[i]].x;
-             cvPoints.at(i).y=scene.points[indices[i]].y;
+             cvPoints.at(i).x=thisScene->scene.points[indices[i]].x;
+             cvPoints.at(i).y=thisScene->scene.points[indices[i]].y;
          }
         cv::convexHull(cv::Mat(cvPoints), horzConvexHull);
         
     }
     
-    static int numHallucinatedTerminals;
-    static int totalNumTerminals;
     
     boost::dynamic_bitset<> & getNeighbors() {
         return neighbors;
@@ -1363,7 +1430,7 @@ public:
 //        cout<<"pointIndices.size(): "<<pointIndices.size()<<endl;
         for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) {
             
-            costSum = costSum + (scene.points[*it].z  * scene.points[*it].z);
+            costSum = costSum + (thisScene->scene.points[*it].z  * thisScene->scene.points[*it].z);
         }
         zSquaredSum = costSum;
     }
@@ -1381,7 +1448,7 @@ public:
         {
             for (vector<int>::iterator it = pointIndices.begin(); it != pointIndices.end(); it++) 
             {
-                itVal = scene.points.at(*it).data[i];
+                itVal = thisScene->scene.points.at(*it).data[i];
                 if (itVal > maxxyz.data[i])
                 {
                     maxxyz.data[i] = itVal;
@@ -1412,24 +1479,15 @@ public:
         set_membership.set(index, true);
     }
 
-    Terminal() : Symbol()
-    {
-        index = -1; /// for safety;
-        cost = 0;
-    }
 
-    Terminal(int index_) : Symbol()
+    Terminal(int index_,SceneInfo * thisScene=NULL) 
     {
         index = index_;
         cost = 0;
+        setThisScene(thisScene);
     }
 
 
-    Terminal(int index_, double cost_) : Symbol()
-    {
-        index = index_;
-        cost = cost_;
-    }
 
     int getIndex() const {
         return index;
@@ -1464,21 +1522,23 @@ public:
 class HallucinatedTerminal : public Terminal {
     Eigen::Vector3d normal;
 public: 
-    HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+//    HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+    HallucinatedTerminal(vector<pcl::PointXYZ> & points) : Terminal(0)
     {
+        assert(false); // pass correct index to terminal constructor
             ColorRGB green(0.0,0.0,1.0);
-        neighbors.resize(totalNumTerminals,false);
-        int start=scene.size();
+        neighbors.resize(thisScene->getNumTerminals(),false);
+        int start=thisScene->scene.size();
         pointIndices.resize(points.size());
-        scene.points.resize(start+points.size());
+        thisScene->scene.points.resize(start+points.size());
         for(unsigned int i=0;i<points.size();i++)
         {
             pointIndices.at(i)=start+i;
-            scene.points.at(start+i).x=points.at(i).x;
-            scene.points.at(start+i).y=points.at(i).y;
-            scene.points.at(start+i).z=points.at(i).z;
-            scene.points.at(start+i).rgb=green.getFloatRep();
-            scene.points.at(start+i).segment=index;
+            thisScene->scene.points.at(start+i).x=points.at(i).x;
+            thisScene->scene.points.at(start+i).y=points.at(i).y;
+            thisScene->scene.points.at(start+i).z=points.at(i).z;
+            thisScene->scene.points.at(start+i).rgb=green.getFloatRep();
+            thisScene->scene.points.at(start+i).segment=index;
         }
         assert(points.size()>=3);
         featuresComputed=false;
@@ -1487,7 +1547,7 @@ public:
     
     bool isPlaneAlmostInvisible()
     {
-        Eigen::Vector4f or4d= scene.sensor_origin_;
+        Eigen::Vector4f or4d= thisScene->scene.sensor_origin_;
         Eigen::Vector3d origin;
         for(int i=0;i<3;i++)
         {
@@ -1522,33 +1582,35 @@ public:
         this->cost=cost;
     }
     
-    HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+//    HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(totalNumTerminals+numHallucinatedTerminals++)
+    HallucinatedTerminal(Eigen::Vector3d centroid) : Terminal(0)
     {
-        neighbors.resize(totalNumTerminals,false);
-        int start=scene.size();
+        assert(false); // pass correct index to terminal constructor
+        neighbors.resize(thisScene->getNumTerminals(),false);
+        int start=thisScene->scene.size();
         int numPoints=7;
         pointIndices.resize(numPoints);
-        scene.points.resize(start+numPoints);
+        thisScene->scene.points.resize(start+numPoints);
 //        this->centroid=centroid;
         for(int i=0;i<numPoints;i++)
         {
             pointIndices.at(i)=start+i;
         }
         
-        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
-        setPoint(scene.points.at(start+1),centroid(0)+0.1,centroid(1),centroid(2));
-        setPoint(scene.points.at(start+2),centroid(0)-0.1,centroid(1),centroid(2));
-        setPoint(scene.points.at(start+3),centroid(0),centroid(1)+0.1,centroid(2));
-        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.1,centroid(2));
-        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.1);
-        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.1);
+        setPoint(thisScene->scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+        setPoint(thisScene->scene.points.at(start+1),centroid(0)+0.1,centroid(1),centroid(2));
+        setPoint(thisScene->scene.points.at(start+2),centroid(0)-0.1,centroid(1),centroid(2));
+        setPoint(thisScene->scene.points.at(start+3),centroid(0),centroid(1)+0.1,centroid(2));
+        setPoint(thisScene->scene.points.at(start+4),centroid(0),centroid(1)-0.1,centroid(2));
+        setPoint(thisScene->scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.1);
+        setPoint(thisScene->scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.1);
     
         featuresComputed=false;
         computeFeatures(); 
         
         //delete all the points
         // we could avoid adding points totally if we could write code for all featueres to compute directly
-        scene.points.resize(start);
+        thisScene->scene.points.resize(start);
     }
     
     void unionMembership(boost::dynamic_bitset<> & set_membership) {
@@ -1559,17 +1621,17 @@ public:
     virtual void colorScene()
     {
         Eigen::Vector3d centroid=getCentroidVector();
-        int start=scene.size();
+        int start=thisScene->scene.size();
         int numPointsh=20;
-        scene.points.resize(start+numPointsh);
+        thisScene->scene.points.resize(start+numPointsh);
 
         for(int i=0;i<numPointsh;i++)
         {
             double rad=i*0.005;
             Eigen::Vector3d point=centroid+rad*normal;
-            setPoint(scene.points.at(start+i),point(0),point(1),point(2));
+            setPoint(thisScene->scene.points.at(start+i),point(0),point(1),point(2));
         }
-        scene.points.at(start).rgb=ColorRGB(1.0,0,0).getFloatRep();
+        thisScene->scene.points.at(start).rgb=ColorRGB(1.0,0,0).getFloatRep();
 //        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
 //        setPoint(scene.points.at(start+1),centroid(0)+0.01,centroid(1),centroid(2));
 //        setPoint(scene.points.at(start+2),centroid(0)-0.01,centroid(1),centroid(2));
@@ -1577,24 +1639,24 @@ public:
 //        setPoint(scene.points.at(start+4),centroid(0),centroid(1)-0.01,centroid(2));
 //        setPoint(scene.points.at(start+5),centroid(0),centroid(1),centroid(2)+0.01);
 //        setPoint(scene.points.at(start+6),centroid(0),centroid(1),centroid(2)-0.01);
-        scene.width=1;
-        scene.height=scene.size();
+        thisScene->scene.width=1;
+        thisScene->scene.height=thisScene->scene.size();
         cerr<<"Added points hal\n";
     }    
 
     virtual void colorCentroid(double minCost, double maxCost)
     {
         Eigen::Vector3d centroid=getCentroidVector();
-        int start=scene.size();
+        int start=thisScene->scene.size();
         int numPoints=1;
-        scene.points.resize(start+numPoints);
+        thisScene->scene.points.resize(start+numPoints);
         double scaledCost=(log(cost)-log(minCost))/(log(maxCost)-log(minCost));
         ColorRGB color(1.0-scaledCost,0,scaledCost);
-        setPoint(scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
-        scene.points.at(start+0).rgb=color.getFloatRep();
+        setPoint(thisScene->scene.points.at(start+0),centroid(0),centroid(1),centroid(2));
+        thisScene->scene.points.at(start+0).rgb=color.getFloatRep();
         
-        scene.width=1;
-        scene.height=scene.size();
+        thisScene->scene.width=1;
+        thisScene->scene.height=thisScene->scene.size();
 //        cerr<<"added points hal\n";
     }
 
@@ -1610,8 +1672,6 @@ public:
         return (term!=NULL);
     }
 
-int Terminal::totalNumTerminals = 0;
-int Terminal::numHallucinatedTerminals = 0;
 
 class NonTerminal : public Symbol {
 protected:
@@ -1980,7 +2040,7 @@ public:
     }
     
     void computeSpannedTerminals() {
-        spanned_terminals.resize(Terminal::totalNumTerminals, false);
+        spanned_terminals.resize(thisScene->getNumTerminals(), false);
         for (size_t i = 0; i < children.size(); i++) {
             children[i]->unionMembership(spanned_terminals);
         }
@@ -1993,7 +2053,7 @@ public:
      * NonTerminal node.
      */
     void computeNeighborTerminalSet() {
-        neighbors.resize (Terminal::totalNumTerminals,false);
+        neighbors.resize (thisScene->getNumTerminals(),false);
         vector<Symbol*>::iterator it;
         for (it = children.begin(); it != children.end(); it++) {
             neighbors |= (*it)->getNeigborTerminalBitset();
@@ -2151,7 +2211,6 @@ public:
      */
 };
 
-int NonTerminal::id_counter = 0;
 
 class NonTerminalIntermediate : virtual public NonTerminal
 {
@@ -2223,11 +2282,11 @@ public:
 
     static double COST_THERSHOLD;
     
-    static void initFiles()
+    void initFiles()
     {
-        string treeFileName = fileName + ".dot";
-        string membersipFileName = fileName + "_membership.txt";
-        string labelmapFileName = fileName + "_labelmap.txt";
+        string treeFileName = thisScene->fileName + ".dot";
+        string membersipFileName = thisScene->fileName + "_membership.txt";
+        string labelmapFileName = thisScene->fileName + "_labelmap.txt";
 
         NTmembershipFile.open(membersipFileName.data(), ios::out);
         labelmapFile.open(labelmapFileName.data(), ios::out);
@@ -2247,7 +2306,7 @@ public:
         
     }
     
-    static void printAllScenes(vector<Symbol *> & identifiedScenes)
+    void printAllScenes(vector<Symbol *> & identifiedScenes)
     {
         initFiles();
         vector< Symbol *>::iterator it;
@@ -2266,7 +2325,7 @@ public:
         graphvizFile << "}\n"; // Move to postparse printer        
         graphvizFile.close();
         
-        string prunedTreeFileName = fileName + "_pruned.dot";        
+        string prunedTreeFileName = thisScene->fileName + "_pruned.dot";        
         graphvizFile.open(prunedTreeFileName.data(), ios::out);
         graphvizFile << "digraph g{\n"; // Move to postparse printer
         reFormatSubTree(NULL);
@@ -2275,16 +2334,16 @@ public:
         closeFiles();
     }
     
-    static void printOnlyScene(NonTerminal * root)
-    {
-        initFiles();
-        printData(root);
-        closeFiles();
-    }
+//    static void printOnlyScene(NonTerminal * root)
+//    {
+//        initFiles();
+//        printData(root);
+//        closeFiles();
+//    }
     static void printData(Symbol * root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
-        sceneOut = scene;
+        sceneOut =root->thisScene->scene;
         
         graphvizFile << root->getName() << " ;\n";
 
@@ -2295,8 +2354,8 @@ public:
         stack<NonTerminal*> parseTreeNodes;
         parseTreeNodes.push(nroot);
 
-        scene.width = 1;
-        scene.height = scene.size();
+        root->thisScene->scene.width = 1;
+        root->thisScene->scene.height = root->thisScene->scene.size();
         while (!parseTreeNodes.empty())
         {
             NonTerminal *curNode = parseTreeNodes.top();
@@ -2361,9 +2420,6 @@ public:
 
 };
 
-std::ofstream Scene::graphvizFile;
-std::ofstream Scene::NTmembershipFile;
-std::ofstream Scene::labelmapFile;
 double Scene::COST_THERSHOLD;
 
 bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
@@ -2506,7 +2562,7 @@ public:
     
     void computePlaneParams() {
         pcl::NormalEstimation<PointT, pcl::Normal> normalEstimator;
-        normalEstimator.computePointNormal(scene, pointIndices, planeParams, curvature);
+        normalEstimator.computePointNormal(thisScene->scene, pointIndices, planeParams, curvature);
         assert(fabs(getNorm()-1)<0.05);
         planeParamsComputed = true;
     }
@@ -2670,7 +2726,7 @@ public:
     bool isAllCloseEnough(Terminal* terminal) {
         vector<int>& termPointIndices = terminal->getPointIndices();
         for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
-            if (!isCloseEnough(scene.points[*it])) {
+            if (!isCloseEnough(thisScene->scene.points[*it])) {
                 return false;
             }
         }
@@ -2769,7 +2825,7 @@ public:
     FindNTsToCombineWith(Symbol * sym, vector<Terminal*> & allTerminals, long iterationNo_) {
         extractedSym = sym;
         iterationNo = iterationNo_;
-        for (int i = 0; i < Terminal::totalNumTerminals; i++) {
+        for (int i = 0; i < sym->thisScene->getNumTerminals(); i++) {
             if (sym->isNeighbor(i)) {
                 allTerminals.at(i)->pushEligibleNonDuplicateOptimalParents(sym, eligibleNTs,iterationNo);
             }  
@@ -3919,7 +3975,7 @@ protected:
      //   cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
         HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNormal(optimalNormal);
-        finalHal->setNeighbors(Terminal::totalNumTerminals);
+        finalHal->setNeighbors(finalHal->thisScene->getNumTerminals());
         finalHal->declareOptimal();
 
         Plane* pl = new Plane();
@@ -3949,7 +4005,7 @@ protected:
       
 
         lhs->setAdditionalCost(minCost); // ideally max of other feature values which were not considered
-        bool occluded = occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy));
+        bool occluded = lhs->occlusionChecker->isOccluded(minHalLoc.getCentroid(centroidxy));
         bool almostInvisible = finalHal->isPlaneAlmostInvisible();
         bool hallucinable= occluded || almostInvisible;
       //  cerr<<finalHal->getName()<<"(hallucinated):"<<occluded<<almostInvisible<<endl;
@@ -4932,46 +4988,117 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
-void generatePTIndexMapping(pcl::PointCloud<PointT>& src, pcl::PointCloud<PointT> & dst)
-{
-    {//braces to restrict scope of iterators .. to prevent accidental use
-        
-         
-        pcl::PointCloud<PointT>::iterator itSrc = src.begin();
-        pcl::PointCloud<PointT>::iterator itDst = dst.begin();
-        for (;(itSrc!=src.end()&&itDst!=dst.end()) ;)
-        {
-            if (isnan((*itSrc).x))
+    SceneInfo::SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile)
+    {
+        id_counter = 0;
+        pcl::io::loadPCDFile<PointT > (sceneF, scene);
+        pcl::io::loadPCDFile<PointT > (sceneOrigF, originalScene);
+        pcl::PointCloud<PointT>::Ptr originalScenePtr = createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
+
+        generatePTIndexMapping(scene, originalScene);
+        cerr << "origPTR:" << originalScenePtr->size() << endl;
+        hogpcd.init(originalScenePtr);
+
+        fileName = string(sceneF);
+        fileName = fileName.substr(0, fileName.length() - 4);
+
+        occlusionChecker = new OccupancyMap<PointT > (scene);
+            map<int, set<int> > neighbors;
+            int maxSegIndex = parseNbrMap(nbrFile, neighbors, MAX_SEG_INDEX);
+            cout << "Scene has " << scene.size() << " points." << endl;
+
+            NUMTerminalsToBeParsed = 0;
+#ifdef FILTER_LABELS
+            LabelSelector labSel;
+            labSel.addAcceptedLabel(1); //Wall
+            labSel.addAcceptedLabel(2); //Floor
+            map<int, int> labelmap;
+            readLabelMap(labelMapFile, labelmap);
+#endif
+
+            Terminal * temp;
+            for (int i = 1; i <= maxSegIndex; i++)
             {
-                itSrc++;
-                continue;
-            }
-            if (isnan((*itDst).x))
-            {
-                itDst++;
-                continue;
+                temp = new Terminal(i - 1, this); // index is segment Number -1 
+                temp->setNeighbors(neighbors[i], maxSegIndex);
+                terminals.push_back(temp);
+
+
+                {
+#ifdef FILTER_LABELS        
+                    if (labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
+#endif
+                    {
+                        NUMTerminalsToBeParsed++;
+                    }
+                }
+
+
             }
 
-            int srcIndex=itSrc-src.begin();
-            int dstIndex=itDst-dst.begin();
-            filteredIndexToNonFiltered[srcIndex]=dstIndex;
-            itSrc++;
-            itDst++;
-        }
-        // the remaining part in this scope is only for safety check
-            while (itSrc!=src.points.end() && isnan((*itSrc).x))
-                itSrc++;
-        
-            while (itDst!=dst.points.end() && isnan((*itDst).x))
-                itDst++;
-        
-        assert(itSrc==src.points.end()&&itDst==dst.points.end()); // both src and dst must have same number of nonNans
-        
-        
-    }    
-}
+            NUMPointsToBeParsed = 0;
+            overallMinZ = infinity();
+            for (unsigned int i = 0; i < scene.size(); i++)
+            {
+                int segIndex = scene.points[i].segment;
+                if (segIndex > 0 && segIndex <= maxSegIndex)
+                {
+                    if (overallMinZ > scene.points[i].z)
+                        overallMinZ = scene.points[i].z;
 
-void initParsing(int argc, char** argv,vector<Terminal *> & terminals)
+                    terminals.at(segIndex - 1)->addPointIndex(i);
+
+
+                    {
+#ifdef FILTER_LABELS        
+                        if (labSel.acceptLabel(segIndex)) // get labelmap fro gt files
+#endif
+                            NUMPointsToBeParsed++;
+                    }
+
+
+                }
+            }
+
+            for (unsigned int i = 0; i < terminals.size(); i++)
+            {
+                //  terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
+                terminals.at(i)->computeFeatures();
+            }
+
+            getSegmentDistanceToBoundaryOptimized(scene, terminals, occlusionChecker->maxDist);
+
+            occlusionChecker->setmaxDistReady();
+
+            segMinDistances.setZero(terminals.size(), terminals.size());
+
+            for (unsigned int i1 = 0; i1 < terminals.size(); i1++)
+            {
+                for (unsigned int i2 = i1 + 1; i2 < terminals.size(); i2++)
+                {
+                    float minDistance = getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
+                    segMinDistances(i1, i2) = minDistance;
+                    segMinDistances(i2, i1) = minDistance;
+                }
+            }
+
+            cout << "minDistances computed\n" << endl;
+            cerr << "minDistances computed\n" << endl;
+
+            for (unsigned int i = 0; i < terminals.size(); i++)
+            {
+                // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
+                assert(terminals[i]->getPointIndices().size() > 0);
+                // if this happens, delete this NT. NEED TO CHANGE SIZE OF NEIGHBOR VECTOR
+            }
+
+
+            assert(maxSegIndex == (int) terminals.size());
+
+
+    }
+
+SceneInfo * initParsing(int argc, char** argv)
 {
     Rule::META_LEARNING=false;
     //assert(Params::additionalCostThreshold==1000);
@@ -4980,23 +5107,9 @@ void initParsing(int argc, char** argv,vector<Terminal *> & terminals)
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
-    pcl::io::loadPCDFile<PointT>(argv[1], scene);
-    pcl::io::loadPCDFile<PointT>(argv[3], originalScene);
-        pcl::PointCloud<PointT>::Ptr originalScenePtr=createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
-
-    generatePTIndexMapping(scene,originalScene);
-    cerr<<"origPTR:"<<originalScenePtr->size()<<endl;
-    hogpcd.init(originalScenePtr);
-
-    fileName = string(argv[1]);
-    fileName = fileName.substr(0, fileName.length()-4);
-
-    occlusionChecker = new OccupancyMap<PointT>(scene);
+    SceneInfo *sceneInfo=new SceneInfo(argv[1],argv[3],argv[2]);
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
-    map<int, set<int> > neighbors;
-    int maxSegIndex= parseNbrMap(argv[2],neighbors,MAX_SEG_INDEX);
-    cout<<"Scene has "<<scene.size()<<" points."<<endl;
     
     
     string command="rospack find cfg3d";
@@ -5006,94 +5119,7 @@ void initParsing(int argc, char** argv,vector<Terminal *> & terminals)
     if(argc==5)
         rulePath=rulePath+string(argv[4]);
     
-    
-    NUMTerminalsToBeParsed=0;
-#ifdef FILTER_LABELS
-    LabelSelector labSel;
-    labSel.addAcceptedLabel(1);//Wall
-    labSel.addAcceptedLabel(2);//Floor
-    map<int,int> labelmap;
-    readLabelMap(labelMapFile,labelmap);
-#endif
-    
-    Terminal * temp;
-    for (int i = 1; i <= maxSegIndex; i++) {
-        temp = new Terminal(i-1); // index is segment Number -1 
-        temp->setNeighbors( neighbors[i],maxSegIndex);
-        terminals.push_back(temp);
-        
-        
-        {
-#ifdef FILTER_LABELS        
-        if(labSel.acceptLabel(labelmap[i])) // get labelmap fro gt files
-#endif
-                {
-                NUMTerminalsToBeParsed++;
-                }
-        }
-        
-        
-    }
-
-    NUMPointsToBeParsed=0;
-    overallMinZ=infinity();
-    for(unsigned int i=0;i<scene.size();i++)
-    {
-        int segIndex=scene.points[i].segment;
-        if(segIndex>0 && segIndex<=maxSegIndex)
-        {
-            if(overallMinZ>scene.points[i].z)
-                overallMinZ=scene.points[i].z;
-            
-            terminals.at(segIndex-1)->addPointIndex(i);
-            
-            
-            {
-#ifdef FILTER_LABELS        
-        if(labSel.acceptLabel(segIndex)) // get labelmap fro gt files
-#endif
-              NUMPointsToBeParsed++;
-            }
-            
-            
-        }
-    }
-    
-    for(unsigned int i=0;i<terminals.size();i++)
-    {
-      //  terminals.at(i)->computeMinDistanceBwNbrTerminals(terminals)
-        terminals.at(i)->computeFeatures();
-    }
-
-    getSegmentDistanceToBoundaryOptimized(scene,terminals,occlusionChecker->maxDist);
-    
-    occlusionChecker->setmaxDistReady();
-    
-    segMinDistances.setZero(terminals.size(),terminals.size());
-    
-    for(unsigned int i1=0;i1<terminals.size();i1++)
-    {
-            for(unsigned int i2=i1+1;i2<terminals.size();i2++)
-            {
-                float minDistance=getSmallestDistance(scene, terminals.at(i1)->getPointIndicesBoostPtr(), terminals.at(i2)->getPointIndicesBoostPtr());
-                segMinDistances(i1,i2)=minDistance;
-                segMinDistances(i2,i1)=minDistance;
-            }
-    }
-    
-    cout<<"minDistances computed\n"<<endl;
-    cerr<<"minDistances computed\n"<<endl;
-
-    for(unsigned int i=0;i<terminals.size();i++)
-    {
-       // cout<<"s "<<i<<terminals[i]->getPointIndices().size()<<endl;
-        assert(terminals[i]->getPointIndices().size()>0); 
-        // if this happens, delete this NT. NEED TO CHANGE SIZE OF NEIGHBOR VECTOR
-    }
-    
-    Terminal::totalNumTerminals = terminals.size();    
-    
-    assert(maxSegIndex==(int)terminals.size());
+    return sceneInfo;
 
     
 }

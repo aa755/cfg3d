@@ -62,7 +62,7 @@ public:
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
-                int numTerminalsNotExplained=NUMTerminalsToBeParsed-extractedSym->getNumTerminals();
+                int numTerminalsNotExplained=extractedSym->thisScene->getNumTerminalsToBeParsed()-extractedSym->getNumTerminals();
                 //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
                 LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
 //                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
@@ -259,8 +259,8 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     vector<Terminal *>  terminals;
-    initParsing(argc,argv,terminals);
-    runParse(terminals);
+    SceneInfo *scn=initParsing(argc,argv);
+    runParse(scn->terminals);
 
     return 0;
     
