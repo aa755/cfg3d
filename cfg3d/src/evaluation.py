@@ -142,6 +142,7 @@ def compareTwoFiles(file1, file2, file3, binaryStr, overwrite):
             dict2LabelSet = set(pred[label])
 
         dict1LabelSetSize = len(dict1LabelSet);
+#        dict2LabelSetSize = len(dict2LabelSet)
         dict2LabelSetSize = len(dict2LabelSet.intersection(gtLabeledList))
         intersectionSize = len(dict1LabelSet.intersection(dict2LabelSet))
 
