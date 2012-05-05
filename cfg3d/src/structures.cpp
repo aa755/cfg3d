@@ -2046,6 +2046,15 @@ public:
 
     virtual void addChildNoCheck(Symbol * child) {
         children.push_back(child);
+        if((thisScene))
+        {
+           assert(thisScene==child->thisScene); 
+        }
+        else
+        {
+            thisScene=child->thisScene;
+        }
+            
     }
     
     void computeSpannedTerminals() {
