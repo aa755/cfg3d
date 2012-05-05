@@ -627,6 +627,7 @@ void printPoint(pcl::PointXYZ point) {
 class SceneInfo
 {
 public:
+    typedef  boost::shared_ptr<SceneInfo> SPtr;
     pcl::PointCloud<PointT> scene;
     pcl::PointCloud<PointT> originalScene;
     HOGPCD hogpcd;
@@ -758,7 +759,7 @@ protected:
     }
     
 public:
-    SceneInfo *thisScene;
+    SceneInfo::SPtr thisScene;
     typedef  Symbol* Ptr;
     typedef  boost::shared_ptr<Symbol> SPtr;
     typedef  boost::weak_ptr<Symbol> WPtr;
@@ -976,10 +977,9 @@ public:
     {
         isDeclaredOptimal = false;
         featuresComputed=false;
-        thisScene=NULL;
     }
     
-    virtual void setThisScene(SceneInfo * scn)
+    virtual void setThisScene(SceneInfo::SPtr scn)
     {
         thisScene=scn;
     }
@@ -1480,13 +1480,18 @@ public:
     }
 
 
-    Terminal(int index_,SceneInfo * thisScene=NULL) 
+    Terminal(int index_, SceneInfo::SPtr thisScene) 
     {
         index = index_;
         cost = 0;
         setThisScene(thisScene);
     }
 
+    Terminal(int index_) 
+    {
+        index = index_;
+        cost = 0;
+    }
 
 
     int getIndex() const {
@@ -1957,7 +1962,7 @@ public:
         duplicate=false;
     }
 
-    virtual void setThisScene(SceneInfo * scn)
+    virtual void setThisScene(SceneInfo::SPtr scn)
     {
         thisScene=scn;
         id=thisScene->id_counter++;
@@ -5019,7 +5024,7 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
             Terminal * temp;
             for (int i = 1; i <= maxSegIndex; i++)
             {
-                temp = new Terminal(i - 1, this); // index is segment Number -1 
+                temp = new Terminal(i - 1, SPtr(this)); // index is segment Number -1 
                 temp->setNeighbors(neighbors[i], maxSegIndex);
                 terminals.push_back(temp);
 
@@ -5098,7 +5103,7 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
 
     }
 
-SceneInfo * initParsing(int argc, char** argv)
+SceneInfo::SPtr initParsing(int argc, char** argv)
 {
     Rule::META_LEARNING=false;
     //assert(Params::additionalCostThreshold==1000);
@@ -5107,7 +5112,7 @@ SceneInfo * initParsing(int argc, char** argv)
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
-    SceneInfo *sceneInfo=new SceneInfo(argv[1],argv[3],argv[2]);
+    SceneInfo::SPtr sceneInfo= SceneInfo::SPtr(new SceneInfo(argv[1],argv[3],argv[2]));
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     

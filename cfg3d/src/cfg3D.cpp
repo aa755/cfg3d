@@ -259,7 +259,7 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     vector<Terminal *>  terminals;
-    SceneInfo *scn=initParsing(argc,argv);
+    SceneInfo::SPtr scn=initParsing(argc,argv);
     runParse(scn->terminals);
 
     return 0;
