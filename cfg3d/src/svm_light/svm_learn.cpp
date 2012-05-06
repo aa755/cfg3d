@@ -24,8 +24,17 @@
 #define MIN(x,y)      ((x) > (y) ? (y) : (x))
 #define SIGN(x)       ((x) > (0) ? (1) : (((x) < (0) ? (-1) : (0))))
 
-/* interface to QP-solver */
+#ifdef	__cplusplus
+extern "C" {
+#endif
+
+
 double *optimize_qp(QP *, double *, long, double *, LEARN_PARM *);
+
+
+#ifdef	__cplusplus
+}
+#endif/* interface to QP-solver */
 
 /*---------------------------------------------------------------------------*/
 
@@ -33,7 +42,7 @@ double *optimize_qp(QP *, double *, long, double *, LEARN_PARM *);
    docs/label. The resulting model is returned in the structure
    model. */
 
-void svm_learn_classification(DOC **docs, double *class, long int
+void svm_learn_classification(DOC **docs, double *class_y, long int
 			      totdoc, long int totwords, 
 			      LEARN_PARM *learn_parm, 
 			      KERNEL_PARM *kernel_parm, 
@@ -41,7 +50,7 @@ void svm_learn_classification(DOC **docs, double *class, long int
 			      MODEL *model,
 			      double *alpha)
      /* docs:        Training vectors (x-part) */
-     /* class:       Training labels (y-part, zero if test example for
+     /* class_y:       Training labels (y-part, zero if test example for
                      transduction) */
      /* totdoc:      Number of examples in docs/label */
      /* totwords:    Number of features (i.e. highest feature index) */
@@ -149,18 +158,18 @@ void svm_learn_classification(DOC **docs, double *class, long int
     lin[i]=0;
     c[i]=0.0;
     unlabeled[i]=0;
-    if(class[i] == 0) {
+    if(class_y[i] == 0) {
       unlabeled[i]=1;
       label[i]=0;
       transduction=1;
     }
-    if(class[i] > 0) {
+    if(class_y[i] > 0) {
       learn_parm->svm_cost[i]=learn_parm->svm_c*learn_parm->svm_costratio*
 	docs[i]->costfactor;
       label[i]=1;
       trainpos++;
     }
-    else if(class[i] < 0) {
+    else if(class_y[i] < 0) {
       learn_parm->svm_cost[i]=learn_parm->svm_c*docs[i]->costfactor;
       label[i]=-1;
       trainneg++;
@@ -241,7 +250,7 @@ void svm_learn_classification(DOC **docs, double *class, long int
 
   if(learn_parm->compute_loo && ((trainpos == 1) || (trainneg == 1))) {
     learn_parm->compute_loo=0;
-    printf("\nCannot compute leave-one-out with only one example in one class.\n\n");
+    printf("\nCannot compute leave-one-out with only one example in one class_y.\n\n");
   }    
 
 

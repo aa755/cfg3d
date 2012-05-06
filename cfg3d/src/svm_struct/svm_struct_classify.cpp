@@ -26,7 +26,9 @@ extern "C" {
 #endif
 #include "../svm_struct_api.h"
 #include "svm_struct_common.h"
-
+#include "../svm_struct_api.cpp"
+#include "../svm_light/svm_common.cpp"
+#include "svm_struct_common.cpp"
 char testfile[200];
 char modelfile[200];
 char predictionsfile[200];

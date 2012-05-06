@@ -22,6 +22,12 @@
 #include "svm_struct_common.h"
 #include "../svm_struct_api.h"
 #include <assert.h>
+#include "../svm_struct_learn_custom.cpp"
+#include "../svm_struct_api.cpp"
+#include "../svm_light/svm_learn.cpp"
+#include "../svm_light/svm_common.cpp"
+#include "svm_struct_common.cpp" 
+#include "svm_struct_main.cpp"
 
 #define MAX(x,y)      ((x) < (y) ? (y) : (x))
 #define MIN(x,y)      ((x) > (y) ? (y) : (x))
