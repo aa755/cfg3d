@@ -168,6 +168,7 @@ class Forest
     Scene *bestSceneSoFar;
     string origFileName;
     double bestCostSoFar;
+    SceneInfo::SPtr sceneInfo;
     
     
 public:
@@ -183,15 +184,16 @@ public:
      * 
      * @param index : the index of tree which was removed
      */
-    Forest(vector<Terminal *> & terminals, RulesDB::SPtr rulesDB)
+    Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB)
     {
         this->rulesDB=rulesDB;
         curNegLogProb = 0;
         bestSceneSoFar=NULL;
-        for (unsigned int i = 0; i < terminals.size(); i++)
+        this->sceneInfo=sceneInfo;
+        for (unsigned int i = 0; i <sceneInfo->terminals.size(); i++)
         {
-            terminals.at(i)->declareOptimal(false);
-            addTree(terminals.at(i));
+            sceneInfo->terminals.at(i)->declareOptimal(false);
+            addTree(sceneInfo->terminals.at(i));
         }
 
     }
@@ -227,7 +229,7 @@ public:
     
     void print()
     {
-        Scene::printAllScenes(trees);
+        //Scene::printAllScenes(trees);
     }
     
     void deleteTree(int index)
@@ -322,7 +324,7 @@ public:
                 LHS->addChild(tree);
                 LHS->computeSpannedTerminals();
                 assert(tree->getNumPoints()!=0);
-                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
+                int numTerminalsNotExplained=tree->thisScene->NUMPointsToBeParsed-tree->getNumTerminals();
                 //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
                 LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
 //                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
@@ -470,7 +472,7 @@ public:
 
     void runMCMC()
     {
-        origFileName=fileName;
+        origFileName=sceneInfo->fileName;
         bestCostSoFar=infinity();
         TicToc timer;
         int iter=0;
@@ -951,9 +953,9 @@ int main(int argc, char** argv)
 {
 
     vector<Terminal *>  terminals;
-    initParsing(argc,argv,terminals);
+    SceneInfo::SPtr sceneInfo=initParsing(argc,argv);
     
-    Forest forest(terminals, RulesDB::SPtr(new RulesDB()));
+    Forest forest(sceneInfo, RulesDB::SPtr(new RulesDB()));
     forest.runMCMC();
     return 0;
 }
