@@ -644,6 +644,7 @@ public:
     int NUMTerminalsToBeParsed;
 
     SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile);
+    SceneInfo(){}
 
     Vector3d getSceneOrigin()
     {
