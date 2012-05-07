@@ -55,8 +55,6 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   /* Reads struct examples and returns them in sample. The number of
      examples must be written into sample.n */
   SAMPLE   sample;  /* sample */
-  EXAMPLE  *examples;
-  long     n;       /* number of examples */
 
   vector<string> lines;
   getLines(file, lines);
@@ -65,7 +63,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   assert(lines.size()>0);
   sample.examples=new EXAMPLE[sample.n];
   
-  for(int i=0;i<lines.size();i++)
+  for(int i=0;i<(int)lines.size();i++)
   {
       sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo(lines.at(i)));              
   }

@@ -462,5 +462,15 @@ void fast_erase(std::vector<T>& v, size_t i)
    v.pop_back(); 
 }
 
+int countUnderScores(string str)
+{
+    int count=0;
+    for(int i=0;i<(int)str.size();i++)
+    {
+        if(str.at(i)=='_')
+            count++;
+    }
+    return count;
+}
 #endif	/* UTILS_H */
 

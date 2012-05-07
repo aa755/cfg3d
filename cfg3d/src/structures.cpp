@@ -782,6 +782,13 @@ protected:
     }
     
 public:
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    virtual void addYourPsiVectorTo(VectorXd psi)
+    {
+        // for some cases like terminals, need not do anything
+    }
+#endif
+    
     SceneInfo::SPtr thisScene;
     typedef  Symbol* Ptr;
     typedef  boost::shared_ptr<Symbol> SPtr;
@@ -1790,6 +1797,13 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    VectorXd psi;
+    virtual void addYourPsiVectorTo(VectorXd psi)
+    {
+        psi+=this->psi;
+    }
+#endif
     
     virtual bool isPrunable()
     {
@@ -3076,6 +3090,10 @@ protected:
     bool modelFileMissing;
     
 public:
+    void setStartIndex(int index)
+    {
+        
+    }
     virtual vector<string> getChildrenTypes()
     {
         assert(false); // all rules in use must have implemented this
@@ -3084,6 +3102,11 @@ public:
     virtual bool makesPlanarPrimitive()
     {
         return false;
+    }
+    
+    virtual int getNumParams()
+    {
+        return 0; 
     }
     
     set<string> getChildrenTypesAsSet()
@@ -3569,8 +3592,13 @@ class SingleRule : public Rule
     {
         return false;
     }
+    static const int NUM_FEATS=17;
     
 public:
+    virtual int getNumParams()
+    {
+        return NUM_FEATS; 
+    }
     
     virtual bool makesPlanarPrimitive()
     {
@@ -4070,6 +4098,11 @@ protected:
     }
     
 public:
+    virtual int getNumParams()
+    {
+        return 27*countUnderScores(typeid(LHS_Type).name()); 
+    }
+    
     /**
      * This must be overriden by the inheriting class as each Rule will have its own specific cost function.
      * @param output
@@ -4621,6 +4654,10 @@ class SingleRuleNoFeature : public SingleRule<LHS_Type,RHS_Type>
 {
     float cost;
 public:
+    virtual int getNumParams()
+    {
+        return 0; 
+    }
     
     SingleRuleNoFeature(float ratio=1):SingleRule<LHS_Type,RHS_Type>("dummy")
     {
@@ -4678,6 +4715,10 @@ class SingleRuleComplex : public SingleRuleNoFeature<SupportComplex<SupportType>
     typedef SupportType RHS_Type;
     
 public:
+    virtual int getNumParams()
+    {
+        return 1; 
+    }
     
     
     SingleRuleComplex()

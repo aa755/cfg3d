@@ -19,12 +19,13 @@
 
 #ifndef svm_struct_api_types
 #define svm_struct_api_types
-
+#define USING_SVM_FOR_LEARNING_CFG
 #include <cstdlib>
 #include "structures.cpp"
 #include "wallDistance.h"
+#include "mcmcParsh.h"
 //#include "CPU_generatedDataStructures.cpp"
-#include "generatedDataStructures.cpp"
+//#include "generatedDataStructures.cpp"
 
 # include "svm_light/svm_common.h"
 # include "svm_light/svm_learn.h"
@@ -79,7 +80,7 @@ typedef struct structmodel {
   double walpha;
   /* other information that is needed for the stuctural model can be
      added here, e.g. the grammar rules for NLP parsing */
-  int add_your_variables_here;
+  RulesDB rulesDB;
 } STRUCTMODEL;
 
 typedef struct struct_learn_parm {
