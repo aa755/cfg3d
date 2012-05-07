@@ -136,7 +136,7 @@ void getTokens(string str, vector<string>& out,string delim=",") {
  * @param neighbors
  * @return : max segment index
  */
-int parseNbrMap(char * file,map<int, set<int> > & neighbors, int maxSegIndex) {
+int parseNbrMap(const char * file,map<int, set<int> > & neighbors, int maxSegIndex) {
         std::ifstream labelFile;
     std::string line;
     labelFile.open(file);
@@ -179,6 +179,25 @@ int parseNbrMap(char * file,map<int, set<int> > & neighbors, int maxSegIndex) {
 
 }
 
+void getLines(char * file, vector<string> & lines)
+{
+        std::ifstream labelFile;
+    std::string line;
+    labelFile.open(file);
+
+    if (labelFile.is_open()) {
+        while (labelFile.good()) {
+            getline(labelFile, line); //each line is a label
+            if (line.size() == 0)
+                break;
+            
+            lines.push_back(line);
+        }
+    } else {
+        cerr << "linecounter: cound not open file:"<< file<< " ... exiting\n";
+        exit(-1);
+    }
+}
 
 void getTokens(string str, vector<float>& out,string delim=",") {
         boost::char_separator<char> sep(delim.data());

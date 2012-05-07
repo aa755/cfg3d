@@ -29,6 +29,7 @@ void        svm_struct_learn_api_init(int argc, char* argv[])
 {
   /* Called in learning part before anything else is done to allow
      any initializations that might be necessary. */
+        Rule::META_LEARNING=false;
 }
 
 void        svm_struct_learn_api_exit()
@@ -57,13 +58,20 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   EXAMPLE  *examples;
   long     n;       /* number of examples */
 
-  n=100; /* replace by appropriate number of examples */
-  examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE)*n);
-
+  vector<string> lines;
+  getLines(file, lines);
+  
+  sample.n=lines.size();
+  assert(lines.size()>0);
+  sample.examples=new EXAMPLE[sample.n];
+  
+  for(int i=0;i<lines.size();i++)
+  {
+      sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo(lines.at(i)));              
+  }
+  
   /* fill in your code here */
 
-  sample.n=n;
-  sample.examples=examples;
   return(sample);
 }
 
@@ -331,12 +339,8 @@ void        free_struct_model(STRUCTMODEL sm)
 void        free_struct_sample(SAMPLE s)
 {
   /* Frees the memory of sample s. */
-  int i;
-  for(i=0;i<s.n;i++) { 
-    free_pattern(s.examples[i].x);
-    free_label(s.examples[i].y);
-  }
-  free(s.examples);
+
+    delete [] s.examples;
 }
 
 void        print_struct_help()

@@ -643,7 +643,29 @@ public:
     int NUMPointsToBeParsed;
     int NUMTerminalsToBeParsed;
 
-    SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile);
+    void init(const char * sceneF,const char * sceneOrigF, const char * nbrFile);
+    void init(const char * sceneF)
+    {
+        string sfile(sceneF);
+        string sceneOrigF=sfile.substr(0,sfile.length()-14);
+        string nbrFile=sfile+"_nbr.txt"; 
+        init(sceneF,sceneOrigF.data(), nbrFile.data());        
+    }
+    
+    SceneInfo(const char * sceneF)
+    {
+        init(sceneF);
+    }
+    
+    SceneInfo(string sceneF)
+    {
+        init(sceneF.data());
+    }
+    
+    SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile)
+    {
+        init(sceneF, sceneOrigF, nbrFile);
+    }
     SceneInfo(){}
 
     Vector3d getSceneOrigin()
@@ -5003,7 +5025,7 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
     }
     
 }
-    SceneInfo::SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile)
+    void SceneInfo::init(const char * sceneF, const char * sceneOrigF, const char * nbrFile)
     {
         id_counter = 0;
         pcl::io::loadPCDFile<PointT > (sceneF, scene);

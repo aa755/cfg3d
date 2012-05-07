@@ -80,12 +80,12 @@ public:
         maxDistReady=false;
         cloudSeg=& cloud;
         resolution = resolution_;
-        convertToXYZ(cloud, xyzcloud);
-        cout<<"Computing Occupancy Map using origin as: "<<cloud.sensor_origin_<<endl;
-        tree.insertScan(xyzcloud, convertFromVector(cloud.sensor_origin_), -1, true);
+     //   convertToXYZ(cloud, xyzcloud);
+    //    cout<<"Computing Occupancy Map using origin as: "<<cloud.sensor_origin_<<endl;
+     //   tree.insertScan(xyzcloud, convertFromVector(cloud.sensor_origin_), -1, true);
         //http://www.ros.org/doc/api/octomap_ros/html/classoctomap_1_1OctomapROS.html
         
-        nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointOutT> >(&cloud));
+     //   nnFinder.setInputCloud(createStaticShared<pcl::PointCloud<PointOutT> >(&cloud));
 
     }
 
@@ -139,6 +139,7 @@ public:
  */
     bool isOccluded(const pcl::PointXYZ pt)
     {
+        assert(false); // insert scan was disabled in cosntructor
         if(!isWithinBoundary(pt))
             return false;
         
