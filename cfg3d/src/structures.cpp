@@ -50,6 +50,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include "OccupancyMap.h"
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
+#include <eigen3/Eigen/src/Core/PlainObjectBase.h>
 #include "HOG.cpp"
 using boost::math::normal;
 class NonTerminal;
@@ -642,6 +643,7 @@ public:
     OccupancyMap<PointT> * occlusionChecker;
     int NUMPointsToBeParsed;
     int NUMTerminalsToBeParsed;
+    int psiSize;
 
     void init(const char * sceneF,const char * sceneOrigF, const char * nbrFile);
     void init(const char * sceneF)
@@ -726,6 +728,16 @@ public:
 
         }
     }
+
+    void setPsiSize(int psiSize)
+    {
+        this->psiSize = psiSize;
+    }
+
+    int getPsiSize() const
+    {
+        return psiSize;
+    }
 };
 
 class Symbol {
@@ -783,7 +795,7 @@ protected:
     
 public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
-    virtual void addYourPsiVectorTo(VectorXd psi)
+    virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         // for some cases like terminals, need not do anything
     }
@@ -1799,10 +1811,23 @@ protected:
 public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
-    virtual void addYourPsiVectorTo(VectorXd psi)
+    virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         psi+=this->psi;
     }
+    virtual void computePsi(int index, vector<float> & features)
+    {
+        psi.setZero(thisScene->psiSize);
+        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) {
+            (*it)->addYourPsiVectorTo(psi);
+        }
+        
+        for(int i=0;i<features.size();i++)
+        {
+            psi(index+i)+=features.at(i);
+        }
+    }
+    
 #endif
     
     virtual bool isPrunable()
@@ -3088,12 +3113,14 @@ protected:
     vector<float> features;
     ofstream featureFile;
     bool modelFileMissing;
+    int startIndex;
     
 public:
     void setStartIndex(int index)
     {
-        
+        startIndex=index;
     }
+    
     virtual vector<string> getChildrenTypes()
     {
         assert(false); // all rules in use must have implemented this
@@ -4804,7 +4831,13 @@ class DoubleRuleComplex : public DoubleRule< SupportComplex<SupportType> , Suppo
     
     typedef SupportComplex<SupportType> LHS_Type;
     typedef SupportComplex<SupportType> RHS_Type1;
+    int numParams;
 public:
+    virtual int getNumParams()
+    {
+        return numParams;
+    }
+    
     bool canBaseBeHallucinated();
     
     PairType makeSortedPair(string name1, string name2)
@@ -4829,7 +4862,7 @@ public:
     {
        if (this->isLearned())
         {
-            
+           numParams=1;
             for (vector<string>::iterator it = types.begin(); it != types.end(); it++)
             {
                 PairType typeSt=makeSortedPair(*it,string(typeid(RHS_Type2).name()));
