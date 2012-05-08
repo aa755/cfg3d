@@ -52,6 +52,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include <boost/random/normal_distribution.hpp>
 #include <eigen3/Eigen/src/Core/PlainObjectBase.h>
 #include "HOG.h"
+
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
@@ -65,6 +66,16 @@ string rulePath;
 class Params
 {
 public:
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    const static double missPenalty=0;
+    const static double onTopPairDivide=1;
+    const static double onTopPairDefaultOnModelMissing=1000.0;
+    const static int timeLimit=2000;
+    const static double doubleRuleDivide=1;
+    const static double objectCost=1.0;
+    const static double maxFloorHeight=0.05;
+    const static double floorOcclusionPenalty=600.0;    
+#else
     const static double missPenalty=                90000.0;
     const static double onTopPairDivide=60;
     const static double onTopPairDefaultOnModelMissing=1000.0;
@@ -73,6 +84,7 @@ public:
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=600.0;
+#endif
 #ifdef META_LEARNING
     const static double costPruningThresh=          DBL_MAX;
   const static double costPruningThreshNonComplex=DBL_MAX;
@@ -141,6 +153,7 @@ protected:
     int numFeats;
 public:
     virtual double minusLogProb(VectorXd & x)=0;
+    virtual void readModel(double * w_svm, int index, int numFeats){} // dummy for svm
 
     double minusLogProb(vector<float> & x) {
         VectorXd feats(x.size());
@@ -154,15 +167,15 @@ public:
        // cout<<endl;
         assert(!isnan(ret));
         assert(!isinf(ret));
+        
+#ifndef USING_SVM_FOR_LEARNING_CFG 
         if(ret>Params::additionalCostThreshold)
         {
             assert(false);
             return infinity();
         }
-        else
-        {
+#endif
             return ret;
-        }
         
     }
 
@@ -190,7 +203,7 @@ class LinearDiscriminativeFunction : public MultiVariateProbabilityDistribution
         return w_rule.dot(x);
     }
     
-    void initialize(double * w_svm, int index, int numFeats)
+    virtual void readModel(double * w_svm, int index, int numFeats)
     {
         this->numFeats=numFeats;
         w_rule.setZero(numFeats);
@@ -2076,6 +2089,8 @@ public:
     }
 
     void setAdditionalCost(double additionalCost) {
+        assert(!costSet); // setting cost again may loose the previous additional cost ... use increasecost 2nd time
+        
         assert(!isDeclaredOptimal);
         //assert(additionalCost >= 0);
         assert(!(isnan(additionalCost) || isinf(additionalCost)));
@@ -2096,6 +2111,9 @@ public:
                 cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
 
+    }
+    void increaseCost(double additionalCost) {
+        cost+=additionalCost;
     }
 
     /**
@@ -3136,6 +3154,12 @@ protected:
     int startIndex;
     
 public:
+    virtual void readModel(double * w_svm)
+    {
+        assert(startIndex!=-1);
+          pdist->readModel(w_svm, startIndex , getNumParams());
+    }
+    
     void setStartIndex(int index)
     {
         startIndex=index;
@@ -3189,6 +3213,7 @@ public:
     {
         pdist=NULL;
         modelFileMissing=false;
+        startIndex=-1;
     }
     
     ProbabilityDistribution * getNormalZDist()
@@ -3271,6 +3296,7 @@ public:
     
     void writeFeaturesToFile()
     {
+#ifndef USING_SVM_FOR_LEARNING_CFG        
         assert(featureFile.is_open()); // you need to construct this rule with false for learning
         vector<float>::iterator it;
         for(it=features.begin();it!=features.end();it++)
@@ -3278,6 +3304,7 @@ public:
             featureFile<<*it<<",";
         }
         featureFile<<endl;
+#endif
     }
     
 
@@ -5006,6 +5033,7 @@ public:
                 delete LHS;
                 return NULL;                 
              }
+#ifdef USING_SVM_FOR_LEARNING_CFG
             LHS->undeclareOptimal();
 
         if (RHS1 != NULL)
@@ -5043,21 +5071,14 @@ public:
                 else
                 {
                     additionalCost += Params::onTopPairDefaultOnModelMissing;
-#ifdef IGNORE_COMPLEX_MODEL_MISSING
-                    if(!Rule::META_LEARNING)
-                    {
-                        delete LHS;
-                        return NULL;                 
-                    }
-#endif
                 }
 
             }
 
         if( RHS1->objectsOnTop.size() !=0)
-            LHS->setAdditionalCost(additionalCost /( RHS1->objectsOnTop.size() * Params::onTopPairDivide) - log(Params::objectCost));
+            LHS->increaseCost(additionalCost /( RHS1->objectsOnTop.size() * Params::onTopPairDivide) - log(Params::objectCost));
 	else
-            LHS->setAdditionalCost(additionalCost /(  Params::onTopPairDivide) - log(Params::objectCost));
+            LHS->increaseCost(additionalCost /(  Params::onTopPairDivide) - log(Params::objectCost));
 
 
 
@@ -5067,6 +5088,7 @@ public:
                 return NULL;
             }
         }
+#endif
        if(Rule::META_LEARNING)
        {
            LHS->declareOptimal();
