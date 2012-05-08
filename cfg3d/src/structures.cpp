@@ -181,6 +181,26 @@ public:
 //    }
 };
 
+class LinearDiscriminativeFunction : public MultiVariateProbabilityDistribution
+{
+    VectorXd w_rule;
+    
+    virtual double minusLogProb(VectorXd & x)
+    {
+        return w_rule.dot(x);
+    }
+    
+    void initialize(double * w_svm, int index, int numFeats)
+    {
+        this->numFeats=numFeats;
+        w_rule.setZero(numFeats);
+        for(int i=0;i<numFeats;i++)
+        {
+            w_rule(i)=w_svm[index+i];
+        }
+    }
+};
+
 class MultiVarGaussianComponent : public MultiVariateProbabilityDistribution
 {
 protected:
@@ -3653,6 +3673,9 @@ public:
     
     SingleRule(bool learning=false)
     {
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        pdist= new LinearDiscriminativeFunction();
+#else
         this->learning=learning;
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
         if(learning||Rule::META_LEARNING)
@@ -3662,7 +3685,8 @@ public:
         if(!learning)
         {
             readDistribution(rulePath+"/"+filename);
-        }        
+        }
+#endif
     }
     
     virtual void computeFeatures(RHS_Type* input)

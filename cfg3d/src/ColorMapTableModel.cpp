@@ -31,7 +31,7 @@
      {
          if(index.column()==0)
          {
-                return QString(colorMap.at(index.row()).first.data());
+                return colorMap.at(index.row()).first;
          }
          else if(index.column()==1)
          {
