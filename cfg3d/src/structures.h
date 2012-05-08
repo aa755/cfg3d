@@ -661,6 +661,7 @@ void printPoint(pcl::PointXYZ point) {
 class SceneInfo
 {
 public:
+    int psiSize;
     typedef  boost::shared_ptr<SceneInfo> SPtr;
     pcl::PointCloud<PointT> scene;
     pcl::PointCloud<PointT> originalScene;
@@ -676,7 +677,6 @@ public:
     OccupancyMap<PointT> * occlusionChecker;
     int NUMPointsToBeParsed;
     int NUMTerminalsToBeParsed;
-    int psiSize;
 
     void init(const char * sceneF,const char * sceneOrigF, const char * nbrFile);
     void init(const char * sceneF)

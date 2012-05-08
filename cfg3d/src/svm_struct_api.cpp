@@ -82,8 +82,11 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
      feature space in sizePsi. This is the maximum number of different
      weights that can be learned. Later, the weight vector w will
      contain the learned weights for the model. */
-
-  sm->sizePsi=100; /* replace by appropriate number of features */
+    sm->sizePsi=sm->rulesDB.getTotalNumParams();
+    for(int i=0;i<sample.n;i++)
+    {
+        sample.examples[i].x.allSceneInfo->setPsiSize(sm->sizePsi);
+    }
 }
 
 CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
@@ -169,6 +172,7 @@ LABEL       find_most_violated_constraint_slackrescaling(PATTERN x, LABEL y,
      empty_label(y). */
   LABEL ybar;
 
+  assert(false); // not implemented yet
   /* insert your code for computing the label ybar here */
 
   return(ybar);
