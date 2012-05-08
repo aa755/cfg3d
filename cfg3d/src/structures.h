@@ -36,7 +36,7 @@
 #include <stack> 
 #include "utils.h"
 #include "point_struct.h"
-#include "color.cpp"
+#include "color.h"
 #include "pcl/features/feature.h"
 #include <math.h>
 //sac_model_plane.h
@@ -51,7 +51,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include <boost/math/distributions/normal.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <eigen3/Eigen/src/Core/PlainObjectBase.h>
-#include "HOG.cpp"
+#include "HOG.h"
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
@@ -4182,6 +4182,9 @@ public:
     DoubleRule(string dummyConstructor){}
     DoubleRule(bool learning=false)
     {
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        pdist= new LinearDiscriminativeFunction();
+#else
         if (isLearned())
         {
             string filename = string(string("rule_") + typeid (LHS_Type).name()) + "__" + string(typeid (RHS_Type1).name()) + "_" + string(typeid (RHS_Type2).name());
@@ -4195,6 +4198,7 @@ public:
                 readDistribution(rulePath+"/"+filename);
             }
         }
+#endif
     }
 
 //    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)

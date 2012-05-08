@@ -72,7 +72,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <cfg3d/labelerConfig.h>
-#include "color.cpp"
+#include "color.h"
 #define NUM_CLASSES_TO_SHOW 10
 
 //typedef pcl::PointXYZRGB PointT;

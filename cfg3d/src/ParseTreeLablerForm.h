@@ -40,7 +40,7 @@
 
 #include <dynamic_reconfigure/server.h>
 //#include <cfg3d/labelerConfig.h>
-#include "color.cpp"
+#include "color.h"
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/generator_iterator.hpp>

@@ -28,7 +28,7 @@
 
 #include <dynamic_reconfigure/server.h>
 #include <cfg3d/labelviewerConfig.h>
-#include "color.cpp"
+#include "color.h"
 
 //typedef pcl::PointXYZRGB PointT;
 //std::string initLabels[]={"wall","floor","table","shelf","chair","cpu","monitor","clutter"};
