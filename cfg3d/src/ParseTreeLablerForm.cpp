@@ -13,7 +13,7 @@
 #include"segmentUtils.h"
 #include <algorithm>
 #include <qt4/QtGui/qlabel.h>
-//#include "structures.cpp"
+//#include "structures.h"
 
 ParseTreeLablerForm::ParseTreeLablerForm() : viewer("3DViewer"), randSix(0,5)
 {

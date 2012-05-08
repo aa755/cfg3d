@@ -21,7 +21,7 @@
 #define svm_struct_api_types
 #define USING_SVM_FOR_LEARNING_CFG
 #include <cstdlib>
-#include "structures.cpp"
+#include "structures.h"
 #include "wallDistance.h"
 #include "mcmcParsh.h"
 //#include "CPU_generatedDataStructures.cpp"

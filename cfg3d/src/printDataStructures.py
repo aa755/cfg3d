@@ -31,7 +31,7 @@ def printBeforeAppend(dataStructuresFile):
     
 
 def printImports(dataStructuresFile):
-    dataStructuresFile.write('#include "structures.cpp"\n\n')
+    dataStructuresFile.write('#include "structures.h"\n\n')
 
 def isSupportElem(supportElem, supportedElem):
     return supportElem.replace('Complex','') == supportedElem 

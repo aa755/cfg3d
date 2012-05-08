@@ -1,4 +1,4 @@
-#include "structures.cpp"
+#include "structures.h"
 #include "rulesGenerator.cpp"
 #include <iostream>
 #include <string>

@@ -7,7 +7,7 @@
 
 #ifndef RULES_WALL_H
 #define	RULES_WALL_H
-#include "structures.cpp"
+#include "structures.h"
 class Wall : public VisualObject , PlanarPrimitive{};
 
 template<>

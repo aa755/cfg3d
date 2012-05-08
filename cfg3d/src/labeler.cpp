@@ -51,7 +51,7 @@
 //#include <pcl_visualization/cloud_viewer.h>
 #include "pcl_visualization/pcl_visualizer.h"
 //#include "../../combine_clouds/src/CombineUtils.h"
-#include "structures.cpp"
+#include "structures.h"
 
 #include "pcl/ModelCoefficients.h"
 #include "pcl/kdtree/kdtree.h"

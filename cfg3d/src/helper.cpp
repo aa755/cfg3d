@@ -2,7 +2,7 @@
 #define	CFG3D_HELPER_CPP
 
 
-#include "structures.cpp"
+#include "structures.h"
 #include <iostream>
 #include <string>
 #include <boost/foreach.hpp>

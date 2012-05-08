@@ -8,7 +8,7 @@
 #ifndef SEGMENTUTILS_H
 #define	SEGMENTUTILS_H
 #include <boost/shared_ptr.hpp>
-#include "structures.cpp"
+#include "structures.h"
 #include "OccupancyMap.h"
 #include <iostream>
 #include <fstream>

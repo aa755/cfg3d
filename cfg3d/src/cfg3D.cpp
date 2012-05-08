@@ -5,7 +5,7 @@
  * Created on July 26, 2011, 7:41 PM
  */
 
-#include "structures.cpp"
+#include "structures.h"
 #include "wallDistance.h"
 //#include "CPU_generatedDataStructures.cpp"
 #include "generatedDataStructures.cpp"
