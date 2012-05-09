@@ -43,7 +43,7 @@
 
  **/
 #include <iostream>
-#include <boost/thread.hpp>
+//#include <boost/thread.hpp>
 
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>

@@ -15,13 +15,13 @@
 //#include "Rules_Wall.h"
 //#define FILTER_LABELS
 // Manual rules that we need.
-    vector<VisualObject*> identifiedScenes;
+    vector<VisualObject::SPtr> identifiedScenes;
     
 class RGreedyScene : public Rule {
 public:
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
-        VisualObject *dummyTypeCheck=dynamic_cast<VisualObject*>(extractedSym);
+        VisualObject::SPtrdummyTypeCheck=boost::dynamic_pointer_cast<VisualObject::SPtr>(extractedSym);
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
            // cout << "An object!!" << endl;
@@ -35,7 +35,7 @@ public:
 
 class RVisualObjects : public Rule {
 public:
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (extractedSym->isOfSubClass<VisualObject>()) // if min is of type Scene(Goal)
         {
@@ -54,7 +54,7 @@ Scene *bestSceneSoFar=NULL;
 template<typename SceneType>
 class RScene : public Rule {
 public:
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (extractedSym->isOfSubClass<SceneType>()) // if min is of type Scene(Goal)
         {
@@ -94,7 +94,7 @@ bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
 //}
 
 template<>
-VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject * RHS2)
+VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject::SPtr RHS2)
 {
             VisualObjects* LHS= new VisualObjects();
                 LHS->addChild(RHS1);
@@ -129,7 +129,7 @@ void outputOnBothStreams(string str)
     cerr<<str<<endl;
 }
 
-void runParse(vector<Terminal *> & terminals) {
+void runParse(vector<Terminal_SPtr> & terminals) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
 
@@ -142,7 +142,7 @@ void runParse(vector<Terminal *> & terminals) {
 
 
 
-    Symbol *min;
+    Symbol::SPtr min;
     long count = 0;
     long rulecount = 0;
     bool alreadyExtracted=false;
@@ -194,7 +194,7 @@ void runParse(vector<Terminal *> & terminals) {
 
         cout << "\n\n\nIteration: " << count++ << " Cost: " << min->getCost() <<" Type: "<<min->getName()<< endl;
 
-        Scene *dummyTypeCheck=dynamic_cast<Scene*>(min);
+        Scene *dummyTypeCheck=boost::dynamic_pointer_cast<Scene*>(min);
         
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
@@ -258,7 +258,7 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
-    vector<Terminal *>  terminals;
+    vector<Terminal_SPtr>  terminals;
     SceneInfo::SPtr scn=initParsing(argc,argv);
     runParse(scn->terminals);
 

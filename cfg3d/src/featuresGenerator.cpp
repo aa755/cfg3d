@@ -119,8 +119,8 @@ void createDataStructures(const char* file, string objectName) {
 void createRunLearnFront() {
     outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {"<<endl;
     outputLearnerCode<<"    initialize(sceneToLearn, segmentToLabelFile);"<<endl;
-    outputLearnerCode<<"    queue<Symbol*> nodesCreatedSoFar;"<<endl;
-    outputLearnerCode<<"    vector<Terminal*> temp;"<<endl<<endl;
+    outputLearnerCode<<"    queue<Symbol::SPtr> nodesCreatedSoFar;"<<endl;
+    outputLearnerCode<<"    vector<Terminal_SPtr> temp;"<<endl<<endl;
 }
 
                 // Mid
@@ -133,12 +133,12 @@ void applyDoubleRule(string ruleName, string LHS, string RHS1, string RHS2) {
     string tab1 = "    ";
     string temp1 = "";
     string secondToLast = temp1.append("secondToLast").append(RHS1);
-    outputLearnerCode<<tab1.append(RHS1).append("* ").append(secondToLast).append(" = dynamic_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputLearnerCode<<tab1.append(RHS1).append("* ").append(secondToLast).append(" = boost::dynamic_pointer_cast<").append(RHS1).append("*>(nodesCreatedSoFar.front());")<<endl;
     outputLearnerCode<<"    nodesCreatedSoFar.pop();"<<endl;
     string tab2 = "    ";
     string temp2 = "";
     string last = temp2.append("last").append(RHS2);
-    outputLearnerCode<<tab2.append(RHS2).append("* ").append(last).append(" = dynamic_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
+    outputLearnerCode<<tab2.append(RHS2).append("* ").append(last).append(" = boost::dynamic_pointer_cast<").append(RHS2).append("*>(nodesCreatedSoFar.front());")<<endl;
     outputLearnerCode<<"    nodesCreatedSoFar.pop();"<<endl;
     string front = "    nodesCreatedSoFar.push(";
     outputLearnerCode<<front.append(ruleName).append(".applyRuleLearning(").append(secondToLast).append(", ").append(last).append(", temp));")<<endl<<endl;

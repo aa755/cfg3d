@@ -373,8 +373,8 @@ void createRunLearnFront(ofstream & outputLearnerCode) {
     outputLearnerCode<<"    initialize(sceneToLearn,originalScene);"<<endl;
     outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
     outputLearnerCode<<"RPlaneSeg rulePG;\n";
-    outputLearnerCode<<"Plane *temp;\n";
-//    outputLearnerCode<<"    vector<Terminal*> temp;"<<endl<<endl;
+    outputLearnerCode<<"Plane::SPtr temp;\n";
+//    outputLearnerCode<<"    vector<Terminal_SPtr> temp;"<<endl<<endl;
 }
 
 void createRunLearnBack(ofstream & outputLearnerCode) {

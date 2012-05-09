@@ -11,7 +11,7 @@
 int main(int argc, char** argv)
 {
 
-    vector<Terminal *>  terminals;
+    vector<Terminal_SPtr>  terminals;
     SceneInfo::SPtr sceneInfo=initParsing(argc,argv);
     
     Forest forest(sceneInfo, RulesDB::SPtr(new RulesDB()));

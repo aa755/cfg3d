@@ -9,8 +9,8 @@
 #include "helper.cpp"
 void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {
     initialize(sceneToLearn, segmentToLabelFile);
-    queue<Symbol*> nodesCreatedSoFar;
-    vector<Terminal*> temp;
+    queue<Symbol::SPtr> nodesCreatedSoFar;
+    vector<Terminal_SPtr> temp;
 
     cerr<<"map-size:"<<labelToPlanes.size()<<endl;
     SingleRule<Wall, Plane> ruleCPUFront(true);

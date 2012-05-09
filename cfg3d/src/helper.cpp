@@ -10,8 +10,8 @@
 using namespace std;
 using namespace boost;
 
-map<string, Terminal*> labelToTerminals;
-map<string, Plane*> labelToPlanes;
+map<string, Terminal_SPtr> labelToTerminals;
+map<string, Plane::SPtr > labelToPlanes;
 map<int, string> segNumToLabel;
 
 int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
@@ -30,9 +30,9 @@ int getMaxSegNumber(pcl::PointCloud<PointT> scene) {
  * Initialize global "terminals" vector without any points.
  * @param maxSegNum
  */
-vector<Terminal *> terminals;
+vector<Terminal_SPtr> terminals;
 void initializeTerminals(int & maxSegNum) {
-    Terminal* temp;
+    Terminal_SPtr temp;
     cerr<<maxSegNum<<endl;
     for (int i = 1; i <= maxSegNum; i++) {
         
@@ -61,12 +61,12 @@ void initializeTerminals(int & maxSegNum) {
 void initializePlanes(int maxSegNum) {
     for (int i = 1; i <= maxSegNum; i++) {
         string label = segNumToLabel.at(i-1);
-        Terminal* terminal = labelToTerminals.at(label);
+        Terminal_SPtr terminal = labelToTerminals.at(label);
         terminal->computeFeatures();
         terminal->setNeighbors(maxSegNum);
         terminal->declareOptimal();
 
-        Plane* pl = new Plane();
+        Plane::SPtr  pl = new Plane();
         pl->addChild(terminal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
@@ -120,14 +120,14 @@ void initializeSegNumToLabel(char* segNumToLabelFileName) {
     }
 }
 
-map<int,Terminal*> numToTerminal;
-Terminal * getTerminalSafe(int segmentNum)
+map<int,Terminal_SPtr> numToTerminal;
+Terminal_SPtr getTerminalSafe(int segmentNum)
 {
-    Terminal * ret=numToTerminal[segmentNum];
+    Terminal_SPtr ret=numToTerminal[segmentNum];
     assert(ret!=NULL);
     return ret;
 }
-vector<Terminal*> dummy;
+vector<Terminal_SPtr> dummy;
 void initialize(pcl::PointCloud<PointT> & scene, pcl::PointCloud<PointT> & originalScene) {
     pcl::PointCloud<PointT>::Ptr originalScenePtr=createStaticShared<pcl::PointCloud<PointT> >(&originalScene);
     generatePTIndexMapping(scene,originalScene);
@@ -151,7 +151,7 @@ void initialize(pcl::PointCloud<PointT> & scene, pcl::PointCloud<PointT> & origi
             if(overallMinZ>scene.points[i].z)
                 overallMinZ=scene.points[i].z;
             
-            Terminal* terminalToAddTo = numToTerminal[currentSegNum];
+            Terminal_SPtr terminalToAddTo = numToTerminal[currentSegNum];
             if(terminalToAddTo==NULL)
             {
                 terminalToAddTo=new Terminal(currentSegNum-1);
@@ -164,9 +164,9 @@ void initialize(pcl::PointCloud<PointT> & scene, pcl::PointCloud<PointT> & origi
     }
     
     dummy.clear();
-    for(map<int,Terminal*>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
+    for(map<int,Terminal_SPtr>::iterator it=numToTerminal.begin();it!=numToTerminal.end();it++)
     {
-        Terminal *terminal=it->second;
+        Terminal_SPtrterminal=it->second;
         dummy.push_back(terminal);
         terminal->computeFeatures();
         terminal->setNeighbors(Terminal::totalNumTerminals);
@@ -182,8 +182,8 @@ void initialize(pcl::PointCloud<PointT> & scene, pcl::PointCloud<PointT> & origi
     {
             for(int i2=i1+1;i2<=Terminal::totalNumTerminals;i2++)
             {
-                Terminal * t1=numToTerminal[i1];
-                Terminal * t2=numToTerminal[i2];
+                Terminal_SPtr t1=numToTerminal[i1];
+                Terminal_SPtr t2=numToTerminal[i2];
                 if(t1!=NULL && t2!=NULL)
                 {
                         float minDistance=getSmallestDistance(scene, t1->getPointIndicesBoostPtr(), t2->getPointIndicesBoostPtr());
@@ -221,7 +221,7 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
             segNums.insert(currentSegNum);
             string label = segNumToLabel[currentSegNum];
             cout<<endl;
-            Terminal* terminalToAddTo = labelToTerminals[label];
+            Terminal_SPtr terminalToAddTo = labelToTerminals[label];
             assert(terminalToAddTo!=NULL);
             
             // Adding points indices to the empty Terminals.
@@ -245,7 +245,7 @@ void initialize(pcl::PointCloud<PointT> scene, char* segNumToLabelFile) {
     initializePlanes(maxSegNum);
 }
 
-Plane* getPlane(string label) {
+Plane::SPtr  getPlane(string label) {
     return labelToPlanes.at(label);
 }
 

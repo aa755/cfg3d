@@ -2,8 +2,8 @@
 #include "CPU_generatedDataStructures.cpp"
 void runLearn(pcl::PointCloud<PointT> sceneToLearn, char* segmentToLabelFile) {
     initialize(sceneToLearn, segmentToLabelFile);
-    queue<Symbol*> nodesCreatedSoFar;
-    vector<Terminal*> temp;
+    queue<Symbol::SPtr> nodesCreatedSoFar;
+    vector<Terminal_SPtr> temp;
 
     SingleRule<CPUFront, Plane> ruleCPUFront(true);
     nodesCreatedSoFar.push(ruleCPUFront.applyRuleLearning(labelToPlanes.at("CPUFront"), temp));

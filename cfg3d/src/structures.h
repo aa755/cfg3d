@@ -31,6 +31,7 @@
 #include <pcl/surface/convex_hull.h>
 #include <stdlib.h>
 #include <time.h>
+#include <boost/enable_shared_from_this.hpp>
 #define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 #define TABLE_HEIGHT .73
 #include <stack> 
@@ -56,10 +57,13 @@ typedef pcl::PointXYZRGBCamSL PointT;
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
+typedef  boost::shared_ptr<NonTerminal> NonTerminal_SPtr;
+typedef  boost::shared_ptr<Terminal> Terminal_SPtr;
 class HallucinatedTerminal;
+typedef  boost::shared_ptr<HallucinatedTerminal> HallucinatedTerminal_SPtr;
 class NTSetComparison {
 public:
-    bool operator() (NonTerminal * const & lhs, NonTerminal * const & rhs);
+    bool operator() (NonTerminal_SPtr const & lhs, NonTerminal_SPtr const & rhs);
 };
 string rulePath;
 
@@ -645,7 +649,7 @@ Vector3d pointPointVector(pcl::PointXYZ& point1, pcl::PointXYZ& point2) {
     return Vector3d(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z);
 }
 
-typedef set<NonTerminal*, NTSetComparison> NTSet;
+typedef set<NonTerminal_SPtr, NTSetComparison> NTSet;
 
 PointT getPointFromScene(pcl::PointCloud<PointT> fromScene, int pointIndex) {
     return fromScene.points[pointIndex];
@@ -666,7 +670,7 @@ public:
     pcl::PointCloud<PointT> scene;
     pcl::PointCloud<PointT> originalScene;
     HOGPCD hogpcd;
-    vector<Terminal *> terminals;
+    vector<Terminal_SPtr> terminals;
     string fileName;
     map<int, int> filteredIndexToNonFiltered;
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> segMinDistances;
@@ -773,7 +777,8 @@ public:
     }
 };
 
-class Symbol {
+class Symbol : public boost::enable_shared_from_this<Symbol> 
+{
 protected:
     /** total weight to derive all these leaves
      * =max(cost  deriving any child) + cost of applying the rule that gave this
@@ -784,7 +789,7 @@ protected:
     double cost;
     double zSquaredSum;
     AdvancedDynamicBitset neighbors;
-    vector<NonTerminal*> optimalParents;
+    vector<NonTerminal_SPtr> optimalParents;
     pcl::PointXYZ centroid;
     pcl::PointXYZ minxyz;
     pcl::PointXYZ maxxyz;
@@ -801,7 +806,7 @@ protected:
     Eigen::Matrix3d covarianceMatrixWoMean;
     float horzArea;
 
-    //    vector<NonTerminal*> parents;
+    //    vector<NonTerminal_SPtr> parents;
     virtual void computeCovarianceMatrixWoMean()=0;
 
     
@@ -835,15 +840,15 @@ public:
 #endif
     
     SceneInfo::SPtr thisScene;
-    typedef  Symbol* Ptr;
     typedef  boost::shared_ptr<Symbol> SPtr;
+    typedef  Symbol::SPtr Ptr;
     typedef  boost::weak_ptr<Symbol> WPtr;
 
     void undeclareOptimal()
     {
         isDeclaredOptimal=false;
     }
-    virtual void reFormatSubTree(NonTerminal * parent /* = 0 */){} // do nothing
+    virtual void reFormatSubTree(NonTerminal_SPtr parent /* = 0 */){} // do nothing
 
    virtual int getNumObjectsSpanned()=0;
     
@@ -855,8 +860,8 @@ public:
     template<typename SuperClass>
     bool isOfSubClass()
     {
-        SuperClass* dummyTypeCheck=dynamic_cast<SuperClass*>(this);
-        return (dummyTypeCheck!=NULL);
+        SuperClass* dummyTypeCheck = dynamic_cast<SuperClass *>(this);
+        return ((dummyTypeCheck)!=NULL);
     }
     
     virtual ~Symbol(){}
@@ -868,15 +873,15 @@ public:
     }
     
     bool isPlanarPrimitive();    
-    virtual Symbol * grandChildIfHallucinated()=0;
-    virtual  HallucinatedTerminal * getHalChild()=0;
+    virtual Symbol::SPtr grandChildIfHallucinated()=0;
+    virtual  HallucinatedTerminal_SPtr getHalChild()=0;
 
-    float getMinDistance(Symbol * other)
+    float getMinDistance(Symbol::SPtr other)
     {
         resetSpannedTerminalIterator();
         other->resetSpannedTerminalIterator();
         
-        assert(other!=this); // it is a parse tree and not a graph
+        assert(other.get()!=this); // it is a parse tree and not a graph
         
         int index1,index2;
         float minDistance=numeric_limits<float>::infinity();
@@ -962,12 +967,12 @@ public:
     {
     }
     
-    float centroidDistance(Symbol * other)
+    float centroidDistance(Symbol::SPtr other)
     {
         return pcl::euclideanDistance<pcl::PointXYZ,pcl::PointXYZ>(centroid,other->centroid);
     }
     
-    void computeColorDiffFeatures(float * colorDiff, Symbol * other)
+    void computeColorDiffFeatures(float * colorDiff, Symbol::SPtr other)
     {
         ColorRGB avgColorThis(avgColor);
         ColorRGB avgColorOther(other->avgColor);
@@ -982,14 +987,14 @@ public:
      * @param other
      * @return +ve if this is infront of other
      */
-    float inFrontNessof(Symbol * other)
+    float inFrontNessof(Symbol::SPtr other)
     {
         Eigen::Vector3d r1=getCentroidVector()- thisScene->getSceneOrigin();
         Eigen::Vector3d r2=other->getCentroidVector()-thisScene->getSceneOrigin();
         return (r2.norm()-r1.norm());
     }
     
-    float centroidHorizontalDistance(Symbol * other)
+    float centroidHorizontalDistance(Symbol::SPtr other)
     {
         return sqrt(sqr(centroid.x-other->centroid.x)+sqr(centroid.y-other->centroid.y));
     }
@@ -1058,7 +1063,7 @@ public:
     {
         thisScene=scn;
     }
-    void pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo);
+    void pushEligibleNonDuplicateOptimalParents(Symbol::SPtr extractedSym, stack<NonTerminal_SPtr> & eligibleNTs, long iterationNo);
 
     virtual bool isSpanExclusive(Symbol::Ptr sym) = 0;
     
@@ -1072,10 +1077,10 @@ public:
         return neighbors;
     }
 
-    virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
+    virtual void expandIntermediates(vector<Symbol::SPtr> & nonIntermediateChildren)
     {
         // works for Teminals and NonTerminals, overridden for NTIntermediate 
-        nonIntermediateChildren.push_back(this); 
+        nonIntermediateChildren.push_back((shared_from_this())); 
         // children at lowest level of an NTI will be pushed latest
     }
     
@@ -1129,7 +1134,7 @@ public:
     virtual bool declareOptimal(bool appendToChildrensParents=true) = 0;
 
     //virtual void getComplementPointSet(vector<int> & indices /* = 0 */)=0;
-    //    virtual void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)=0;
+    //    virtual void getSetOfAncestors(set<NonTerminal_SPtr> & thisAncestors , vector<set<NonTerminal_SPtr> > & allAncestors)=0;
 
     pcl::PointXYZ getMaxPoint() {
         assert(featuresComputed);
@@ -1213,7 +1218,7 @@ public:
      * Adds node to the list of optimal parents of a node for bookkeeping.
      * @param node: node to add
      */
-    void appendOptimalParents(NonTerminal* node) {
+    void appendOptimalParents(NonTerminal_SPtr node) {
         optimalParents.push_back(node);
     }
     
@@ -1250,13 +1255,13 @@ public:
     {
         return hogFeats;
     }
-    //    bool checkDuplicate(vector<set<NonTerminal*> > & ancestors)=0;
+    //    bool checkDuplicate(vector<set<NonTerminal_SPtr> > & ancestors)=0;
 };
 
 class SymbolComparison {
 public:
 
-    bool operator() (Symbol * & lhs, Symbol * & rhs) const {
+    bool operator() (Symbol::SPtr & lhs, Symbol::SPtr & rhs) const {
         return lhs->getCost() > rhs->getCost();
     }
 };
@@ -1333,9 +1338,9 @@ public:
     }
     
     virtual ~Terminal(){}
-    virtual  HallucinatedTerminal * getHalChild()
+    virtual  HallucinatedTerminal_SPtr getHalChild()
     {
-        return NULL;
+        return HallucinatedTerminal_SPtr();
     }
     
     PointT & getPoint(pcl::PointCloud<PointT> & cloud,int i)
@@ -1343,9 +1348,9 @@ public:
         return cloud.points.at(pointIndices.at(i));
     }
     string label;
-    virtual Symbol * grandChildIfHallucinated()
+    virtual Symbol::SPtr grandChildIfHallucinated()
     {
-        return this;
+        return shared_from_this();
     }
 
     void setLabel(string newLabel) {
@@ -1374,7 +1379,7 @@ public:
             
     }
     
-    void computeMinDistanceBwNbrTerminals(vector<Terminal*> & terminals)
+    void computeMinDistanceBwNbrTerminals(vector<Terminal_SPtr> & terminals)
     {
         neighbors.iteratorReset();
         int nindex;
@@ -1511,7 +1516,7 @@ public:
     }
     
     void computeMinMaxXYZ() {
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for (int i = 0; i < 3; i++)
         {
              maxxyz.data[i] = -infinity();
@@ -1748,7 +1753,7 @@ public:
 
     bool Symbol :: isATerminal()
     {
-        Terminal * term= dynamic_cast<Terminal *>(this);
+        Terminal* term=dynamic_cast<Terminal*>(this);
         return (term!=NULL);
     }
 
@@ -1779,7 +1784,7 @@ protected:
         
         vector<cv::Point2f> unionHullUnion;
         
-        Symbol *child;
+        Symbol::SPtr child;
         child=(children.at(0));
         unionHullUnion=child->cloneConvexHull();
         
@@ -1842,6 +1847,10 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    NonTerminal_SPtr thisNT()
+    {
+        return boost::static_pointer_cast<NonTerminal>(shared_from_this());
+    }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
     virtual void addYourPsiVectorTo(VectorXd & psi)
@@ -1851,7 +1860,7 @@ public:
     virtual void computePsi(int index, vector<float> & features)
     {
         psi.setZero(thisScene->psiSize);
-        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) {
+        for (vector<Symbol::SPtr>::iterator it = children.begin(); it != children.end(); it++) {
             (*it)->addYourPsiVectorTo(psi);
         }
         
@@ -1871,7 +1880,7 @@ public:
     virtual ~NonTerminal(){}
     
     
-    void reFormatSubTree(NonTerminal * parent /* = 0 */);
+    void reFormatSubTree(NonTerminal_SPtr parent /* = 0 */);
     
     virtual int getNumObjectsSpanned()
     {
@@ -1881,10 +1890,10 @@ public:
 
     // Returns true if both Symbols do not overlap
     bool isSpanExclusive(Symbol::Ptr sym) {
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        NonTerminal_SPtr nt=boost::dynamic_pointer_cast<NonTerminal>(sym);
         if(nt==NULL)
         {
-            Terminal* term=dynamic_cast<Terminal*>(sym);
+            Terminal_SPtr term=boost::dynamic_pointer_cast<Terminal>(sym);
             return !spanned_terminals.test(term->getIndex());
         }
         else
@@ -1901,19 +1910,19 @@ public:
      * @param nt
      * @return 
      */
-    bool isSpanContainedIn(NonTerminal * nt) {
+    bool isSpanContainedIn(NonTerminal_SPtr nt) {
         return (spanned_terminals.is_proper_subset_of(nt->spanned_terminals));
     }
     
-    virtual Symbol * grandChildIfHallucinated()
+    virtual Symbol::SPtr grandChildIfHallucinated()
     {
         if(children.size()>1)
-            return this;
+            return shared_from_this();
         
-        HallucinatedTerminal * hl=getChild(0)->getHalChild(); // if hallucinated, it's child would be a plane and that plane's child could be Halterm
+        HallucinatedTerminal_SPtr hl=getChild(0)->getHalChild(); // if hallucinated, it's child would be a plane and that plane's child could be Halterm
         if(hl==NULL)
         {
-            return this;
+            return shared_from_this();
         }
         else
             return hl;        
@@ -1934,9 +1943,9 @@ public:
      * 
      * @return pointer to halTerm child, NULL if it was not directly made up of halTerm 
      */
-    HallucinatedTerminal * getHalChild()
+    HallucinatedTerminal_SPtr getHalChild()
     {
-        return dynamic_cast<HallucinatedTerminal* >(getChild(0));
+        return boost::dynamic_pointer_cast<HallucinatedTerminal>(getChild(0));
     }
     
         
@@ -1976,7 +1985,7 @@ public:
         }                
     }
     
-    vector<Symbol*> children;
+    vector<Symbol::SPtr> children;
     friend class Terminal;
     
     /**
@@ -2001,7 +2010,7 @@ public:
         return children.size();
     }
     
-    Symbol * getChild(int i)
+    Symbol::SPtr getChild(int i)
     {
         return children.at(i);
     }
@@ -2029,7 +2038,7 @@ public:
      * @param nt
      * @return 
      */
-    bool isMutuallyExhaustive(NonTerminal *nt)
+    bool isMutuallyExhaustive(NonTerminal_SPtr nt)
     {
         
         boost::dynamic_bitset<> span_union=spanned_terminals | nt->spanned_terminals;
@@ -2040,7 +2049,7 @@ public:
     }
     
     
-    bool intersects(NonTerminal * other) {
+    bool intersects(NonTerminal_SPtr other) {
         return spanned_terminals.intersects(other->spanned_terminals);
     }
 
@@ -2128,7 +2137,7 @@ public:
         if (absoluteCost >= (0 - .001) && absoluteCost < 0) {
             absoluteCost = 0;
         }
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for (it = children.begin(); it != children.end(); it++) {
             if(absoluteCost < (*it)->getCost())
                 absoluteCost=(*it)->getCost();
@@ -2139,12 +2148,12 @@ public:
         cout << "absc " << cost << endl;
     }
 
-    virtual void addChild(Symbol * child) {
+    virtual void addChild(Symbol::SPtr child) {
         assert(!costSet);
         children.push_back(child);
     }
 
-    virtual void addChildNoCheck(Symbol * child) {
+    virtual void addChildNoCheck(Symbol::SPtr child) {
         children.push_back(child);
         if((thisScene))
         {
@@ -2172,7 +2181,7 @@ public:
      */
     void computeNeighborTerminalSet() {
         neighbors.resize (thisScene->getNumTerminals(),false);
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for (it = children.begin(); it != children.end(); it++) {
             neighbors |= (*it)->getNeigborTerminalBitset();
         }
@@ -2181,7 +2190,7 @@ public:
 
     void computeMinMaxXYZ()
     {
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for (int i = 0; i < 3; i++)
         {
              maxxyz.data[i] = -infinity();
@@ -2211,7 +2220,7 @@ public:
     
     void computeZSquaredSum() {
         double sum = 0;
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for(it = children.begin(); it != children.end(); it++) {
                 sum = sum + (*it)->getZSquaredSum();
         }
@@ -2226,7 +2235,7 @@ public:
     virtual void computeNumSpannedObjects()
     {
         numObjectsSpanned=0;
-        for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++) 
+        for (vector<Symbol::SPtr>::iterator it = children.begin(); it != children.end(); it++) 
         {
             numObjectsSpanned=numObjectsSpanned+(*it)->getNumObjectsSpanned() ;
         }
@@ -2252,9 +2261,9 @@ public:
 
         if (appendToChildrensParents)
         {
-            for (vector<Symbol*>::iterator it = children.begin(); it != children.end(); it++)
+            for (vector<Symbol::SPtr>::iterator it = children.begin(); it != children.end(); it++)
             {
-                (*it)->appendOptimalParents(this);
+                (*it)->appendOptimalParents(thisNT());
             }
         }
         
@@ -2286,7 +2295,7 @@ public:
      * @param sym
      * @return 
      */
-    bool isDuplicate(NonTerminal * sym) {
+    bool isDuplicate(NonTerminal_SPtr sym) {
         assert(spanned_terminals.size()>0);
         assert(sym->spanned_terminals.size()>0);
         
@@ -2317,12 +2326,12 @@ public:
         return duplicate;
     }
 
-    /*    void getSetOfAncestors(set<NonTerminal*> & thisAncestors , vector<set<NonTerminal*> > & allAncestors)
+    /*    void getSetOfAncestors(set<NonTerminal_SPtr> & thisAncestors , vector<set<NonTerminal_SPtr> > & allAncestors)
         {
             thisAncestors=allAncestors[pointIndices[0]];
             for(size_t i=1;i<getNumPoints();i++)
             {
-                 set<NonTerminal*> & temp=allAncestors[pointIndices.at(i)];
+                 set<NonTerminal_SPtr> & temp=allAncestors[pointIndices.at(i)];
                  thisAncestors.insert(temp.begin(),temp.end());
             }
         }
@@ -2339,12 +2348,12 @@ public:
 ////        assert(false);
 //    }
     
-    virtual void expandIntermediates(vector<Symbol*> & nonIntermediateChildren)
+    virtual void expandIntermediates(vector<Symbol::SPtr> & nonIntermediateChildren)
     {
-        vector<Symbol*>::iterator it;
+        vector<Symbol::SPtr>::iterator it;
         for(it=children.begin();it!=children.end();it++)
         {
-            NonTerminal * child = dynamic_cast<NonTerminal*>(*it);
+            NonTerminal_SPtr child = boost::dynamic_pointer_cast<NonTerminal>(*it);
             assert(child!=NULL);
             child->expandIntermediates(nonIntermediateChildren);
         }
@@ -2361,22 +2370,27 @@ public:
 
 class VisualObject : virtual public NonTerminal
 {
+    
 public:
-    bool doesNotOverlapWithScenes(vector<VisualObject*> & identifiedScenes)
+        typedef  boost::shared_ptr<VisualObject> SPtr;
+
+    bool doesNotOverlapWithScenes(vector<VisualObject::SPtr> & identifiedScenes)
     {
-        vector<VisualObject*>::iterator it;
-        if(isOfSubClass<NonTerminalIntermediate>()&&cost>80)
-            return false;
-        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
-        {
-            if (!isSpanExclusive(*it))
-            {
-                if((*it)->isSpanContainedIn(this))
-                    ((*it))=this;
-                return false;
-            }
-        }
+        assert(false); // fix it shared ptr
         return true;
+//        vector<VisualObject::SPtr>::iterator it;
+//        if(isOfSubClass<NonTerminalIntermediate>()&&cost>80)
+//            return false;
+//        for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
+//        {
+//            if (!isSpanExclusive(*it))
+//            {
+//                if((*it)->isSpanContainedIn(thisNT()))
+//                    ((*it))=this;
+//                return false;
+//            }
+//        }
+//        return true;
     }
     
 };
@@ -2388,6 +2402,7 @@ class Scene : virtual public NonTerminal
     
     // the printData below should be used only for the Goal NT type
 public:
+    typedef  boost::shared_ptr<Scene> SPtr;
     
     virtual bool isPrunable()
     {
@@ -2420,10 +2435,10 @@ public:
         
     }
     
-    void printAllScenes(vector<Symbol *> & identifiedScenes)
+    void printAllScenes(vector<Symbol::SPtr> & identifiedScenes)
     {
         initFiles();
-        vector< Symbol *>::iterator it;
+        vector< Symbol::SPtr>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             printData(*it);
@@ -2435,44 +2450,44 @@ public:
     void printData()
     {
         initFiles();
-        printData(this);
+        printData(shared_from_this());
         thisScene->graphvizFile << "}\n"; // Move to postparse printer        
         thisScene->graphvizFile.close();
         
         string prunedTreeFileName = thisScene->fileName + "_pruned.dot";        
         thisScene->graphvizFile.open(prunedTreeFileName.data(), ios::out);
         thisScene->graphvizFile << "digraph g{\n"; // Move to postparse printer
-        reFormatSubTree(NULL);
-        printData(this,true); // pruned parse tree        
+        reFormatSubTree(NonTerminal_SPtr());
+        printData(shared_from_this(),true); // pruned parse tree        
         
         closeFiles();
     }
     
-//    static void printOnlyScene(NonTerminal * root)
+//    static void printOnlyScene(NonTerminal_SPtr root)
 //    {
 //        initFiles();
 //        printData(root);
 //        closeFiles();
 //    }
-    static void printData(Symbol * root, bool onlyGraphVis=false)
+    static void printData(Symbol::SPtr root, bool onlyGraphVis=false)
     {
         pcl::PointCloud<pcl::PointXYZRGBCamSL> sceneOut;
         sceneOut =root->thisScene->scene;
         
         root->thisScene->graphvizFile << root->getName() << " ;\n";
 
-        NonTerminal * nroot=dynamic_cast<NonTerminal *>(root);
+        NonTerminal_SPtr nroot=boost::dynamic_pointer_cast<NonTerminal>(root);
         if(nroot==NULL)
             return;
         
-        stack<NonTerminal*> parseTreeNodes;
+        stack<NonTerminal_SPtr> parseTreeNodes;
         parseTreeNodes.push(nroot);
 
         root->thisScene->scene.width = 1;
         root->thisScene->scene.height = root->thisScene->scene.size();
         while (!parseTreeNodes.empty())
         {
-            NonTerminal *curNode = parseTreeNodes.top();
+            NonTerminal_SPtr curNode = parseTreeNodes.top();
             string curName = curNode->getName();
             parseTreeNodes.pop();
             
@@ -2483,14 +2498,14 @@ public:
             
             for (size_t i = 0; i < curNode->getNumChildren(); i++)
             {
-                Symbol * childs = curNode->getChild(i);
+                Symbol::SPtr childs = curNode->getChild(i);
 
                 root->thisScene->graphvizFile << curName << " -> " << childs->getName() << " ;\n";
-                Terminal *childT = dynamic_cast<Terminal *> (childs);
+                Terminal_SPtr childT = boost::dynamic_pointer_cast<Terminal> (childs);
                 if (childT == NULL) // not of type Terminal
                 {
                     //   assert(childs!=NULL);
-                    NonTerminal * child = dynamic_cast<NonTerminal*> (childs);
+                    NonTerminal_SPtr child = boost::dynamic_pointer_cast<NonTerminal> (childs);
                     assert(child != NULL);
                     parseTreeNodes.push(child);
                 }
@@ -2504,7 +2519,7 @@ public:
 
     }
 
-    static void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal *node)
+    static void printNodeData(std::ofstream & membershipFile, std::ofstream & labelmapFile, NonTerminal_SPtr node)
     {
      //   if (node == this) // will always cover full scene
        //     return;
@@ -2536,7 +2551,7 @@ public:
 
 double Scene::COST_THERSHOLD;
 
-bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const & rhs) {
+bool NTSetComparison::operator() (NonTerminal_SPtr const & lhs, NonTerminal_SPtr const & rhs) {
     //start with MSBs
     for (int i = lhs->spanned_terminals.num_blocks() - 1; i >= 0; i--) {
         if (lhs->spanned_terminals.m_bits[i] > rhs->spanned_terminals.m_bits[i])
@@ -2555,17 +2570,17 @@ bool NTSetComparison::operator() (NonTerminal * const & lhs, NonTerminal * const
  * @return 
  */
 bool Terminal::isSpanExclusive(Symbol::Ptr sym) {
-        NonTerminal * nt=dynamic_cast<NonTerminal*>(sym);
+        NonTerminal_SPtr nt=boost::dynamic_pointer_cast<NonTerminal>(sym);
         if(nt==NULL)
         {
-            Terminal* term=dynamic_cast<Terminal*>(sym);
+            Terminal_SPtr term=boost::dynamic_pointer_cast<Terminal>(sym);
             return getIndex()!=term->getIndex();
         }
         else
             return !(nt->spanned_terminals.test(index));
 }
 
-void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<NonTerminal*> & eligibleNTs, long iterationNo) {
+void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol::SPtr extractedSym, stack<NonTerminal_SPtr> & eligibleNTs, long iterationNo) {
 //    assert(1 == 2); // check duplicate
     for (size_t i = 0; i < optimalParents.size(); i++)
     {
@@ -2580,14 +2595,14 @@ void Symbol::pushEligibleNonDuplicateOptimalParents(Symbol *extractedSym, stack<
 class RecursiveNonTerminal : public NonTerminal
 {
 protected:
-    Symbol *eldestChild;
+    Symbol::SPtr eldestChild;
 public:
-    void SetEldestChild(Symbol* eldestChild)
+    void SetEldestChild(Symbol::SPtr eldestChild)
     {
         this->eldestChild = eldestChild;
     }
 
-    Symbol* GetEldestChild() const
+    Symbol::SPtr GetEldestChild() const
     {
         return eldestChild;
     }
@@ -2604,6 +2619,8 @@ protected:
     
     Eigen::Vector4f planeParams;
 public:
+    typedef  boost::shared_ptr<Plane> SPtr;
+
     bool planeParamsComputed;
     vector<int> pointIndices;
     double zSquaredSum;
@@ -2693,7 +2710,7 @@ public:
         features.push_back(getZNormal()*Params::featScale);
     }
     
-    bool checkSize(NonTerminal * candidate)
+    bool checkSize(NonTerminal_SPtr candidate)
     {
         if(getLength()<candidate->getMinLength())
             return false;
@@ -2821,7 +2838,7 @@ public:
     }
     
     // If this quantity is greater, then the two planes are more parallel
-    double dotProduct(Plane * plane2) {
+    double dotProduct(Plane*  plane2) {
         return fabs(planeParams[0] * plane2->planeParams[0] + planeParams[1] * plane2->planeParams[1] + planeParams[2] * plane2->planeParams[2]);
     }
 
@@ -2837,7 +2854,7 @@ public:
 
     bool isCloseEnough(PointT& p);
     
-    bool isAllCloseEnough(Terminal* terminal) {
+    bool isAllCloseEnough(Terminal_SPtr terminal) {
         vector<int>& termPointIndices = terminal->getPointIndices();
         for(vector<int>::iterator it = termPointIndices.begin(); it != termPointIndices.end(); it++) {
             if (!isCloseEnough(thisScene->scene.points[*it])) {
@@ -2850,15 +2867,16 @@ public:
 
 class PlanarPrimitive : virtual public NonTerminal {
 public:
-    const Plane * getPlaneChild() const
+    typedef  boost::shared_ptr<PlanarPrimitive> SPtr;
+    const Plane::SPtr  getPlaneChild() const
     {
         assert(children.size()==1);
-        Plane * ret=dynamic_cast<Plane *>(children.at(0));
+        Plane::SPtr  ret=boost::dynamic_pointer_cast<Plane>(children.at(0));
         assert(ret!=NULL);
         return ret;
     }
 //    
-//    virtual void addChild(Symbol * child) {
+//    virtual void addChild(Symbol::SPtr child) {
 //        assert(typeid(*child)==typeid(Plane));
 //        NonTerminal::addChild(child);
 //    }
@@ -2872,12 +2890,12 @@ public:
 
     bool Symbol::isPlanarPrimitive()
     {
-        PlanarPrimitive *temp=dynamic_cast<PlanarPrimitive *>(this);
+        PlanarPrimitive* temp=dynamic_cast<PlanarPrimitive *>(this);
         return (temp!=NULL);
     }
     
     
-bool isVerticalEnough(Plane* plane) {
+bool isVerticalEnough(Plane::SPtr  plane) {
     return plane->getZNormal() <= .25; // normal makes 75 degrees or more with vertical
 }
 
@@ -2887,7 +2905,7 @@ bool isVerticalEnough(Plane* plane) {
  * @param value
  * @return 
  */ 
-bool isOnTop(Symbol* x, float value) {
+bool isOnTop(Symbol::SPtr x, float value) {
     if (x->getMinZ() - value < -0.1) 
     {
         return false;
@@ -2904,7 +2922,7 @@ bool isOnTop(Symbol* x, float value) {
  * @param y
  * @return 
  */ 
-bool isOnTop(Symbol* x, Symbol* y) {
+bool isOnTop(Symbol::SPtr x, Symbol::SPtr y) {
     return isOnTop(x,(float)y->getMaxZ());
 }
 
@@ -2914,7 +2932,7 @@ bool isOnTop(Symbol* x, Symbol* y) {
  * @param value
  * @return 
  */ 
-bool isOnTop(float value, Symbol * x) {
+bool isOnTop(float value, Symbol::SPtr x) {
     if ( value -x->getMaxZ() < -0.1) 
     {
         return false;
@@ -2931,12 +2949,12 @@ bool isOnTop(float value, Symbol * x) {
  * later to ignore all the parents of an (bad)NT
  */
 class FindNTsToCombineWith {
-    stack<NonTerminal*> eligibleNTs;
+    stack<NonTerminal_SPtr> eligibleNTs;
     long iterationNo;
-    Symbol *extractedSym;
+    Symbol::SPtr extractedSym;
 
 public:
-    FindNTsToCombineWith(Symbol * sym, vector<Terminal*> & allTerminals, long iterationNo_) {
+    FindNTsToCombineWith(Symbol::SPtr sym, vector<Terminal_SPtr> & allTerminals, long iterationNo_) {
         extractedSym = sym;
         iterationNo = iterationNo_;
         for (int i = 0; i < sym->thisScene->getNumTerminals(); i++) {
@@ -2947,11 +2965,11 @@ public:
 
     }
 
-    NonTerminal * nextEligibleNT() {
+    NonTerminal_SPtr nextEligibleNT() {
         if (eligibleNTs.empty())   
-            return NULL;
+            return NonTerminal_SPtr();
 
-        NonTerminal *ret = eligibleNTs.top(); // only unvisited and eligible items were pushed to stack
+        NonTerminal_SPtr ret = eligibleNTs.top(); // only unvisited and eligible items were pushed to stack
         eligibleNTs.pop();
 
         //push it's parents which are eligible
@@ -2982,13 +3000,13 @@ public:
 class SymbolPriorityQueue {
     /**these 2 contain same elements ... stored in a different way
      */
-    priority_queue<Symbol *, vector<Symbol *>, SymbolComparison> costSortedQueue; // optimized to give least cost
+    priority_queue<Symbol::SPtr, vector<Symbol::SPtr>, SymbolComparison> costSortedQueue; // optimized to give least cost
     map<string,vector<NTSet> > NTsetsInPQ; // optimized for duplicate check
     
    
     map<string,vector<NTSet> > NTsetsExtracted;
 
-    NTSet & getBin(NonTerminal * sym, map<string,vector<NTSet> > & bins)
+    NTSet & getBin(NonTerminal_SPtr sym, map<string,vector<NTSet> > & bins)
     {
         int numTerminals = sym->getNumTerminals();
         assert(numTerminals > 0);
@@ -3001,17 +3019,17 @@ class SymbolPriorityQueue {
         
     }
 
-    NTSet & getBinOfExtractedSymbols(NonTerminal * sym)
+    NTSet & getBinOfExtractedSymbols(NonTerminal_SPtr sym)
     {
         return getBin(sym,NTsetsExtracted);
     }
     
-    NTSet & getBinOfPQSymbols(NonTerminal * sym)
+    NTSet & getBinOfPQSymbols(NonTerminal_SPtr sym)
     {
         return getBin(sym,NTsetsInPQ);        
     }
 
-    bool CheckIfBetterDuplicateExists(NonTerminal * sym) {
+    bool CheckIfBetterDuplicateExists(NonTerminal_SPtr sym) {
         assert(4==2); //not used for now
         NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
@@ -3047,7 +3065,7 @@ public:
      * extracted before => was better or same cost
      *
      */
-    bool CheckIfBetterDuplicateWasExtracted(NonTerminal * sym) {
+    bool CheckIfBetterDuplicateWasExtracted(NonTerminal_SPtr sym) {
         NTSet & bin = getBinOfExtractedSymbols(sym);
         NTSet::iterator lb;
         lb = bin.lower_bound(sym);
@@ -3064,7 +3082,7 @@ public:
      * @param sym
      * @return true if inserted
      */
-    bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal * sym) {
+    bool pushIfNoBetterDuplicateExistsUpdateIfCostHigher(NonTerminal_SPtr sym) {
         if (sym->isPrunable() ) {
             return false;
         }
@@ -3110,20 +3128,20 @@ public:
      * no need to check for duplicate
      * @param sym
      */
-    void pushTerminal(Terminal * sym) {
+    void pushTerminal(Terminal_SPtr sym) {
         costSortedQueue.push(sym);
     }
 
-    Symbol * pop(bool & duplicate) {
+    Symbol::SPtr pop(bool & duplicate) {
         cout<<"sizeq"<<costSortedQueue.size()<<endl;
         duplicate=false;
         if(costSortedQueue.empty())
-            return NULL;
-        Symbol * top = costSortedQueue.top();
+            return Symbol::SPtr();
+        Symbol::SPtr top = costSortedQueue.top();
         assert(top!=NULL);
         costSortedQueue.pop();
         if (typeid (*top) != typeid (Terminal)) {
-            NonTerminal * nt = dynamic_cast<NonTerminal *> (top);
+            NonTerminal_SPtr nt = boost::dynamic_pointer_cast<NonTerminal> (top);
             
             if(nt->isMarkDuplicate())
             {
@@ -3198,13 +3216,13 @@ public:
      * @param pqueue : the priority queue
      * @param terminals : set of all terminals
      */
-    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
+    virtual void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */) = 0;
     
     vector<ProbabilityDistribution*> g; // not used
     
     MultiVariateProbabilityDistribution * pdist;
     
-    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
         assert(false); // all subclasses currently in use must have implemented it
     }
@@ -3308,14 +3326,13 @@ public:
     }
     
 
-    virtual bool addToPqueueIfNotDuplicate(NonTerminal * newNT, SymbolPriorityQueue & pqueue) {
+    virtual bool addToPqueueIfNotDuplicate(NonTerminal_SPtr newNT, SymbolPriorityQueue & pqueue) {
       //  newNT->computeSetMembership(); // required for duplicate check
-        if(newNT==NULL)
+        if(!(newNT))
             return false;
             
         if(isinf(newNT->getCost()) || !pqueue.pushIfNoBetterDuplicateExistsUpdateIfCostHigher(newNT))
         {
-            delete newNT;
             return false;
         }
         else
@@ -3425,9 +3442,9 @@ public:
         //       }
     }
     
-    void computeInfo(Symbol * rhs1, Symbol * rhs2);
+    void computeInfo(Symbol::SPtr rhs1, Symbol::SPtr rhs2);
     
-//    void computeInfoOcclusion(Symbol * extracted, HallucinatedTerminal * hal, bool type2Hal)
+//    void computeInfoOcclusion(Symbol::SPtr extracted, HallucinatedTerminal_SPtr hal, bool type2Hal)
 //    {
 //        if(type2Hal)
 //            computeInfo(extracted->childIfHallucinated(),hal,true );
@@ -3516,7 +3533,7 @@ public:
         return sum;
     }
 
-    static double computeMinusLogProbHal(vector<Symbol*> & extractedSymExpanded, HallucinatedTerminal & halTerm, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
+    static double computeMinusLogProbHal(vector<Symbol::SPtr> & extractedSymExpanded, HallucinatedTerminal & halTerm, vector<PairInfo<ProbabilityDistribution*> > & allpairmodels, bool type2Hal /* = true */)
     {
         double sum=0;
         assert(allpairmodels.size()==extractedSymExpanded.size());
@@ -3533,14 +3550,14 @@ public:
         return sum;
     }
     
-//    static double computeMinusLogProbHal(Symbol* sym, HallucinatedTerminal * halTerm, PairInfo<ProbabilityDistribution*> & pairmodel, bool type2Hal /* = true */)
+//    static double computeMinusLogProbHal(Symbol::SPtr sym, HallucinatedTerminal_SPtr halTerm, PairInfo<ProbabilityDistribution*> & pairmodel, bool type2Hal /* = true */)
 //    {
 //            PairInfo<float> feats;
 //            feats.computeInfoOcclusion(sym, halTerm,type2Hal); // ignore some models
 //            return computeMinusLogProbHal(feats,pairmodel,type2Hal); // ignore some models based on HAL
 //    }
     
-    static double computeMinusLogProb(Symbol* rhs1, Symbol* rhs2, PairInfo<ProbabilityDistribution*> & pairmodel)
+    static double computeMinusLogProb(Symbol::SPtr rhs1, Symbol::SPtr rhs2, PairInfo<ProbabilityDistribution*> & pairmodel)
     {
             PairInfo<float> feats;
             feats.computeInfo(rhs1, rhs2); 
@@ -3549,7 +3566,7 @@ public:
 };
 
 template<>
-void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
+void PairInfo<float>::computeInfo(Symbol::SPtr rhs1, Symbol::SPtr rhs2)
 {
     //centroid related features
     centDist=(rhs1->centroidDistance(rhs2)*Params::featScale);
@@ -3561,8 +3578,8 @@ void PairInfo<float>::computeInfo(Symbol * rhs1, Symbol * rhs2)
     Eigen::Vector3d c12 = c1 - c2;
 
 
-    PlanarPrimitive * plane1 = dynamic_cast<PlanarPrimitive *> (rhs1);
-    PlanarPrimitive * plane2 = dynamic_cast<PlanarPrimitive *> (rhs2);
+    PlanarPrimitive::SPtr  plane1 = boost::dynamic_pointer_cast<PlanarPrimitive> (rhs1);
+    PlanarPrimitive::SPtr  plane2 = boost::dynamic_pointer_cast<PlanarPrimitive> (rhs2);
         //fabs because the eigen vector directions can be flipped 
         // and the choice is arbitrary
 
@@ -3636,10 +3653,10 @@ public:
 template<typename LHS_Type, typename RHS_Type>
 class SingleRule : public Rule
 {
-    virtual void combineAndPushForParam(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
-        RHS_Type* RHS_extracted = dynamic_cast<RHS_Type *>(extractedSym);
-        NonTerminal * newNT=applyRuleInference(RHS_extracted);
+        boost::shared_ptr<RHS_Type> RHS_extracted = boost::dynamic_pointer_cast<RHS_Type>(extractedSym);
+        NonTerminal_SPtr newNT=applyRuleInference(RHS_extracted);
         
         if(newNT!=NULL)
         {
@@ -3647,7 +3664,7 @@ class SingleRule : public Rule
         }
     }
 
-    virtual void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushGeneric(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) == typeid (RHS_Type))
         {
@@ -3716,7 +3733,7 @@ public:
 #endif
     }
     
-    virtual void computeFeatures(RHS_Type* input)
+    virtual void computeFeatures(boost::shared_ptr<RHS_Type> input)
     {
         features.clear();
         computeFeaturesSpecializable(input);
@@ -3726,7 +3743,7 @@ public:
      * to be specialied by rules ishing to add all feats on their own
      * @param input
      */
-    virtual void computeFeaturesSpecializable(RHS_Type* input)
+    virtual void computeFeaturesSpecializable(boost::shared_ptr<RHS_Type> input)
     {
         input->appendFeatures(features);
         computeAdditionalFeats(input);
@@ -3734,7 +3751,7 @@ public:
     
     /** to be specialized for rules requiring additional features
      */
-    virtual void computeAdditionalFeats(RHS_Type* input)
+    virtual void computeAdditionalFeats(boost::shared_ptr<RHS_Type> input)
     {
     }
     
@@ -3743,12 +3760,12 @@ public:
      * @param output
      * @param input
      */
-//    bool setCost(LHS_Type* output, RHS_Type* input, vector<Terminal*> & terminals)
+//    bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type> input, vector<Terminal_SPtr> & terminals)
 //    {
 //        assert(3 == 2);
 //    }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type* input) {
+    virtual bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type> input) {
         double cost=getMinusLogProbability(features);
         output->setAdditionalCost(cost*getCostScaleFactor());
         
@@ -3764,9 +3781,9 @@ public:
             return true;
     }
     
-    virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual boost::shared_ptr<LHS_Type> applyRuleLearning(boost::shared_ptr<RHS_Type> RHS, vector<Terminal_SPtr> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS);
+        boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         writeFeaturesToFile();
@@ -3777,9 +3794,9 @@ public:
         
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
+    virtual boost::shared_ptr<LHS_Type> applyRuleInference(boost::shared_ptr<RHS_Type> RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS);
+        boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS);
         if (Rule::META_LEARNING && this->pdist == NULL)
         {
             LHS->setAdditionalCost(0);
@@ -3793,24 +3810,23 @@ public:
              return LHS;
         else
         {
-            delete LHS;
-            return NULL;
+            return boost::shared_ptr<LHS_Type>();
         }
     }
-    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
-        return applyRuleInference(dynamic_cast<RHS_Type*>(children.at(0)));
+        return applyRuleInference(boost::dynamic_pointer_cast<RHS_Type >(children.at(0)));
     }
 
-    virtual LHS_Type* applyRuleGeneric(RHS_Type* RHS)
+    virtual boost::shared_ptr<LHS_Type> applyRuleGeneric(boost::shared_ptr<RHS_Type> RHS)
     {
-        LHS_Type * LHS = new LHS_Type();
+        boost::shared_ptr<LHS_Type > LHS (new LHS_Type());
         LHS->addChild(RHS);
         LHS->computeSpannedTerminals();
         return LHS;
     }
     
-    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
         combineAndPushGeneric(extractedSym, pqueue, terminals, iterationNo);
     }
@@ -3830,14 +3846,14 @@ protected:
 //        finalHal.setNeighbors(Terminal::totalNumTerminals);
 //        finalHal.declareOptimal();
 //
-//        Plane* pl = new Plane();
+//        Plane::SPtr  pl = new Plane();
 //        pl->addChild(&finalHal);
 //        pl->computeSpannedTerminals();
 //        pl->computeFeatures();
 //        pl->setAbsoluteCost(0);
 //        pl->declareOptimal();
 ////        plane->returnPlaneParams();
-//            vector<Terminal*> dummy;
+//            vector<Terminal_SPtr> dummy;
 //             
 //       SingleRule<NT_PlaneType, Plane> ruleCPUFront(false);
 //       return ruleCPUFront.applyRuleLearning(pl, dummy);
@@ -3857,19 +3873,19 @@ protected:
         }
     }
     
-    virtual void combineAndPushForParam1(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam1(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
 
-        RHS_Type1 * RHS_extracted = dynamic_cast<RHS_Type1 *> (extractedSym);
+        boost::shared_ptr<RHS_Type1 > RHS_extracted = boost::dynamic_pointer_cast<RHS_Type1> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
-        NonTerminal * nt = finder.nextEligibleNT();
+        NonTerminal_SPtr nt = finder.nextEligibleNT();
 
         //int count=0;
         while (nt != NULL)
         {
             if ( nt->isOfSubClass<RHS_Type2>())
             {
-                RHS_Type2 * RHS_combinee = dynamic_cast<RHS_Type2 *> (nt);
+                boost::shared_ptr<RHS_Type2 > RHS_combinee = boost::dynamic_pointer_cast<RHS_Type2> (nt);
                 addToPqueueIfNotDuplicate(applyRuleInference (RHS_extracted, RHS_combinee), pqueue);
             }
             nt = finder.nextEligibleNT();
@@ -3882,19 +3898,19 @@ protected:
     }
 
 
-    virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam2(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
 
-        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        boost::shared_ptr<RHS_Type2 > RHS_extracted = boost::dynamic_pointer_cast<RHS_Type2> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
-        NonTerminal * nt = finder.nextEligibleNT();
+        NonTerminal_SPtr nt = finder.nextEligibleNT();
 
         //int count=0;
         while (nt != NULL)
         {
             if ( nt->isOfSubClass<RHS_Type1>())
             {
-                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                boost::shared_ptr<RHS_Type1 > RHS_combinee = boost::dynamic_pointer_cast<RHS_Type1> (nt);
                 addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
@@ -3906,7 +3922,7 @@ protected:
     }
 
 
-    virtual void combineAndPushGeneric(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushGeneric(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
         if (extractedSym->isOfSubClass<RHS_Type1>())
         {
@@ -3920,9 +3936,9 @@ protected:
 
     template <typename ExtractedType, typename HalType>
     typename boost::enable_if<boost::is_base_of<PlanarPrimitive, HalType>, void>::type
-    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
+    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
-        vector<Symbol*> extractedSymExpanded;
+        vector<Symbol::SPtr> extractedSymExpanded;
         extractedSym->expandIntermediates(extractedSymExpanded);
         
         //if(typeid(HalType)!=typeid(CPULSide))
@@ -3965,7 +3981,7 @@ protected:
         //compute the region to sample
         // get the centroid of centroids of the available parts
         // this will be the centre(x,y component) of the vertical cylinder to sample
-        for (vector<Symbol*>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
+        for (vector<Symbol::SPtr>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
         {
             centxy[count] = (*it)->getHorizontalCentroidVector();
             sum += centxy[count];
@@ -4043,7 +4059,7 @@ protected:
                 Eigen::Vector3d halNormal=getDirection(azimuth,elev);
                 int count=0;
                 cost+=dist->minusLogProb(fabs(halNormal(2))); // z component of normal
-                for (vector<Symbol*>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
+                for (vector<Symbol::SPtr>::iterator it = extractedSymExpanded.begin(); it != extractedSymExpanded.end(); it++)
                 {
                     Eigen::Vector3d otherNormal=(*it)->getPlaneNormal();
                     double dotP=fabs(otherNormal.dot(halNormal));
@@ -4116,12 +4132,12 @@ protected:
         }
 #endif        
      //   cerr<<"optimal is:"<<minHalLoc.getCentroid(centroidxy)<<endl;
-        HallucinatedTerminal *finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
+        HallucinatedTerminal_SPtr finalHal=new HallucinatedTerminal(minHalLoc.getCentroid(centroidxy));
         finalHal->setNormal(optimalNormal);
         finalHal->setNeighbors(finalHal->thisScene->getNumTerminals());
         finalHal->declareOptimal();
 
-        Plane* pl = new Plane();
+        Plane::SPtr  pl( new Plane());
         pl->addChild(finalHal);
         pl->computeSpannedTerminals();
         pl->computeFeatures();
@@ -4129,14 +4145,14 @@ protected:
         pl->declareOptimal();
 //        pl->setAbsoluteCost(0);
 //        plane->returnPlaneParams();
-            vector<Terminal*> dummy;
+            vector<Terminal_SPtr> dummy;
             
        HalType *halPart=ruleCPUFront.applyRuleGeneric(pl, dummy);
        double additionalCost=800+std::max(3-numNodes,0)*400;
        halPart->setAdditionalCost(additionalCost);// replace with cost of forming a plane by estimating nof points
        halPart->declareOptimal();
 
-       LHS_Type  *lhs;
+       boost::shared_ptr<LHS_Type  >lhs;
        if(type2Hallucinated)
        {
            lhs=applyRuleGeneric(extractedSym,halPart,dummy);
@@ -4159,8 +4175,6 @@ protected:
         else
         {
           // cerr<<"rejected: "<<typeid(LHS_Type).name()<<" hallucinated with cost"<<minCost<<endl;
-           delete finalHal;
-           delete pl;
         }   
         
         
@@ -4170,7 +4184,7 @@ protected:
    
     template <typename ExtractedType, typename HalType>
     typename boost::disable_if<boost::is_base_of<PlanarPrimitive, HalType>,void>::type
-    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
+    tryToHallucinate(ExtractedType * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */, bool type2Hallucinated)
     {
         //cerr<<"nohal"<<typeid(HalType).name()<<endl;
     }
@@ -4228,7 +4242,7 @@ public:
 #endif
     }
 
-//    bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2, vector<Terminal*> & terminals)
+//    bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type1> RHS1, boost::shared_ptr<RHS_Type2> RHS2, vector<Terminal_SPtr> & terminals)
 //    {
 //        assert(3 == 2); // needs specialization
 //    }
@@ -4238,40 +4252,40 @@ public:
      * @param rhs1 : a nonterminal(possibly obtained after expansion) from the 1st RHS of the rule
      * @param rhs2 : the second NT of the rule
      */
-    virtual void appendPairFeatures(Symbol * rhs1, Symbol * rhs2)
+    virtual void appendPairFeatures(Symbol::SPtr rhs1, Symbol::SPtr rhs2)
     {
         PairInfo<float> pairFeats;
         pairFeats.computeInfo(rhs1,rhs2);
         pairFeats.pushToVector(features);
     }
     
-    virtual void appendAllFeatures(LHS_Type* output, RHS_Type1 * rhs1, RHS_Type2 * rhs2)
+    virtual void appendAllFeatures(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type1 > rhs1, boost::shared_ptr<RHS_Type2 > rhs2)
     {
         features.clear();
         
-        vector<Symbol*> RHS1Expanded;
-        vector<Symbol*> RHS2Expanded;
+        vector<Symbol::SPtr> RHS1Expanded;
+        vector<Symbol::SPtr> RHS2Expanded;
         rhs1->expandIntermediates(RHS1Expanded);
         rhs2->expandIntermediates(RHS2Expanded);
         assert(RHS2Expanded.size()==1); // 2nd RHS should not be of intermediate type coz we cannot hallucinate a complicated type
         
         numIntermediates=RHS1Expanded.size();
         
-        vector<Symbol*>::iterator it1;
-        vector<Symbol*>::iterator it2;
+        vector<Symbol::SPtr>::iterator it1;
+        vector<Symbol::SPtr>::iterator it2;
         
         for(it1=RHS1Expanded.begin();it1!=RHS1Expanded.end();it1++)
         {
             for(it2=RHS2Expanded.begin();it2!=RHS2Expanded.end();it2++)
             {
-                // *it1 is of type Symbol* but the appendPairFeatures(RHS_Type1 * rhs1, RHS_Type2 * rhs2))
+                // *it1 is of type Symbol::SPtr but the appendPairFeatures(boost::shared_ptr<RHS_Type1 > rhs1, boost::shared_ptr<RHS_Type2 > rhs2))
                 appendPairFeatures(*it1, *it2);
             } 
         }
         
        // output->computeFeatures();
-     //   Symbol * rhs1;
-      //  Symbol * rhs2;
+     //   Symbol::SPtr rhs1;
+      //  Symbol::SPtr rhs2;
         
         //disabled for occlusion handling
         
@@ -4283,7 +4297,7 @@ public:
 //        output->appendFeatures(features);
     }
     
-    virtual bool setCost(LHS_Type* output, RHS_Type1* RHS1, RHS_Type2* RHS2) {
+    virtual bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type1> RHS1, boost::shared_ptr<RHS_Type2> RHS2) {
         // Initialize features.
         double cost=getMinusLogProbability(features);
         if(numIntermediates==0)
@@ -4305,9 +4319,9 @@ public:
             return true;
     }
     
-    virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual boost::shared_ptr<LHS_Type> applyRuleLearning(boost::shared_ptr<RHS_Type1 > RHS1, boost::shared_ptr<RHS_Type2 > RHS2, vector<Terminal_SPtr> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
+        boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS1,RHS2);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         appendAllFeatures(LHS,RHS1,RHS2);
@@ -4315,13 +4329,13 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    virtual boost::shared_ptr<LHS_Type> applyRuleInference(boost::shared_ptr<RHS_Type1 > RHS1, boost::shared_ptr<RHS_Type2 > RHS2)
     {
         assert(RHS1!=NULL);
         assert(RHS2!=NULL);
 //        if(RHS1->getMinDistance(RHS2)>0.4)
 //            return NULL;
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
+        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS1,RHS2);
         
         // below to be replaced by generic learned rules
         
@@ -4341,16 +4355,15 @@ public:
             }
             else
             {
-                 delete LHS;
-               return NULL;
+               return boost::shared_ptr<LHS_Type>();
             }
         }
 #else
         {
             features.clear();
 
-            vector<Symbol*> RHS1Expanded;
-            vector<Symbol*> RHS2Expanded;
+            vector<Symbol::SPtr> RHS1Expanded;
+            vector<Symbol::SPtr> RHS2Expanded;
             RHS1->expandIntermediates(RHS1Expanded);
             RHS2->expandIntermediates(RHS2Expanded);
             assert(RHS2Expanded.size() == 1); // from rule design pattern so far ... compex objects are in left
@@ -4361,8 +4374,8 @@ public:
                 readPairModels(numNodes);
             }
 
-            vector<Symbol*>::iterator it1;
-            vector<Symbol*>::iterator it2;
+            vector<Symbol::SPtr>::iterator it1;
+            vector<Symbol::SPtr>::iterator it2;
 
             int count = 0;
             double cost = 0;
@@ -4377,8 +4390,8 @@ public:
             
             if(isinf(cost))
             {
-                delete LHS;
-                return NULL;
+
+                return boost::shared_ptr<LHS_Type>;
             }
             cost=cost-log(Params::objectCost); 
             LHS->setAdditionalCost(cost);
@@ -4390,24 +4403,24 @@ public:
         
     }
     
-    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
-        return applyRuleInference(dynamic_cast<RHS_Type1*>(children.at(0)),dynamic_cast<RHS_Type2*>(children.at(1)));
+        return applyRuleInference(boost::dynamic_pointer_cast<RHS_Type1 >(children.at(0)),boost::dynamic_pointer_cast<RHS_Type2 >(children.at(1)));
     }
     
     
-    virtual LHS_Type* applyRuleGeneric(Symbol * RHS1, Symbol * RHS2)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleGeneric(Symbol::SPtr RHS1, Symbol::SPtr RHS2)
     {
         assert(typeid(*RHS1)==typeid(RHS_Type1));
         assert(typeid(*RHS2)==typeid(RHS_Type2));
-        LHS_Type * LHS = new LHS_Type();
+        boost::shared_ptr<LHS_Type >  LHS(new LHS_Type());
         LHS->addChild(RHS1);
         LHS->addChild(RHS2);
         LHS->computeSpannedTerminals();
         return LHS;
     }
 
-    virtual void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
 //        if()
        // cout<<filename<<"combine called\n";
@@ -4469,7 +4482,7 @@ void readLabelMap(char * filename , map<int,int> & label_mapping)
     }
     
 }
-void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vector<Terminal *> & terminals, double *maxDist)
+void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vector<Terminal_SPtr> & terminals, double *maxDist)
 {
     //assuming the camera is in the centre of the room and Z is aligned vertical
     
@@ -4482,7 +4495,7 @@ void getSegmentDistanceToBoundaryOptimized( pcl::PointCloud<PointT> &cloud , vec
     {
         double distBoundary=0;
         double dist;
-        Terminal* segment= terminals.at(i);
+        Terminal_SPtr segment= terminals.at(i);
         for(int j=0;j<(int)segment->getNumPoints();j++)
         {
                 pair<int,double>angDist= get2DAngleDegreesAndDistance(segment->getPoint(cloud,j),cloud.sensor_origin_);
@@ -4510,15 +4523,15 @@ public:
         return typeid(Plane).name();
     }
     
-    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
         return applyRuleInference(children.at(0));
     }
     
 
-    Plane * applyRuleInference(Symbol * extractedSym)
+    Plane::SPtr  applyRuleInference(Symbol::SPtr extractedSym)
     {
-        Plane * LHS = new Plane();
+        Plane::SPtr  LHS(new Plane());
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
 //        LHS->computePlaneParamsAndSetCost();
@@ -4535,9 +4548,9 @@ public:
         
     }
     
-    Plane * applyRuleLearning(Symbol * extractedSym)
+    Plane::SPtr  applyRuleLearning(Symbol::SPtr extractedSym)
     {
-        Plane * LHS = new Plane();
+        Plane::SPtr  LHS ( new Plane());
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndEigens(); // also computes feats
@@ -4547,7 +4560,7 @@ public:
         
     }
     
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) != typeid (Terminal))
             return;
@@ -4580,12 +4593,12 @@ public:
         return typeid(Plane).name();
     }
     
-    Plane* applyRuleInference(Plane * RHS_plane, Terminal *RHS_seg) {
+    Plane::SPtr  applyRuleInference(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) {
         if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
-            return NULL;
+            return Plane::SPtr();
         }
         
-        Plane * LHS = new Plane();
+        Plane::SPtr  LHS( new Plane());
         LHS->addChild(RHS_plane);
         //TODO : FIRST COMPUTE PLANE PARAMS FROM JUST THIS AND THEN 
         LHS->addChild(RHS_seg);
@@ -4600,14 +4613,14 @@ public:
         return LHS;
     }
     
-    virtual NonTerminal* applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
-        return applyRuleInference(dynamic_cast<Plane*>(children.at(0)),dynamic_cast<Terminal*>(children.at(1)));
+        return applyRuleInference(boost::dynamic_pointer_cast<Plane>(children.at(0)),boost::dynamic_pointer_cast<Terminal>(children.at(1)));
     }
 
-    Plane * applyRuleLearning(Plane * RHS_plane, Terminal *RHS_seg) {
+    Plane::SPtr  applyRuleLearning(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) {
         
-        Plane * LHS = new Plane();
+        Plane::SPtr  LHS (new Plane());
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
@@ -4618,7 +4631,7 @@ public:
         return LHS;
     }
     
-    void combineAndPush(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         set<int>::iterator it;
         //all terminals have cost=0, all NT's have cost>0,
@@ -4631,8 +4644,8 @@ public:
             int index;
             while (extractedSym->nextNeighborIndex(index))
             {
-                Plane * plane=dynamic_cast<Plane*> (extractedSym);
-                NonTerminal *newNT=applyRuleInference(plane,terminals[index]);
+                Plane::SPtr  plane=boost::dynamic_pointer_cast<Plane> (extractedSym);
+                NonTerminal_SPtr newNT=applyRuleInference(plane,terminals[index]);
                 addToPqueueIfNotDuplicate(newNT,pqueue);
             }
         }
@@ -4642,7 +4655,7 @@ public:
 class NTComplex : public NonTerminal
 {
 public:
-    virtual NonTerminal * getBase()=0;
+    virtual NonTerminal_SPtr getBase()=0;
     
     virtual bool isPrunable()
     {
@@ -4651,12 +4664,12 @@ public:
     
 };
 
-void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
+void NonTerminal::reFormatSubTree(NonTerminal_SPtr parent /* = 0 */)
 {
-        vector<Symbol*> childrenCopy=children; // children may change in this process so make a copy
-    if ((isOfSubClass<NTComplex>()||isOfSubClass<Plane>()) && parent!=NULL && typeid(*this)==typeid(*parent))
+        vector<Symbol::SPtr> childrenCopy=children; // children may change in this process so make a copy
+    if ((isOfSubClass<NTComplex>()||isOfSubClass<Plane>()) && parent && typeid(*this)==typeid(*parent))
     {
-        for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
+        for (vector<Symbol::SPtr>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
         {
             if(typeid(*this)==typeid(*(*it)))
             {
@@ -4664,21 +4677,21 @@ void NonTerminal::reFormatSubTree(NonTerminal * parent /* = 0 */)
             }
             else
             {
-                (*it)->reFormatSubTree(this);
+                (*it)->reFormatSubTree(thisNT());
                 parent->addChildNoCheck(*it);
             }
                 
         }
-        if(parent->getChild(0)==this)
+        if(parent->getChild(0).get()==this)
         {
             parent->children.erase(parent->children.begin());
         }
     }
     else
     {
-        for (vector<Symbol*>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
+        for (vector<Symbol::SPtr>::iterator it=childrenCopy.begin();it!=childrenCopy.end();it++)
         {
-            (*it)->reFormatSubTree(this);
+            (*it)->reFormatSubTree(thisNT());
         }
     }
 }
@@ -4687,15 +4700,18 @@ template <typename Support>
 class SupportComplex : public NTComplex
 {
     bool baseHallucinated;
-    Support * base;
+    
+    boost::shared_ptr<Support>  base;
 public:
+typedef  boost::shared_ptr<SupportComplex<Support> > SPtr;
+    
     SupportComplex()
     {
         baseHallucinated=false;
-        base=NULL;
+        base=boost::shared_ptr<Support>();
     }
     
-    NonTerminal * getBase()
+    NonTerminal_SPtr getBase()
     {
         assert(!baseHallucinated);
         assert(base!=NULL);
@@ -4713,18 +4729,18 @@ public:
         return baseHallucinated;
     }
 
-    void setBase(Support* base)
+    void setBase(boost::shared_ptr<Support> base)
     {
         this->base = base;
     }
 
-    void copyBasePtrAndFlags(SupportComplex<Support>* other)
+    void copyBasePtrAndFlags(SupportComplex<Support>::SPtr  other)
     {
         this->base = other->base;
         this->baseHallucinated=other->baseHallucinated;
     }
     
-    vector<NonTerminal*> objectsOnTop;
+    vector<NonTerminal_SPtr> objectsOnTop;
     
 };
 
@@ -4747,14 +4763,14 @@ public:
         this->filename=string("SingleRuleChoice_")+typeid(LHS_Type).name()+"_"+typeid(RHS_Type).name(); // not used : only for tagging
     }
     
-    virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
+    virtual void additionalProcessing(boost::shared_ptr<LHS_Type >  LHS, boost::shared_ptr<RHS_Type>  RHS)
     {
         
     }
     
-    virtual LHS_Type* applyRuleLearning(RHS_Type* RHS, vector<Terminal*> & terminals)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type>  RHS, vector<Terminal_SPtr> & terminals)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS);
+        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
         LHS->setAdditionalCost(this->cost);
@@ -4764,15 +4780,15 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type* RHS)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleInference(boost::shared_ptr<RHS_Type>  RHS)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS);
+        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
         
         // to be replace by generic features
         additionalProcessing(LHS,RHS);
         computeFeatures(RHS);
         
-        vector<Symbol*> RHSExpanded;
+        vector<Symbol::SPtr> RHSExpanded;
         RHS->expandIntermediates(RHSExpanded);
 
         double ac=std::max(0,(3-(int)RHSExpanded.size()) );
@@ -4808,7 +4824,7 @@ public:
         this->filename=string("SupportComplex_")+typeid(SupportType).name(); // not used : only for tagging
     }
     
-    virtual void additionalProcessing(LHS_Type * LHS, RHS_Type* RHS)
+    virtual void additionalProcessing(boost::shared_ptr<LHS_Type >  LHS, boost::shared_ptr<RHS_Type>  RHS)
     {
         LHS->setBase(RHS);        
     }
@@ -4840,7 +4856,7 @@ public:
         };
     };
     
-    void computeInfo(Symbol * rhs1, Symbol * rhs2){};
+    void computeInfo(Symbol::SPtr rhs1, Symbol::SPtr rhs2){};
     void writeToFile(ofstream & featureFile)
     {
         for(int i=0;i<NUM_FEATS;i++)
@@ -4861,7 +4877,7 @@ public:
 float overallMinZ;
 
 template<>
-void PairInfoSupportComplex<float> :: computeInfo(Symbol * rhs1, Symbol * rhs2)
+void PairInfoSupportComplex<float> :: computeInfo(Symbol::SPtr rhs1, Symbol::SPtr rhs2)
 {
     centDist=(rhs1->centroidDistance(rhs2))*Params::featScale;
     centDistHorz=(rhs1->centroidHorizontalDistance(rhs2))*Params::featScale;
@@ -4943,7 +4959,7 @@ public:
         }
     }
     
-    virtual void appendMainFeats(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    virtual void appendMainFeats(boost::shared_ptr<RHS_Type1 >  RHS1, boost::shared_ptr<RHS_Type2 >  RHS2)
     {
         this->features.clear();
         double baseMaxZ;
@@ -4958,9 +4974,9 @@ public:
         this->features.push_back((baseMaxZ - RHS2->getMinZ())*Params::featScale);
     }
     
-    virtual LHS_Type* applyRuleGeneric(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleGeneric(boost::shared_ptr<RHS_Type1 >  RHS1, boost::shared_ptr<RHS_Type2 >  RHS2)
     {
-        LHS_Type * LHS = new LHS_Type();
+        boost::shared_ptr<LHS_Type >  LHS (new LHS_Type());
         if(RHS1!=NULL)
         {
                 LHS->addChild(RHS1);
@@ -4980,16 +4996,16 @@ public:
     }
 
         
-    virtual LHS_Type* applyRuleLearning(RHS_Type1 * RHS1, RHS_Type2 * RHS2, vector<Terminal*> & terminals)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type1 >  RHS1, boost::shared_ptr<RHS_Type2 >  RHS2, vector<Terminal_SPtr> & terminals)
     {
         assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
+        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS1,RHS2);
         this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         if (RHS1 != NULL)
         {
-            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
+            for (vector<NonTerminal_SPtr>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
             {
                 PairType sortTypes;
                 string name1 = string(typeid (*(*it)).name());
@@ -5015,9 +5031,9 @@ public:
         return LHS;
     }
     
-    virtual LHS_Type* applyRuleInference(RHS_Type1 * RHS1, RHS_Type2 * RHS2)
+    virtual boost::shared_ptr<LHS_Type>  applyRuleInference(boost::shared_ptr<RHS_Type1 >  RHS1, boost::shared_ptr<RHS_Type2 >  RHS2)
     {
-        LHS_Type * LHS = applyRuleGeneric(RHS1,RHS2);
+        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS1,RHS2);
         
         if(Rule::META_LEARNING && this->pdist==NULL)
         {
@@ -5030,8 +5046,7 @@ public:
 	this->numIntermediates=1;
              if(!setCost(LHS, RHS1, RHS2)) // set main cost
              {
-                delete LHS;
-                return NULL;                 
+                return boost::shared_ptr<LHS_Type>();                 
              }
 #ifdef USING_SVM_FOR_LEARNING_CFG
             LHS->undeclareOptimal();
@@ -5039,7 +5054,7 @@ public:
         if (RHS1 != NULL)
         {
             double additionalCost = 0;
-            for (vector<NonTerminal*>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
+            for (vector<NonTerminal_SPtr>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
             {
                 PairType sortTypes;
                 string name1 = string(typeid (*(*it)).name());
@@ -5084,8 +5099,8 @@ public:
 
             if (isinf(additionalCost) && !Rule::META_LEARNING)
             {
-                delete LHS;
-                return NULL;
+
+                return boost::shared_ptr<LHS_Type>;
             }
         }
 #endif
@@ -5098,24 +5113,24 @@ public:
     }
     
     
-    virtual void applyRuleLearningBaseOccluded(RHS_Type2 * RHS_extracted)
+    virtual void applyRuleLearningBaseOccluded(boost::shared_ptr<RHS_Type2 >  RHS_extracted)
     {
         
     }
     
-    virtual void combineAndPushForParam2(Symbol * extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal*> & terminals, long iterationNo /* = 0 */)
+    virtual void combineAndPushForParam2(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
 
-        RHS_Type2 * RHS_extracted = dynamic_cast<RHS_Type2 *> (extractedSym);
+        boost::shared_ptr<RHS_Type2 >  RHS_extracted = boost::dynamic_pointer_cast<RHS_Type2> (extractedSym);
         FindNTsToCombineWith finder(extractedSym, terminals, iterationNo);
-        NonTerminal * nt = finder.nextEligibleNT();
+        NonTerminal_SPtr nt = finder.nextEligibleNT();
 
         //int count=0;
         while (nt != NULL)
         {
             if ( nt->isOfSubClass<RHS_Type1>())
             {
-                RHS_Type1 * RHS_combinee = dynamic_cast<RHS_Type1 *> (nt);
+                boost::shared_ptr<RHS_Type1 >  RHS_combinee = boost::dynamic_pointer_cast<RHS_Type1> (nt);
                 addToPqueueIfNotDuplicate(applyRuleInference(RHS_combinee, RHS_extracted), pqueue);
             }
             nt = finder.nextEligibleNT();
@@ -5126,7 +5141,7 @@ public:
         {
             //SupportComplex<SupportType> * occFloor=new SupportComplex<SupportType>();
             //occFloor->setBaseHallucinated(true);
-            LHS_Type *lhsOcc=applyRuleInference(NULL, RHS_extracted);
+            boost::shared_ptr<LHS_Type > lhsOcc=applyRuleInference(boost::shared_ptr<RHS_Type1 >(), RHS_extracted);
             if(lhsOcc!=NULL)
                 lhsOcc->setAdditionalCost(Params::floorOcclusionPenalty);
             addToPqueueIfNotDuplicate(lhsOcc, pqueue);            
@@ -5177,10 +5192,10 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
             readLabelMap(labelMapFile, labelmap);
 #endif
 
-            Terminal * temp;
+            Terminal_SPtr temp;
             for (int i = 1; i <= maxSegIndex; i++)
             {
-                temp = new Terminal(i - 1, SPtr(this)); // index is segment Number -1 
+                temp = Terminal_SPtr(new Terminal(i - 1, SPtr(this))); // index is segment Number -1 
                 temp->setNeighbors(neighbors[i], maxSegIndex);
                 terminals.push_back(temp);
 
