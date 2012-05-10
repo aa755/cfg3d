@@ -304,27 +304,6 @@ public:
         trees.push_back(tree);
         cerr<<"adTr:"<<tree->getName()<<endl;
         addNewMoves(tree,trees.size()-1);
-//        curNegLogProb+=tree->getCost()+ADDITIONAL_COMPONENT_PENALTY;
-        
-//        if(tree->isOfSubClass<SupportComplex<Floor> >() )
-//        {
-//                        Scene * LHS= new Scene();
-//                LHS->addChild(tree);
-//                LHS->computeSpannedTerminals();
-//                assert(tree->getNumPoints()!=0);
-//                int numTerminalsNotExplained=NUMTerminalsToBeParsed-tree->getNumTerminals();
-//                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
-//                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
-////                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-//                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
-//                {
-//                    delete bestSceneSoFar; // delete earlier best secene
-//                    bestSceneSoFar = LHS;
-//                }
-//                else
-//                    delete LHS;
-//
-//        }
     }
     
     /**
@@ -334,32 +313,10 @@ public:
      */
     void replaceTree(int index,Symbol::Ptr tree)
     {
-//        Symbol::Ptr oldTree=trees.at(index);
-//        curNegLogProb-=oldTree->getCost();
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
-//        curNegLogProb+=tree->getCost();
         addNewMoves(tree,index);
         
-//        if(tree->isOfSubClass<SupportComplex<Floor> >() )
-//        {
-//                        Scene * LHS= new Scene();
-//                LHS->addChild(tree);
-//                LHS->computeSpannedTerminals();
-//                assert(tree->getNumPoints()!=0);
-//                int numTerminalsNotExplained=tree->thisScene->NUMPointsToBeParsed-tree->getNumTerminals();
-//                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
-//                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
-////                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-//                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
-//                {
-//                    delete bestSceneSoFar; // delete earlier best secene
-//                    bestSceneSoFar = LHS;
-//                }
-//                else
-//                    delete LHS;
-//
-//        }
     }
     
     
@@ -427,40 +384,40 @@ public:
 //        }
 //    }
     
-    int sampleNextMoveUniform()
-    {
-        
-        int count=0;
-        while(true)
-        {
-            int selectedMove = getRandInt(moves.size());
-            count++;
-            Move::SPtr selMove=moves.at(selectedMove);
-            double q_old_to_new=1.0/moves.size();
-            cerr<<"old #moves:"<<moves.size()<<endl;
-            Forest newF=*this;
-//            selMove->applyMove(newF);
-            cerr<<"selMove:"<< selMove->toString() <<endl;
-            newF.moves.at(selectedMove)->applyMove(newF);
-            cerr<<"new #moves:"<<newF.moves.size()<<endl;
-            
-            double q_new_to_old=1.0/newF.moves.size();
-            
-            double factor1=exp(curNegLogProb-newF.curNegLogProb); // newProb/oldProb ; p(x')/p(x)
-            cerr<<"factor1:"<<factor1<<endl;
-            
-            double factor2=q_new_to_old/q_old_to_new;
-            
-            double ratio=factor1*factor2;
-            cerr<<"ratio:"<<ratio<<endl;
-            
-            if(ratio>1 || getRandFloat(1.0)<=ratio)
-            {
-                cerr<<"#trials= "<<count<<endl;
-                return selectedMove;
-            }
-        }
-    }
+//    int sampleNextMoveUniform()
+//    {
+//        
+//        int count=0;
+//        while(true)
+//        {
+//            int selectedMove = getRandInt(moves.size());
+//            count++;
+//            Move::SPtr selMove=moves.at(selectedMove);
+//            double q_old_to_new=1.0/moves.size();
+//            cerr<<"old #moves:"<<moves.size()<<endl;
+//            Forest newF=*this;
+////            selMove->applyMove(newF);
+//            cerr<<"selMove:"<< selMove->toString() <<endl;
+//            newF.moves.at(selectedMove)->applyMove(newF);
+//            cerr<<"new #moves:"<<newF.moves.size()<<endl;
+//            
+//            double q_new_to_old=1.0/newF.moves.size();
+//            
+//            double factor1=exp(curNegLogProb-newF.curNegLogProb); // newProb/oldProb ; p(x')/p(x)
+//            cerr<<"factor1:"<<factor1<<endl;
+//            
+//            double factor2=q_new_to_old/q_old_to_new;
+//            
+//            double ratio=factor1*factor2;
+//            cerr<<"ratio:"<<ratio<<endl;
+//            
+//            if(ratio>1 || getRandFloat(1.0)<=ratio)
+//            {
+//                cerr<<"#trials= "<<count<<endl;
+//                return selectedMove;
+//            }
+//        }
+//    }
     
     int sampleNextMoveUniformApprox()
     {
@@ -512,20 +469,6 @@ public:
               //  fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
                 print();
             }
-          //  int iter=i*100/NUM_MCMC_ITERATIONS;
-//            if( (i % (NUM_MCMC_ITERATIONS/100))==0)
-//            {
-//                if(bestSceneSoFar!=NULL)
-//                {
-//                        fileName=fileName+"_";
-//                        bestSceneSoFar->printData();
-//                }
-//                else
-//                {
-//                    cerr<<i<<":NULL\n";
-//                }
-//                
-//            }
         }
     }
 };
