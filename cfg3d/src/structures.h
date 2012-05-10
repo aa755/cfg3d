@@ -74,7 +74,7 @@ public:
     const static double missPenalty=0;
     const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=1000.0;
-    const static int timeLimit=2000;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=1;
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
@@ -83,14 +83,14 @@ public:
     const static double missPenalty=                90000.0;
     const static double onTopPairDivide=60;
     const static double onTopPairDefaultOnModelMissing=1000.0;
-    const static int timeLimit=2000;
+    const static int timeLimit=500;
     const static double doubleRuleDivide=60;
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
     const static double floorOcclusionPenalty=600.0;
 #endif
 #ifdef META_LEARNING
-    const static double costPruningThresh=          DBL_MAX;
+    const static double costPruningThresh=DBL_MAX;
   const static double costPruningThreshNonComplex=DBL_MAX;
     const static double additionalCostThreshold=DBL_MAX;
     const static double closeEnoughThresh=0.1;
@@ -662,7 +662,7 @@ void printPoint(pcl::PointXYZ point) {
     cout<<"("<<point.x<<","<<point.y<<","<<point.z<<") "<<endl;
 }
 
-class SceneInfo
+class SceneInfo :  public boost::enable_shared_from_this<SceneInfo> 
 {
 public:
     int psiSize;
@@ -2150,7 +2150,7 @@ public:
 
     virtual void addChild(Symbol::SPtr child) {
         assert(!costSet);
-        children.push_back(child);
+        addChildNoCheck(child);
     }
 
     virtual void addChildNoCheck(Symbol::SPtr child) {
@@ -2411,7 +2411,7 @@ public:
 
     static double COST_THERSHOLD;
     
-    void initFiles()
+    static void initFiles(SceneInfo::SPtr thisScene)
     {
         string treeFileName = thisScene->fileName + ".dot";
         string membersipFileName = thisScene->fileName + "_membership.txt";
@@ -2424,7 +2424,7 @@ public:
         
     }
     
-    void closeFiles()
+    static void closeFiles(SceneInfo::SPtr thisScene)
     {
         thisScene->graphvizFile << "}\n"; // Move to postparse printer
         thisScene->graphvizFile.close(); // Move to postparse printer
@@ -2435,21 +2435,21 @@ public:
         
     }
     
-    void printAllScenes(vector<Symbol::SPtr> & identifiedScenes)
+    static void printAllScenes(vector<Symbol::SPtr> & identifiedScenes,SceneInfo::SPtr thisScene)
     {
-        initFiles();
+        initFiles(thisScene);
         vector< Symbol::SPtr>::iterator it;
         for (it = identifiedScenes.begin(); it != identifiedScenes.end(); it++)
         {
             printData(*it);
         }
-        closeFiles();
+        closeFiles(thisScene);
     }
 
 
     void printData()
     {
-        initFiles();
+        initFiles(thisScene);
         printData(shared_from_this());
         thisScene->graphvizFile << "}\n"; // Move to postparse printer        
         thisScene->graphvizFile.close();
@@ -2460,7 +2460,7 @@ public:
         reFormatSubTree(NonTerminal_SPtr());
         printData(shared_from_this(),true); // pruned parse tree        
         
-        closeFiles();
+        closeFiles(thisScene);
     }
     
 //    static void printOnlyScene(NonTerminal_SPtr root)
@@ -5195,7 +5195,7 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
             Terminal_SPtr temp;
             for (int i = 1; i <= maxSegIndex; i++)
             {
-                temp = Terminal_SPtr(new Terminal(i - 1, SPtr(this))); // index is segment Number -1 
+                temp = Terminal_SPtr(new Terminal(i - 1, shared_from_this())); // index is segment Number -1 
                 temp->setNeighbors(neighbors[i], maxSegIndex);
                 terminals.push_back(temp);
 
@@ -5283,7 +5283,8 @@ SceneInfo::SPtr initParsing(int argc, char** argv)
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
-    SceneInfo::SPtr sceneInfo= SceneInfo::SPtr(new SceneInfo(argv[1],argv[3],argv[2]));
+    SceneInfo::SPtr sceneInfo= SceneInfo::SPtr(new SceneInfo());
+    sceneInfo->init(argv[1],argv[3],argv[2]);
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);
     

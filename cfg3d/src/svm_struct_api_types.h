@@ -19,7 +19,7 @@
 
 #ifndef svm_struct_api_types
 #define svm_struct_api_types
-#define USING_SVM_FOR_LEARNING_CFG
+//#define USING_SVM_FOR_LEARNING_CFG
 #include <cstdlib>
 #include "structures.h"
 #include "wallDistance.h"

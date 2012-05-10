@@ -190,7 +190,6 @@ class Forest
     vector<Move::SPtr> moves;
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
-    Scene *bestSceneSoFar;
     string origFileName;
     double bestCostSoFar;
     SceneInfo::SPtr sceneInfo;
@@ -213,7 +212,6 @@ public:
     {
         this->rulesDB=rulesDB;
         curNegLogProb = 0;
-        bestSceneSoFar=NULL;
         this->sceneInfo=sceneInfo;
         for (unsigned int i = 0; i <sceneInfo->terminals.size(); i++)
         {
@@ -254,7 +252,7 @@ public:
     
     void print()
     {
-        //Scene::printAllScenes(trees);
+        Scene::printAllScenes(trees,sceneInfo);
     }
     
     void deleteTree(int index)
@@ -343,25 +341,25 @@ public:
 //        curNegLogProb+=tree->getCost();
         addNewMoves(tree,index);
         
-        if(tree->isOfSubClass<SupportComplex<Floor> >() )
-        {
-                        Scene * LHS= new Scene();
-                LHS->addChild(tree);
-                LHS->computeSpannedTerminals();
-                assert(tree->getNumPoints()!=0);
-                int numTerminalsNotExplained=tree->thisScene->NUMPointsToBeParsed-tree->getNumTerminals();
-                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
-                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
-//                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
-                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
-                {
-                    delete bestSceneSoFar; // delete earlier best secene
-                    bestSceneSoFar = LHS;
-                }
-                else
-                    delete LHS;
-
-        }
+//        if(tree->isOfSubClass<SupportComplex<Floor> >() )
+//        {
+//                        Scene * LHS= new Scene();
+//                LHS->addChild(tree);
+//                LHS->computeSpannedTerminals();
+//                assert(tree->getNumPoints()!=0);
+//                int numTerminalsNotExplained=tree->thisScene->NUMPointsToBeParsed-tree->getNumTerminals();
+//                //LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained + extractedSym->getNumObjectsSpanned()*Params::objectCost);
+//                LHS->setAdditionalCost(Params::missPenalty*numTerminalsNotExplained);
+////                LHS->setAdditionalCost(0.5*(NUMPointsToBeParsed-extractedSym->getNumPoints()));
+//                if (bestSceneSoFar == NULL || bestSceneSoFar->getCost() > LHS->getCost())
+//                {
+//                    delete bestSceneSoFar; // delete earlier best secene
+//                    bestSceneSoFar = LHS;
+//                }
+//                else
+//                    delete LHS;
+//
+//        }
     }
     
     
