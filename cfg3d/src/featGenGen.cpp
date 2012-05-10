@@ -128,10 +128,10 @@ public:
             {
                 primitivePart=true;
                 object=false;
-                ofile<<"temp= rulePG."+functionName+"(getTerminalSafe("<< children.at(0)->name.id << "));\n";
+                ofile<<"temp= rulePG."+functionName+"(sceneInfo.getTerminalSafe("<< children.at(0)->name.id << "));\n";
                 for(int i=1;i<(int)children.size();i++)
                 {
-                    ofile<<"temp=rulePPG."+functionName+"(temp,getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
+                    ofile<<"temp=rulePPG."+functionName+"(temp,sceneInfo.getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
                 ofile<<"\t"<<name.getDeclSimple()<<";\n";
                 ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr("+learning+");\n";
@@ -175,7 +175,7 @@ public:
                             string oldNames=names;
                             names.append("_");
                             names.append(name2child[typeOrder.at(i)]->name.fullName);
-                            ofile << interType<<" *"<< names<<";\n";
+                            ofile << "boost::shared_ptr<"<< interType<<"> "<< names<<";\n";
                             
                             ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr("+learning+");\n";
                                                         
@@ -367,13 +367,14 @@ map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
 ofstream TreeNode::errFile;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
-    outputLearnerCode << "#include\"helper.cpp\"\n";
+    outputLearnerCode << "#include\"structures.h\"\n";
     outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
-    outputLearnerCode<<"void runLearn(pcl::PointCloud<PointT> & sceneToLearn,pcl::PointCloud<PointT> & originalScene) {"<<endl;
-    outputLearnerCode<<"    initialize(sceneToLearn,originalScene);"<<endl;
+    outputLearnerCode<<"void runLearn(SceneInfo & sceneInfo) {"<<endl;
     outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
     outputLearnerCode<<"RPlaneSeg rulePG;\n";
     outputLearnerCode<<"Plane::SPtr temp;\n";
+    outputLearnerCode<<"vector<Terminal_SPtr> dummy; \n";
+    outputLearnerCode<<"vector<string> tempTypeStrs;\n";
 //    outputLearnerCode<<"    vector<Terminal_SPtr> temp;"<<endl<<endl;
 }
 
@@ -382,11 +383,9 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"if(argc!=3)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile> <origPCDFileWithNaNs>\"<<endl;\n exit(-1);\n}\n";        
-    outputLearnerCode<<"    fileName = string(argv[1]);"<<endl;
-
-    outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[1], scene);"<<endl;
-    outputLearnerCode<<"    pcl::io::loadPCDFile<PointT>(argv[2], originalScene);"<<endl;
-    outputLearnerCode<<"    runLearn(scene,originalScene);"<<endl;
+    outputLearnerCode<<"    SceneInfo::SPtr sc(new SceneInfo());"<<endl;
+    outputLearnerCode<<"    sc->init(argv[1]);\n";
+    outputLearnerCode<<"    runLearn(*sc);"<<endl;
     outputLearnerCode<<"}"<<endl;
 
 }

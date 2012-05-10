@@ -118,6 +118,37 @@ public:
     }
 };
 
+class SVM_CFG_Y
+{
+protected:
+    vector<Symbol::Ptr> trees;
+    VectorXd psi;
+public:
+    SVM_CFG_Y(vector<Symbol::Ptr> &trees)
+    {
+        this->trees=trees;
+    }
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    
+    virtual void computePsi()
+    {
+        SceneInfo::SPtr sceneInfo=trees.at(0)->thisScene;
+        psi.setZero(sceneInfo->psiSize);
+        for (vector<Symbol::SPtr>::iterator it = trees.begin(); it != trees.end(); it++) 
+        {
+            (*it)->addYourPsiVectorTo(psi);
+        }
+    }
+        
+#endif
+
+    VectorXd getPsi() const {
+        return psi;
+    }
+    
+    
+};
+
 class Move
 {
 private:
@@ -190,7 +221,6 @@ class Forest
     vector<Move::SPtr> moves;
     double curNegLogProb;
     RulesDB::SPtr rulesDB;
-    string origFileName;
     double bestCostSoFar;
     SceneInfo::SPtr sceneInfo;
     
@@ -219,6 +249,11 @@ public:
             addTree(sceneInfo->terminals.at(i));
         }
 
+    }
+    
+    SVM_CFG_Y getParsingResult()
+    {
+        return SVM_CFG_Y(trees);
     }
     
     /**
@@ -452,7 +487,6 @@ public:
 
     void runMCMC()
     {
-        origFileName=sceneInfo->fileName;
         bestCostSoFar=infinity();
         TicToc timer;
         int iter=0;
@@ -467,10 +501,12 @@ public:
             {
                 bestCostSoFar=curNegLogProb;
               //  fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
-                print();
+              //  print();
             }
         }
     }
+    
+    
 };
 
 void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)

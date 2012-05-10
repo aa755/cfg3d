@@ -775,6 +775,12 @@ public:
     {
         return psiSize;
     }
+
+    Terminal_SPtr getTerminalSafe(int segmentNum) {
+        Terminal_SPtr ret = terminals.at(segmentNum);
+        assert(ret != NULL);
+        return ret;
+    }
 };
 
 class Symbol : public boost::enable_shared_from_this<Symbol> 

@@ -336,15 +336,15 @@ public:
 
 
     string getDeclSimple() const {
-        return type+" *"+fullName+" ";
+        return "boost::shared_ptr<"+type+"> "+fullName+" ";
     }
     
     string getComplexDecl() const {
-        return string("SupportComplex<")+stripComplexFromType() +"> *"+fullName+" ";
+        return string("boost::shared_ptr<SupportComplex<")+stripComplexFromType() +"> > "+fullName+" ";
     }
     
     string getOccludedComplexDecl() const {
-        return string("SupportComplex<")+stripOccludedComplexFromType() +"> *"+fullName+" ";
+        return string("boost::shared_ptr<SupportComplex<")+stripOccludedComplexFromType() +"> > "+fullName+" ";
     }
     
     string getDecl() const {
