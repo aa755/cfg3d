@@ -58,9 +58,8 @@ public:
                 planarPrimitiveRules.push_back(*it);
             }
         }
-        cerr<<"rules map has size: "<<childTypeToRule.size()<<endl;
-#ifdef USING_SVM_FOR_LEARNING_CFG
         totalNumParams=0;
+#ifdef USING_SVM_FOR_LEARNING_CFG
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             (*it)->setStartIndex(totalNumParams);
@@ -68,6 +67,7 @@ public:
         }
         
 #endif        
+        cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
     }
     
     void readModel(double * w_svm)
@@ -89,6 +89,18 @@ public:
         {
             return it->second;
         }
+    }
+    
+    template<typename T>
+    boost::shared_ptr<T> lookupRuleOfSameType(T & rul)
+    {
+        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
+        {
+            if(typeid(*(*it))==typeid(rul))
+                return boost::dynamic_pointer_cast<T>(*it);
+        }
+        
+        assert(false);
     }
     
     const vector<RulePtr> & lookupSingleRule(Symbol::Ptr child)
@@ -145,6 +157,21 @@ public:
     VectorXd getPsi() const {
         return psi;
     }
+    
+#ifdef USING_SVM_FOR_LEARNING_CFG        
+    void printPsi()
+    {
+        ofstream file;
+        SceneInfo::SPtr sceneInfo=trees.at(0)->thisScene;
+        string yfile=sceneInfo->fileName+".ypred";
+       file.open(yfile.data(), ios::out);
+       for(int i=0;i<sceneInfo->psiSize;i++)
+       {
+           file<<psi(i)<<endl;
+       }
+       file.close();
+    }
+#endif    
     
     
 };

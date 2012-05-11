@@ -128,14 +128,14 @@ public:
             {
                 primitivePart=true;
                 object=false;
-                ofile<<"temp= rulePG."+functionName+"(sceneInfo.getTerminalSafe("<< children.at(0)->name.id << "));\n";
+                ofile<<"temp= rulePG->"+functionName+"(sceneInfo.getTerminalSafe("<< children.at(0)->name.id << "));\n";
                 for(int i=1;i<(int)children.size();i++)
                 {
-                    ofile<<"temp=rulePPG."+functionName+"(temp,sceneInfo.getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
+                    ofile<<"temp=rulePPG->"+functionName+"(temp,sceneInfo.getTerminalSafe("<< children.at(i)->name.id<<"));\n";            
                 }
                 ofile<<"\t"<<name.getDeclSimple()<<";\n";
                 ofile<<"{\n\tSingleRule<"<< name.type<<",Plane> tr("+learning+");\n";
-                ofile<<"\t"<<name.fullName <<"= tr."+functionName+"(temp, dummy);\n}\n";
+                ofile<<"\t"<<name.fullName <<"= rules.lookupRuleOfSameType(tr)->"+functionName+"(temp, dummy);\n}\n";
             }
             else
             {
@@ -153,8 +153,8 @@ public:
                     ofile << "\t" << name.getDeclSimple() << ";\n";
                     if (children.size() == 1)
                     {
-                        ofile << "{\n\tSingleRule<" << name.type << "," << children.at(0)->name.type << "> tr("+learning+");\n";
-                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile << "{\n\tSingleRuleNoFeature<" << name.type << "," << children.at(0)->name.type << "> tr("+learning+");\n";
+                        ofile <<"\t"<< name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else if (children.size() >= 2)
                     {
@@ -179,10 +179,10 @@ public:
                             
                             ofile << "{\n\tDoubleRule<" << interType << "," <<oldInterType<<","<< typeOrder.at(i) << "> tr("+learning+");\n";
                                                         
-                            ofile <<"\t"<<  names<< "= tr."+functionName+"(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
+                            ofile <<"\t"<<  names<< "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << oldNames <<","<< name2child[typeOrder.at(i)]->name.fullName << ", dummy);\n}\n";
                         }
-                        ofile << "{\n\tSingleRule<" << name.type << "," << interType << "> tr("+learning+");\n";
-                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << names << ", dummy);\n}\n";
+                        ofile << "{\n\tSingleRuleNoFeature<" << name.type << "," << interType << "> tr("+learning+");\n";
+                        ofile <<"\t"<< name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << names << ", dummy);\n}\n";
                         
                     }
                 }
@@ -227,19 +227,19 @@ public:
                     if(baseOccluded)
                     {
                         ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
-                       // ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
-                        ofile <<"\t"<<  name.fullName << "= tr."+functionName+"(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
+                       // ofile <<"\t"<< name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
+                        ofile <<"\t"<<  name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else
                     {
                         ofile << "{\n\tSingleRuleComplex<" << support << "> tr;\n";                        
-                        ofile <<"\t"<< name.fullName << "= tr."+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
+                        ofile <<"\t"<< name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     
                         for(int i=1;i<(int)children.size();i++)
                         {
                             ofile << "\t{\n\t\tDoubleRuleComplex<" << support << "," <<children.at(i)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
-                            ofile <<"\t\t"<<  name.fullName << "= tr."+functionName+"(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
+                            ofile <<"\t\t"<<  name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << name.fullName <<","<< children.at(i)->name.fullName << ", dummy);\n\t}\n";
                         }
        
                         ofile<<"}\n";
@@ -367,11 +367,11 @@ map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
 ofstream TreeNode::errFile;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
-    outputLearnerCode << "#include\"structures.h\"\n";
-    outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
-    outputLearnerCode<<"void runLearn(SceneInfo & sceneInfo) {"<<endl;
-    outputLearnerCode<<"RPlane_PlaneSeg rulePPG;\n";
-    outputLearnerCode<<"RPlaneSeg rulePG;\n";
+    outputLearnerCode << "#define USING_SVM_FOR_LEARNING_CFG\n";
+    outputLearnerCode << "#include\"mcmcParsh.h\"\n";
+    outputLearnerCode<<"void runLearn(SceneInfo & sceneInfo, RulesDB & rules) {"<<endl;
+    outputLearnerCode<<"RPlane_PlaneSeg rulePPGb; boost::shared_ptr<RPlane_PlaneSeg> rulePPG=rules.lookupRuleOfSameType(rulePPGb);\n";
+    outputLearnerCode<<"RPlaneSeg rulePGb; boost::shared_ptr<RPlaneSeg> rulePG=rules.lookupRuleOfSameType(rulePGb);\n";
     outputLearnerCode<<"Plane::SPtr temp;\n";
     outputLearnerCode<<"vector<Terminal_SPtr> dummy; \n";
     outputLearnerCode<<"vector<string> tempTypeStrs;\n";
@@ -384,8 +384,8 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"if(argc!=3)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile> <origPCDFileWithNaNs>\"<<endl;\n exit(-1);\n}\n";        
     outputLearnerCode<<"    SceneInfo::SPtr sc(new SceneInfo());"<<endl;
-    outputLearnerCode<<"    sc->init(argv[1]);\n";
-    outputLearnerCode<<"    runLearn(*sc);"<<endl;
+    outputLearnerCode<<"    sc->init(argv[1]);RulesDB rules;sc->setPsiSize(rules.getTotalNumParams());\n";
+    outputLearnerCode<<"    runLearn(*sc,rules);"<<endl;
     outputLearnerCode<<"}"<<endl;
 
 }
@@ -421,6 +421,7 @@ int main(int argc, char** argv)
     {
         ofile<<"\nScene::printOnlyScene("<<root->getFullName()<<");\n";
     }
+        ofile<<"\n"<<root->getFullName()<<"->printPsi();\n";
     
     createRunLearnBack(ofile);
     ofile.close();

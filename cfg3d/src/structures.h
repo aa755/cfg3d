@@ -768,6 +768,7 @@ public:
 
     void setPsiSize(int psiSize)
     {
+        cerr<<"psiSize:"<<psiSize<<endl;
         this->psiSize = psiSize;
     }
 
@@ -1870,12 +1871,24 @@ public:
             (*it)->addYourPsiVectorTo(psi);
         }
         
-        for(int i=0;i<features.size();i++)
+        for(int i=0;i<(int)features.size();i++)
         {
             psi(index+i)+=features.at(i);
         }
     }
     
+    void printPsi()
+    {
+        ofstream file;
+        SceneInfo::SPtr sceneInfo=thisScene;
+        string yfile=sceneInfo->fileName+".ypred";
+       file.open(yfile.data(), ios::out);
+       for(int i=0;i<sceneInfo->psiSize;i++)
+       {
+           file<<psi(i)<<endl;
+       }
+       file.close();
+    }
 #endif
     
     virtual bool isPrunable()
@@ -2260,7 +2273,7 @@ public:
      * @param terminals
      * @return
      */
-    bool declareOptimal(bool appendToChildrensParents=true) {
+    bool declareOptimal(bool appendToChildrensParents=false) {
         if(isDeclaredOptimal)
             return true;
         isDeclaredOptimal = true;
@@ -2278,6 +2291,7 @@ public:
         computeFeatures();
         additionalFinalize();
         computeNumSpannedObjects();
+        
         return true;
     }
 
@@ -2764,44 +2778,25 @@ public:
     // TODO: Check if we have to call computeFeatures in this function.
     void computePlaneParamsAndSetCost()
     {
-//        if (planeParamsComputed)
-//            return;
-//
-//        computeFeatures();
-//        Eigen::Vector4f xyz_centroid_;
-//
-//        for (int i = 0; i < 3; i++)
-//            xyz_centroid_(i) = centroid.data[i];
-//        xyz_centroid_(3) = 1;
-//
-//        Eigen::Matrix3d covMat; //
-//        computeCovarianceMat(covMat);
-//
-//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> ei_symm(covMat);
-//        EIGEN_ALIGN16 Eigen::Vector3d eigen_values = ei_symm.eigenvalues();
-//        EIGEN_ALIGN16 Eigen::Matrix3d eigen_vectors = ei_symm.eigenvectors();
-//
-//        planeParams[0] = eigen_vectors(0, 0);
-//        planeParams[1] = eigen_vectors(1, 0);
-//        planeParams[2] = eigen_vectors(2, 0);
-//        planeParams[3] = 0;
-//
-//        // Hessian form (D = nc . p_plane (centroid here) + p)
-//        planeParams[3] = -1 * planeParams.dot(xyz_centroid_);
-//        planeParamsComputed = true;
-//
-//        eigenValsAscending=eigen_values;
-//        eigenVecs=eigen_vectors;
-//        double sumSquaredDistances = eigen_values(0);
-//        // Serious bug. This is called after setting the real cost.
         computePlaneParamsAndEigens();
         double sumSquaredDistances = eigenValsAscending(0);
         if(sumSquaredDistances<0)
         {
             cerr<<"negEig:"<<sumSquaredDistances<<endl;
         }
-        //setAbsoluteCost(0);
         setAdditionalCost(500.0*sumSquaredDistances/getNumPoints());
+    }
+    
+    double getAvgSqrDist()
+    {
+        double sumSquaredDistances = eigenValsAscending(0);
+        assert(sumSquaredDistances>0.01);
+        if(sumSquaredDistances<0)
+        {
+            cerr<<"negEig:"<<sumSquaredDistances<<endl;
+        }
+        return sumSquaredDistances/(double)getNumPoints();
+        
     }
     
     /**
@@ -3792,10 +3787,13 @@ public:
         boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS);
         
         computeFeatures(RHS);
-        writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
-        
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#else
+               writeFeaturesToFile();
+#endif
         return LHS;
         
     }
@@ -4330,7 +4328,13 @@ public:
         boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS1,RHS2);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
-        appendAllFeatures(LHS,RHS1,RHS2);
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(startIndex, features);
+#else
+               appendAllFeatures(LHS,RHS1,RHS2);
+
+#endif
+
         writeFeaturesToFile();
         return LHS;
     }
@@ -4528,6 +4532,10 @@ public:
     {
         return typeid(Plane).name();
     }
+    virtual int getNumParams()
+    {
+        return 1; 
+    }
     
     virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
@@ -4560,6 +4568,15 @@ public:
         LHS->addChild(extractedSym);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndEigens(); // also computes feats
+        
+        features.clear();
+        features.push_back(LHS->getAvgSqrDist());
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#else
+               writeFeaturesToFile();
+#endif
+               
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         return LHS;
@@ -4588,6 +4605,10 @@ public:
     
     int get_Nof_RHS_symbols() {
         return 2;
+    }
+    virtual int getNumParams()
+    {
+        return 1; 
     }
 
     void get_typenames(vector<string> & names) {
@@ -4631,6 +4652,15 @@ public:
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
         LHS->computePlaneParamsAndEigens(); // also computes feats
+        
+        features.clear();
+        features.push_back(LHS->getAvgSqrDist());
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#else
+               writeFeaturesToFile();
+#endif
+               
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
         
@@ -4782,6 +4812,9 @@ public:
         LHS->setAdditionalCost(this->cost);
         additionalProcessing(LHS,RHS);
         LHS->declareOptimal();
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#endif
         
         return LHS;
     }
@@ -5004,11 +5037,14 @@ public:
         
     virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type1 >  RHS1, boost::shared_ptr<RHS_Type2 >  RHS2, vector<Terminal_SPtr> & terminals)
     {
-        assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
+//        assert(this->featureFile.is_open()); // you need to construct this rule with false for learning
         boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS1,RHS2);
-        this->writeFeaturesToFile();
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#else
+        this->writeFeaturesToFile();
         if (RHS1 != NULL)
         {
             for (vector<NonTerminal_SPtr>::iterator it = RHS1->objectsOnTop.begin(); it != RHS1->objectsOnTop.end(); it++)
@@ -5034,6 +5070,7 @@ public:
 
             }
         }
+#endif
         return LHS;
     }
     
@@ -5054,7 +5091,7 @@ public:
              {
                 return boost::shared_ptr<LHS_Type>();                 
              }
-#ifdef USING_SVM_FOR_LEARNING_CFG
+#ifndef USING_SVM_FOR_LEARNING_CFG
             LHS->undeclareOptimal();
 
         if (RHS1 != NULL)
@@ -5106,7 +5143,7 @@ public:
             if (isinf(additionalCost) && !Rule::META_LEARNING)
             {
 
-                return boost::shared_ptr<LHS_Type>;
+                return boost::shared_ptr<LHS_Type>();
             }
         }
 #endif

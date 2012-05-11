@@ -218,7 +218,7 @@ void runParse(vector<Terminal_SPtr> & terminals) {
         }
         
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
-            min->declareOptimal();
+            min->declareOptimal(true);
             min->printData();
  //           cout<<"mz"<<min->getMaxZ()<<endl;
             
