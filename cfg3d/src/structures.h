@@ -2790,7 +2790,7 @@ public:
     double getAvgSqrDist()
     {
         double sumSquaredDistances = eigenValsAscending(0);
-        assert(sumSquaredDistances>0.01);
+        assert(sumSquaredDistances>-0.01);
         if(sumSquaredDistances<0)
         {
             cerr<<"negEig:"<<sumSquaredDistances<<endl;

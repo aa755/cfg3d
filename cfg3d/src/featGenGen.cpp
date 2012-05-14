@@ -228,7 +228,8 @@ public:
                     {
                         ofile << "{\n\t DoubleRuleComplex <" << support << "," <<children.at(0)->name.getCorrectedType()<< "> tr(tempTypeStrs,"+learning+");\n";
                        // ofile <<"\t"<< name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(" << children.at(0)->name.fullName << ", dummy);\n}\n";                        
-                        ofile <<"\t"<<  name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(NULL,"<< children.at(0)->name.fullName << ", dummy);\n}\n";
+
+                        ofile <<"\t"<<  name.fullName << "= rules.lookupRuleOfSameType(tr)->"+functionName+"(boost::shared_ptr<SupportComplex<"+support+"> >(),"<< children.at(0)->name.fullName << ", dummy);\n}\n";
                     }
                     else
                     {
@@ -415,6 +416,7 @@ int main(int argc, char** argv)
     createRunLearnFront(ofile);
     
     ofile<<"\n Rule::META_LEARNING=!"<<learning<<";\n";
+    ofile<<"\n //"<<argv[2]<<"\n";
     
     root->featGenGen(ofile);
     if(metaLearning)
