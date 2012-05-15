@@ -242,7 +242,26 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
      that ybar!=y that maximizes psi(x,ybar,sm)*sm.w (where * is the
      inner vector product) and the appropriate function of the
      loss + margin/slack rescaling method. See that paper for details. */
-  SVECTOR *fvec=NULL;
+  SVECTOR *fvec=(SVECTOR *)malloc(sizeof(SVECTOR));
+  
+  int numNZ=y.treePsi->countNumNZ();
+  fvec->words=(WORD*)malloc((sizeof(WORD))*(numNZ+1)); // plus one for the 0 terminator
+  int psiSize=y.treePsi->getSizePsi();
+  assert(psiSize==sm->rulesDB.getTotalNumParams());
+  int count=0;
+  for(int i=0;i<psiSize;i++)
+  {
+      double featVal=y.treePsi->getFeat(i);
+      if(featVal!=0)
+      {
+          fvec->words[count].wnum=i+1; // feat numbers are indexed from 1
+          fvec->words[count].weight=featVal;
+          count++;
+      }
+  }
+  assert(count==numNZ);
+  fvec->words[count].wnum=0;
+  
 
   /* insert code for computing the feature vector for x and y here */
 

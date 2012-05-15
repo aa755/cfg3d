@@ -137,9 +137,32 @@ protected:
     VectorXd psi;
     bool featsReadFromFileNoTrees;
 public:
+    typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
+    
+    double getFeat(int i)
+    {
+        return psi(i);
+    }
+    
+    int getSizePsi()
+    {
+        return psi.cols();
+    }
     SVM_CFG_Y(vector<Symbol::Ptr> &trees)
     {
         init(trees);
+    }
+    
+    int countNumNZ()
+    {
+        int sizeP=psi.cols();
+        assert(sizeP>1);
+        int count=0; 
+        for(int i=0;i<sizeP;i++)
+        {
+            if(psi(i)!=0)
+                count++;
+        }
     }
     
     void init(vector<Symbol::Ptr> &trees)

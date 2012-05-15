@@ -68,7 +68,7 @@ typedef struct pattern {
 typedef struct label {
   /* this defines the y-part (the label) of a training example,
      e.g. the parse tree of the corresponding sentence. */
-    SVM_CFG_Y treePsi;
+    SVM_CFG_Y::SPtr treePsi;
   
 } LABEL;
 
