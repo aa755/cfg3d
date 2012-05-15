@@ -1812,7 +1812,7 @@ protected:
         centroid.y = 0;
         centroid.z = 0;
         distanceToBoundary=0;
-        
+        int hogNumPoints=0;
         for (size_t i = 0; i < children.size(); i++) 
         {
             children.at(i)->getCentroid(childCent);
@@ -1823,14 +1823,21 @@ protected:
             centroid.z += numPointsInChild*childCent.z;
             avg+=(children.at(i)->getAvgColor()*numPointsInChild);
             distanceToBoundary += numPointsInChild * (children.at(i)->getDistanceToBoundary());
-            hogFeats+=(children.at(i)->getHogFeats());
+            if(!children.at(i)->getHogFeats().noPointsFound)
+            {
+                hogFeats+=(children.at(i)->getHogFeats()*numPointsInChild);
+                hogNumPoints+=numPointsInChild;
+            }
         }
         centroid.x /= numPoints;
         centroid.y /= numPoints;
         centroid.z /= numPoints;
         avg/=numPoints;
         avgColor=avg.getFloatRep();
-        hogFeats/=numPoints;
+        if(hogNumPoints>0)
+            hogFeats/=hogNumPoints;
+        else
+            hogFeats.noPointsFound=true;
 
         distanceToBoundary/=numPoints;
     }

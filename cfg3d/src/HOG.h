@@ -31,9 +31,11 @@ public:
   static int const numDirections=9;
   static int const numFeats=27+4+1;
   double feats[numFeats];
+  bool noPointsFound;
   
   HOGFeaturesOfBlock()
   {
+      noPointsFound=false;
        for(int i=0;i<numFeats;i++)
        {
            feats[i]=0;
@@ -87,10 +89,17 @@ public:
   
      void operator +=(const HOGFeaturesOfBlock & other)
    {
+   }
+     
+   HOGFeaturesOfBlock operator *(const int & num) const
+   {
+      // float nr,ng,nb;
+       HOGFeaturesOfBlock ret;
        for(int i=0;i<numFeats;i++)
        {
-           feats[i]+=other.feats[i];
+           ret.feats[i]=num*feats[i];
        }
+       return ret;
    }
 
    void operator /=(const int & num)
@@ -559,8 +568,11 @@ public:
               pointsInImageLyingOnSegment.push_back (getPixelFromIndex (filteredIndexToNonFiltered[pointIndices[i]]));     
       }
     
-    assert(pointsInImageLyingOnSegment.size ()>0);
-    targetFrame->hogDescriptors.getFeatValForPixels (pointsInImageLyingOnSegment,hogSegment);
+    if(pointsInImageLyingOnSegment.size ()>0)
+        targetFrame->hogDescriptors.getFeatValForPixels (pointsInImageLyingOnSegment,hogSegment);
+    else
+        hogSegment.noPointsFound=true;
+    
    // targetFrame->saveImage (incloud.points[pointIndices[1]].segment,incloud.points[pointIndices[1]].label,pointsInImageLyingOnSegment);
     
   }
