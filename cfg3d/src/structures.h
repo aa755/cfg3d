@@ -1871,6 +1871,8 @@ public:
             (*it)->addYourPsiVectorTo(psi);
         }
         
+        if(index==-1)
+            return;
         for(int i=0;i<(int)features.size();i++)
         {
             psi(index+i)+=features.at(i);

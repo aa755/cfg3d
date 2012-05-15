@@ -100,7 +100,7 @@ public:
                 return boost::dynamic_pointer_cast<T>(*it);
         }
         
-        assert(false);
+        return createStaticShared<T>(&rul);
     }
     
     const vector<RulePtr> & lookupSingleRule(Symbol::Ptr child)
@@ -135,10 +135,16 @@ class SVM_CFG_Y
 protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
+    bool featsReadFromFileNoTrees;
 public:
     SVM_CFG_Y(vector<Symbol::Ptr> &trees)
     {
         this->trees=trees;
+        featsReadFromFileNoTrees=false;                
+    }
+    SVM_CFG_Y(string file)
+    {
+        
     }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     
