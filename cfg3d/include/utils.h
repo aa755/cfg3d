@@ -179,7 +179,7 @@ int parseNbrMap(const char * file,map<int, set<int> > & neighbors, int maxSegInd
 
 }
 
-void getLines(char * file, vector<string> & lines)
+void getLines(const char * file, vector<string> & lines)
 {
         std::ifstream labelFile;
     std::string line;
@@ -187,7 +187,7 @@ void getLines(char * file, vector<string> & lines)
 
     if (labelFile.is_open()) {
         while (labelFile.good()) {
-            getline(labelFile, line); //each line is a label
+            getline(labelFile, line); 
             if (line.size() == 0)
                 break;
             

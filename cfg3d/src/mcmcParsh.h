@@ -139,12 +139,35 @@ protected:
 public:
     SVM_CFG_Y(vector<Symbol::Ptr> &trees)
     {
+        init(trees);
+    }
+    
+    void init(vector<Symbol::Ptr> &trees)
+    {
         this->trees=trees;
         featsReadFromFileNoTrees=false;                
     }
+    
     SVM_CFG_Y(string file)
     {
+        init(file);
+    }
+    SVM_CFG_Y(){}
+    
+    void init(string file)
+    {
+
+        vector<string> lines;
+        getLines(file.data(),lines);
+
+        int numFeats=lines.size();
+        psi.setZero(numFeats); // if not present, use line counter
         
+        for(int count=0;count<numFeats;count++)
+        {
+             psi(count)=boost::lexical_cast<double>(lines.at(count));
+        }
+        featsReadFromFileNoTrees=true;
     }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     
