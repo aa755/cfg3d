@@ -777,11 +777,7 @@ public:
         return psiSize;
     }
 
-    Terminal_SPtr getTerminalSafe(int segmentNum) {
-        Terminal_SPtr ret = terminals.at(segmentNum);
-        assert(ret != NULL);
-        return ret;
-    }
+    Terminal_SPtr getTerminalSafe(int segmentNum);
 };
 
 class Symbol : public boost::enable_shared_from_this<Symbol> 
@@ -5226,6 +5222,24 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
         occlusionChecker = new OccupancyMap<PointT > (scene);
             map<int, set<int> > neighbors;
             int maxSegIndex = parseNbrMap(nbrFile, neighbors, MAX_SEG_INDEX);
+            
+#ifdef CONSIDER_ALL_SEGMENTS_TRAINING_NEW
+           for(int i=0;i<(int)scene.points.size();i++)
+           {
+               if(maxSegIndex<(int)scene.points.at(i).segment)
+               {
+                   for(int j=maxSegIndex+1;j<=(int)scene.points.at(i).segment;j++)
+                   {
+                        set<int> temp;
+                        neighbors[j]=temp;
+                       
+                   }
+                   maxSegIndex=scene.points.at(i).segment;
+               }
+           }            
+#endif
+            
+            
             cout << "Scene has " << scene.size() << " points." << endl;
 
             NUMTerminalsToBeParsed = 0;
@@ -5345,5 +5359,13 @@ SceneInfo::SPtr initParsing(int argc, char** argv)
 
     
 }
+
+    Terminal_SPtr SceneInfo:: getTerminalSafe(int segmentNum)
+    {
+        Terminal_SPtr ret = terminals.at(segmentNum-1);
+        assert(ret != NULL);
+        assert(ret->getIndex()==segmentNum-1);
+        return ret;
+    }
 
 #endif
