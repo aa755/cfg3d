@@ -65,7 +65,8 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   
   for(int i=0;i<(int)lines.size();i++)
   {
-      sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo(lines.at(i)));              
+      sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo(lines.at(i)));
+      sample.examples[i].y.treePsi=SVM_CFG_Y::SPtr(new SVM_CFG_Y(lines.at(i)+".ypred"));
   }
   
   /* fill in your code here */

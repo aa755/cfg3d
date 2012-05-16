@@ -136,8 +136,27 @@ protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
     bool featsReadFromFileNoTrees;
+    map<int, string> labelMap;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
+    typedef map<int, string >::iterator LABELMAP_ITER;
+    /**
+     * 
+     * @param segmentNum 1 based segment index
+     * @return "" if not found.
+     */
+    string lookupLabel(int segmentNum)
+    {
+        LABELMAP_ITER res=labelMap.find(segmentNum);
+        if(res==labelMap.end())
+        {
+            return "";
+        }
+        else
+        {
+            return res->second;
+        }
+    }
     
     double getFeat(int i)
     {
