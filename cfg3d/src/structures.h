@@ -847,6 +847,11 @@ public:
     {
         // for some cases like terminals, need not do anything
     }
+    
+    virtual void subtractYourLabelmapFrom(LABELMAP_TYPE & lab)
+    {
+        // for some cases like terminals, need not do anything
+    }
 #endif
     
     SceneInfo::SPtr thisScene;
@@ -1906,6 +1911,10 @@ public:
     virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
     {
         appendLabelmap(labelMap,lab);
+    }
+    virtual void subtractYourLabelmapFrom(LABELMAP_TYPE & lab)
+    {
+        subtractLabelmap(labelMap,lab);
     }
     
     virtual void computeLabelMap()

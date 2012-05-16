@@ -274,6 +274,8 @@ class Move
 private:
     double costDelta;
     double transProb;
+    LABELMAP_TYPE addMap;
+    LABELMAP_TYPE delMap;
 protected:
     bool transProbSet;
     bool applied;
@@ -288,6 +290,12 @@ protected:
     }
     
 public:
+    void applylabelMapDelta( LABELMAP_TYPE & lab)
+    {
+        appendLabelmap(addMap,lab);
+        subtractLabelmap(delMap,lab);
+    }
+    
     typedef SupportComplex<Floor> SCENE_TYPE;
     void resetCostDelta()
     {
@@ -343,6 +351,7 @@ class Forest
     RulesDB::SPtr rulesDB;
     double bestCostSoFar;
     SceneInfo::SPtr sceneInfo;
+    LABELMAP_TYPE labelmap;
     
     
 public:
@@ -617,6 +626,7 @@ public:
             Move::SPtr selMove=moves.at(nm);
             selMove->applyMove(*this);
             curNegLogProb+=(selMove->getCostDelta());
+            selMove->applylabelMapDelta(labelmap);
             if(bestCostSoFar>curNegLogProb)
             {
                 bestCostSoFar=curNegLogProb;
@@ -639,6 +649,8 @@ void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
     if (!(newNode->isOfSubClass<SCENE_TYPE > () ))
         costDelta += Forest::NON_FLOORCOMPLEX_PENALTY;
     
+    newNode->addYourLabelmapTo(addMap);
+    
 }
 
 void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
@@ -650,6 +662,8 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
 
     if (!(remNode->isOfSubClass<SCENE_TYPE > () ))
         costDelta -= Forest::NON_FLOORCOMPLEX_PENALTY;
+    
+    newNode->addYourLabelmapTo(delMap);
 }
 
 /**
