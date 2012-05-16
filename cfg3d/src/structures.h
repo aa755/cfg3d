@@ -56,6 +56,7 @@ typedef pcl::PointXYZRGBCamSL PointT;
 
     typedef map<int, string > LABELMAP_TYPE;
     typedef LABELMAP_TYPE::iterator LABELMAP_ITER;
+    typedef LABELMAP_TYPE::const_iterator LABELMAP_CITER;
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
@@ -841,6 +842,13 @@ public:
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         // for some cases like terminals, need not do anything
+    }
+    
+    LABELMAP_TYPE labelMap;
+    
+    const virtual  LABELMAP_TYPE & getLabelMap()
+    {
+        return labelMap;
     }
     
     virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
@@ -1887,7 +1895,6 @@ public:
     
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
-    LABELMAP_TYPE labelMap;
     bool labelMapComputed;
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {

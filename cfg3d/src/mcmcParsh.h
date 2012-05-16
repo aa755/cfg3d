@@ -139,15 +139,16 @@ protected:
     LABELMAP_TYPE labelMap;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
+    typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
     /**
      * 
      * @param segmentNum 1 based segment index
      * @return "" if not found.
      */
     
-    static string lookupLabel(LABELMAP_TYPE &labelMap,int segmentNum)
+    static string lookupLabel(const LABELMAP_TYPE &labelMap,int segmentNum)
     {
-        LABELMAP_ITER res=labelMap.find(segmentNum);
+        LABELMAP_CITER res=labelMap.find(segmentNum);
         if(res==labelMap.end())
         {
             return "";
@@ -163,15 +164,41 @@ public:
         return lookupLabel(labelMap, segmentNum);
     }
     
-    double evalLoss(map<int, string>& olabelMap)
+    double evalLossDeltaOnAdd(const LABELMAP_TYPE & add) const
     {
         double loss=0;
-        for(LABELMAP_ITER it=labelMap.begin();it!=labelMap.end();it++)
+        for(LABELMAP_CITER it=labelMap.begin();it!=labelMap.end();it++)
         {
-            string label=lookupLabel(it->first);
-            if(label=="")
+            string label=lookupLabel(add,it->first);
+            if(label==it->second)
+                loss-=2;
+        }
+        
+        return loss;
+    }
+    
+    double evalLossDeltaOnDel(const LABELMAP_TYPE & del) const 
+    {
+        double loss=0;
+        for(LABELMAP_CITER it=labelMap.begin();it!=labelMap.end();it++)
+        {
+            string label=lookupLabel(del,it->first);
+            if(label==it->second)
+                loss+=2;
+        }
+        
+        return loss;
+    }
+        
+    double evalLoss(const LABELMAP_TYPE & olabelMap) const
+    {
+        double loss=0;
+        for(LABELMAP_CITER it=labelMap.begin();it!=labelMap.end();it++)
+        {
+            string label=lookupLabel(olabelMap,it->first);
+          /*  if(label=="") // commented to make deltaLoss independent of current state
                 loss+=1;
-            else if(label!=it->second)
+            else */if(label!=it->second)
                 loss+=2;
                 
         }
@@ -302,8 +329,10 @@ public:
         costDelta=0;
     }
     
-    void adjustCostDeltaForNodeAddition(Symbol::Ptr newNode);
-    void adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode);
+    void adjustCostDeltaForNodeAddition(Symbol::Ptr newNode, Forest & cfor);
+    void adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor);
+    virtual void adjustCostDeltaForNodeAdditionExtra(Symbol::Ptr newNode, Forest & cfor);
+    virtual void adjustCostDeltaForNodeRemovalExtra(Symbol::Ptr remNode, Forest & cfor);
     
     virtual string toString()=0;
     double getCostDelta()
@@ -352,7 +381,7 @@ class Forest
     double bestCostSoFar;
     SceneInfo::SPtr sceneInfo;
     LABELMAP_TYPE labelmap;
-    
+    SVM_CFG_Y::SPtr gtSVMY;
     
 public:
     const static double ADDITIONAL_COMPONENT_PENALTY=150;
@@ -361,13 +390,16 @@ public:
     const static int NON_FLOORCOMPLEX_PENALTY=0;
     const static int timeLimit=500;
 
-   /**
-     * not supposed to deal with tree-move operation
-     * just remove all the moves which referenced it
-     * 
-     * @param index : the index of tree which was removed
-     */
-    Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB)
+    bool lossAugmented()
+    {
+        return (gtSVMY!=NULL);
+    }
+    
+    SVM_CFG_Y::CSPtr getGTSVMY()
+    {
+        return gtSVMY;
+    }
+    void init (SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB)
     {
         this->rulesDB=rulesDB;
         curNegLogProb = 0;
@@ -380,9 +412,27 @@ public:
 
     }
     
-    SVM_CFG_Y getParsingResult()
+    Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB)
     {
-        return SVM_CFG_Y(trees);
+        init(sceneInfo,rulesDB);
+    }
+    
+    /**
+     * use this constructor for loss augmented inference
+     * @param sceneInfo
+     * @param rulesDB
+     * @param gtY
+     */
+    Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB,SVM_CFG_Y::SPtr gtY)
+    {
+        init(sceneInfo,rulesDB);
+        gtSVMY=gtY;
+    }
+    
+    
+    SVM_CFG_Y::SPtr getParsingResult()
+    {
+        return SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
     }
     
     /**
@@ -626,7 +676,10 @@ public:
             Move::SPtr selMove=moves.at(nm);
             selMove->applyMove(*this);
             curNegLogProb+=(selMove->getCostDelta());
-            selMove->applylabelMapDelta(labelmap);
+            
+            if(lossAugmented())
+                selMove->applylabelMapDelta(labelmap);
+            
             if(bestCostSoFar>curNegLogProb)
             {
                 bestCostSoFar=curNegLogProb;
@@ -639,7 +692,7 @@ public:
     
 };
 
-void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
+void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode, Forest & cfor)
 {
     costDelta += (newNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
 
@@ -649,11 +702,12 @@ void Move::adjustCostDeltaForNodeAddition(Symbol::Ptr newNode)
     if (!(newNode->isOfSubClass<SCENE_TYPE > () ))
         costDelta += Forest::NON_FLOORCOMPLEX_PENALTY;
     
-    newNode->addYourLabelmapTo(addMap);
-    
+    if(cfor.lossAugmented())
+            adjustCostDeltaForNodeAdditionExtra(newNode,cfor);
+ 
 }
 
-void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
+void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor)
 {
     costDelta -= (remNode->getCost() + Forest::ADDITIONAL_COMPONENT_PENALTY);
 
@@ -663,8 +717,27 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode)
     if (!(remNode->isOfSubClass<SCENE_TYPE > () ))
         costDelta -= Forest::NON_FLOORCOMPLEX_PENALTY;
     
-    newNode->addYourLabelmapTo(delMap);
+    if(cfor.lossAugmented())
+            adjustCostDeltaForNodeRemovalExtra(remNode,cfor);
 }
+
+    void Move::adjustCostDeltaForNodeAdditionExtra(Symbol::Ptr newNode, Forest & cfor)
+    {
+#ifdef USING_SVM_FOR_LEARNING_CFG        
+            newNode->addYourLabelmapTo(addMap);
+            costDelta+=cfor.getGTSVMY()->evalLossDeltaOnAdd(newNode->getLabelMap());
+           
+#endif
+    }
+    
+    
+    void Move::adjustCostDeltaForNodeRemovalExtra(Symbol::Ptr remNode, Forest & cfor)
+    {        
+#ifdef USING_SVM_FOR_LEARNING_CFG        
+            remNode->addYourLabelmapTo(delMap);
+            costDelta+=cfor.getGTSVMY()->evalLossDeltaOnDel(remNode->getLabelMap());
+#endif
+    }
 
 /**
  * store nodes(along with indices) also for typechecks
@@ -731,9 +804,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         mergeResult->declareOptimal(false);
         
         //costDelta=mergeResult->getCost()-mergeNode1->getCost()-mergeNode2->getCost()-Forest::ADDITIONAL_COMPONENT_PENALTY;
-        adjustCostDeltaForNodeAddition(mergeResult);
-        adjustCostDeltaForNodeRemoval(mergeNode1);
-        adjustCostDeltaForNodeRemoval(mergeNode2);
+        adjustCostDeltaForNodeAddition(mergeResult,cfor);
+        adjustCostDeltaForNodeRemoval(mergeNode1,cfor);
+        adjustCostDeltaForNodeRemoval(mergeNode2,cfor);
         setTransProbFromDelta();
         
     }
@@ -838,8 +911,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
             return;
           mergeResult->declareOptimal(false);
         
-        adjustCostDeltaForNodeAddition(mergeResult);
-        adjustCostDeltaForNodeRemoval(mergeNode);
+        adjustCostDeltaForNodeAddition(mergeResult,cfor);
+        adjustCostDeltaForNodeRemoval(mergeNode,cfor);
         setTransProbFromDelta();
         
     }
@@ -927,8 +1000,8 @@ public:
           mergeResult->declareOptimal(false);
         
           assert(typeid(*mergeResult)!=typeid(*mergeNode)); // this is useless
-        adjustCostDeltaForNodeAddition(mergeResult);
-        adjustCostDeltaForNodeRemoval(mergeNode);
+        adjustCostDeltaForNodeAddition(mergeResult,cfor);
+        adjustCostDeltaForNodeRemoval(mergeNode,cfor);
         setTransProbFromDelta();        
     }
     
@@ -956,13 +1029,13 @@ public:
         desc="del:"+delNode->getName();
         NonTerminal_SPtr nt=boost::dynamic_pointer_cast<NonTerminal>(delNode);
         assert(nt!=NULL); // cannot delete a Terminal ... maybe a Hallucinated one later
-        adjustCostDeltaForNodeRemoval(delNode);
+        adjustCostDeltaForNodeRemoval(delNode,cfor);
         
         {
             vector<Symbol::SPtr>::iterator it;
             for (it = nt->children.begin(); it != nt->children.end(); it++)
             {
-                adjustCostDeltaForNodeAddition(*it);
+                adjustCostDeltaForNodeAddition(*it,cfor);
             }
         }
         
