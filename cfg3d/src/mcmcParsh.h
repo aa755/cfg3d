@@ -206,6 +206,22 @@ public:
         return loss;
     }
     
+    double evalLoss(SVM_CFG_Y::CSPtr other) const
+    {
+        double loss=0;
+        for(LABELMAP_CITER it=labelMap.begin();it!=labelMap.end();it++)
+        {
+            string label=lookupLabel(other->labelMap,it->first);
+          /*  if(label=="") // commented to make deltaLoss independent of current state
+                loss+=1;
+            else */if(label!=it->second)
+                loss+=2;
+                
+        }
+        
+        return loss;
+    }
+    
     double getFeat(int i)
     {
         return psi(i);

@@ -83,7 +83,8 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
      feature space in sizePsi. This is the maximum number of different
      weights that can be learned. Later, the weight vector w will
      contain the learned weights for the model. */
-    sm->sizePsi=sm->rulesDB.getTotalNumParams();
+    sm->rulesDB=RulesDB::SPtr(new RulesDB());
+    sm->sizePsi=sm->rulesDB->getTotalNumParams();
     for(int i=0;i<sample.n;i++)
     {
         sample.examples[i].x.allSceneInfo->setPsiSize(sm->sizePsi);
@@ -141,6 +142,7 @@ LABEL       classify_struct_example(PATTERN x, STRUCTMODEL *sm,
      recognized by the function empty_label(y). */
   LABEL y;
 
+  assert(false); // should not be called
   /* insert your code for computing the predicted label y here */
 
   return(y);
@@ -206,6 +208,9 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
      empty_label(y). */
   LABEL ybar;
 
+  Forest mfor(x.allSceneInfo,sm->rulesDB,y.treePsi);
+  mfor.runMCMC();
+  ybar.treePsi=mfor.getParsingResult();
   /* insert your code for computing the label ybar here */
 
   return(ybar);
@@ -248,7 +253,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   int numNZ=y.treePsi->countNumNZ();
   fvec->words=(WORD*)malloc((sizeof(WORD))*(numNZ+1)); // plus one for the 0 terminator
   int psiSize=y.treePsi->getSizePsi();
-  assert(psiSize==sm->rulesDB.getTotalNumParams());
+  assert(psiSize==sm->rulesDB->getTotalNumParams());
   int count=0;
   for(int i=0;i<psiSize;i++)
   {
@@ -274,9 +279,10 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
   /* loss for correct label y and predicted label ybar. The loss for
      y==ybar has to be zero. sparm->loss_function is set with the -l option. */
   if(sparm->loss_function == 0) { /* type 0 loss: 0/1 loss */
-                                  /* return 0, if y==ybar. return 1 else */
+      assert(false);                            /* return 0, if y==ybar. return 1 else */
   }
   else {
+      return y.treePsi->evalLoss(ybar.treePsi);
     /* Put your code for different loss functions here. But then
        find_most_violated_constraint_???(x, y, sm) has to return the
        highest scoring label with the largest loss. */
