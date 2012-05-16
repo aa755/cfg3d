@@ -54,6 +54,8 @@ typedef pcl::PointXYZRGBCamSL PointT;
 #include <eigen3/Eigen/src/Core/PlainObjectBase.h>
 #include "HOG.h"
 
+    typedef map<int, string > LABELMAP_TYPE;
+    typedef LABELMAP_TYPE::iterator LABELMAP_ITER;
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
@@ -837,6 +839,11 @@ protected:
 public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
     virtual void addYourPsiVectorTo(VectorXd & psi)
+    {
+        // for some cases like terminals, need not do anything
+    }
+    
+    virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
     {
         // for some cases like terminals, need not do anything
     }
@@ -1861,8 +1868,22 @@ public:
     {
         return boost::static_pointer_cast<NonTerminal>(shared_from_this());
     }
+    
+    void getSpannedTerminal1BasedIndices(vector<int> & span)
+    {
+        span.clear();
+        resetTerminalIterator();
+        int index;
+        while (nextTerminalIndex(index))
+        {
+            span.push_back(index+1);
+        }
+    }
+    
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
+    LABELMAP_TYPE labelMap;
+    bool labelMapComputed;
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         psi+=this->psi;
@@ -1882,6 +1903,33 @@ public:
         }
     }
     
+    virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
+    {
+        appendLabelmap(labelMap,lab);
+    }
+    
+    virtual void computeLabelMap()
+    {
+        if(labelMapComputed)
+           return;
+        labelMapComputed=true;
+ 
+        for (vector<Symbol::SPtr>::iterator it = children.begin(); it != children.end(); it++) {
+            (*it)->addYourLabelmapTo(labelMap);
+        }
+        
+    }
+    
+    virtual void computeLabelMap(const vector<int> & segIndices, string newSegLabel)
+    {
+        computeLabelMap();
+        
+        for(vector<int>::const_iterator it=segIndices.begin();it!=segIndices.end();it++)
+        {
+            labelMap[*it]=newSegLabel;
+        }
+        
+    }
     void printPsi()
     {
         ofstream file;
@@ -2088,6 +2136,10 @@ public:
         numTerminals = 0;
         lastIteration = 0;
         duplicate=false;
+        
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        labelMapComputed=false;
+#endif        
     }
 
     virtual void setThisScene(SceneInfo::SPtr scn)
@@ -3815,6 +3867,14 @@ public:
         
         // to be replace by generic features
         computeFeatures(RHS);
+#ifdef USING_SVM_FOR_LEARNING_CFG        
+        if(makesPlanarPrimitive())
+        {
+            vector<int> span;
+            RHS->getSpannedTerminal1BasedIndices(span);
+            LHS->computeLabelMap(span,RHS->getCleanedTypeName());
+        }
+#endif
         if(setCost(LHS, RHS))
              return LHS;
         else
@@ -3822,6 +3882,7 @@ public:
             return boost::shared_ptr<LHS_Type>();
         }
     }
+    
     virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
         return applyRuleInference(boost::dynamic_pointer_cast<RHS_Type >(children.at(0)));

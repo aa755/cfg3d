@@ -472,5 +472,33 @@ int countUnderScores(string str)
     }
     return count;
 }
+
+/**
+ * inserts entries of src to dest. existing mapping for same IN will be overwritten
+ * @param src
+ * @param dest
+ */
+template<typename MAPIN, typename MAPOUT>
+void appendLabelmap(std::map<MAPIN, MAPOUT> & src, std::map<MAPIN, MAPOUT> & dest) 
+{
+
+    for (typename std::map<MAPIN,MAPOUT>::iterator it = src.begin(); it != src.end(); it++) 
+    {
+        dest[it->first]=it->second;
+    }
+
+}
+
+template<typename MAPIN, typename MAPOUT>
+void subtractLabelmap(std::map<MAPIN, MAPOUT> & src, std::map<MAPIN, MAPOUT> & dest) 
+{
+
+    for (typename std::map<MAPIN,MAPOUT>::iterator it = src.begin(); it != src.end(); it++) 
+    {
+        dest.erase(it->first);
+    }
+
+}
+
 #endif	/* UTILS_H */
 

@@ -136,8 +136,6 @@ protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
     bool featsReadFromFileNoTrees;
-    typedef map<int, string > LABELMAP_TYPE;
-    typedef LABELMAP_TYPE::iterator LABELMAP_ITER;
     LABELMAP_TYPE labelMap;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
@@ -205,6 +203,7 @@ public:
             if(psi(i)!=0)
                 count++;
         }
+        return count;
     }
     
     void init(vector<Symbol::Ptr> &trees)
