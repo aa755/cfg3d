@@ -423,7 +423,9 @@ int main(int argc, char** argv)
     {
         ofile<<"\nScene::printOnlyScene("<<root->getFullName()<<");\n";
     }
+    
         ofile<<"\n"<<root->getFullName()<<"->printPsi();\n";
+        ofile<<"\n"<<root->getFullName()<<"->printLabelMap(\""<<string(argv[1])+".labelmap" <<"\");\n";
     
     createRunLearnBack(ofile);
     ofile.close();

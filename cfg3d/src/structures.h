@@ -851,6 +851,17 @@ public:
         return labelMap;
     }
     
+    void printLabelMap(string filename)
+    {
+        ofstream file;
+        file.open(filename.data(),ios::out);
+        for(LABELMAP_CITER it=labelMap.begin();it!=labelMap.end();it++)
+        {
+            file<<it->second<<","<<it->first<<endl;
+        }
+        
+    }
+    
     virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
     {
         // for some cases like terminals, need not do anything
@@ -2364,6 +2375,9 @@ public:
         computeFeatures();
         additionalFinalize();
         computeNumSpannedObjects();
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        computeLabelMap();
+#endif
         
         return true;
     }
@@ -3864,6 +3878,12 @@ public:
         LHS->declareOptimal();
 #ifdef USING_SVM_FOR_LEARNING_CFG
        LHS->computePsi(this->startIndex, this->features);
+        if(makesPlanarPrimitive())
+        {
+            vector<int> span;
+            RHS->getSpannedTerminal1BasedIndices(span);
+            LHS->computeLabelMap(span,LHS->getCleanedTypeName());
+        }
 #else
                writeFeaturesToFile();
 #endif
@@ -3888,7 +3908,7 @@ public:
         {
             vector<int> span;
             RHS->getSpannedTerminal1BasedIndices(span);
-            LHS->computeLabelMap(span,RHS->getCleanedTypeName());
+            LHS->computeLabelMap(span,LHS->getCleanedTypeName());
         }
 #endif
         if(setCost(LHS, RHS))
