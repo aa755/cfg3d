@@ -51,6 +51,7 @@ public:
         
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
+            assert((*it)->getChildrenTypesAsSet().size()==(*it)->getChildrenTypes().size());
             childTypeToRule[(*it)->getChildrenTypesAsSet()].push_back(*it);
             if((*it)->makesPlanarPrimitive())
             {
@@ -107,7 +108,12 @@ public:
     {
         set<string> childTypeSet;
         childTypeSet.insert(typeid(*child).name());
-        return lookupRule(childTypeSet);
+        vector<RulePtr> & ret = lookupRule(childTypeSet);
+//        for(int i=0;i<ret.size();i++)
+//        {
+//            assert(ret.at(i)->getChildrenTypes().size()==1);
+//        }
+        return ret;
     }
     
     const vector<RulePtr> & lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
@@ -1133,6 +1139,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
     for(int i=0;i<(int)rules.size();i++)
     {
         RulePtr rule=rules.at(i);
+//        assert(rules.at(i)->getChildrenTypes().size()==1);
         Move::SPtr newMerge=(Move::SPtr(new SingleRuleMove(*this, index, rule)));
                     if(newMerge->moveCreationSucceded())
                         moves.push_back(newMerge);

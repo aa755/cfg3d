@@ -104,9 +104,9 @@ CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm,
      the number of constraints. The function returns the initial
      set of constraints. */
   CONSTSET c;
-  long     sizePsi=sm->sizePsi;
-  long     i;
-  WORD     words[2];
+//  long     sizePsi=sm->sizePsi;
+//  long     i;
+//  WORD     words[2];
 
   if(1) { /* normal case: start with empty set of constraints */
     c.lhs=NULL;
@@ -209,6 +209,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
      empty_label(y). */
   LABEL ybar;
 
+  sm->rulesDB->readModel(sm->w);
   Forest mfor(x.allSceneInfo,sm->rulesDB,y.treePsi);
   mfor.runMCMC();
   ybar.treePsi=mfor.getParsingResult();
@@ -269,6 +270,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   assert(count==numNZ);
   fvec->words[count].wnum=0;
   fvec->next=NULL;
+  fvec->userdefined=NULL;
   
 
   /* insert code for computing the feature vector for x and y here */

@@ -159,6 +159,7 @@ class MultiVariateProbabilityDistribution {
 protected:
     int numFeats;
 public:
+    typedef boost::shared_ptr<MultiVariateProbabilityDistribution> SPtr;
     virtual double minusLogProb(VectorXd & x)=0;
     virtual void readModel(double * w_svm, int index, int numFeats){} // dummy for svm
 
@@ -3312,7 +3313,7 @@ public:
     
     vector<ProbabilityDistribution*> g; // not used
     
-    MultiVariateProbabilityDistribution * pdist;
+    MultiVariateProbabilityDistribution::SPtr pdist;
     
     virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
     {
@@ -3321,7 +3322,10 @@ public:
     
     Rule()
     {
-        pdist=NULL;
+//        pdist=NULL;
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        pdist= MultiVariateProbabilityDistribution::SPtr(new LinearDiscriminativeFunction());
+#endif
         modelFileMissing=false;
         startIndex=-1;
     }
@@ -3344,7 +3348,7 @@ public:
             modelFileMissing=true;
             return;
         }
-        pdist=new MultiVarMixtureOfGaussian(file,filename);
+        pdist= MultiVariateProbabilityDistribution::SPtr(new MultiVarMixtureOfGaussian(file,filename));
         file.close();
     }
     
@@ -3435,8 +3439,6 @@ public:
     
     ~Rule()
     {
-        if(pdist!=NULL)
-                delete pdist;
         for(int i=0;i<(int)g.size();i++)
             delete g.at(i);
     }
@@ -3810,7 +3812,7 @@ public:
     SingleRule(bool learning=false)
     {
 #ifdef USING_SVM_FOR_LEARNING_CFG
-        pdist= new LinearDiscriminativeFunction();
+       // pdist= new LinearDiscriminativeFunction();
 #else
         this->learning=learning;
         string filename=string("rule_")+string(typeid(LHS_Type).name())+"__"+string(typeid(RHS_Type).name());
@@ -4334,7 +4336,7 @@ public:
     DoubleRule(bool learning=false)
     {
 #ifdef USING_SVM_FOR_LEARNING_CFG
-        pdist= new LinearDiscriminativeFunction();
+        //= new LinearDiscriminativeFunction();
 #else
         if (isLearned())
         {
