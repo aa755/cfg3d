@@ -65,8 +65,9 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   
   for(int i=0;i<(int)lines.size();i++)
   {
-      sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo(lines.at(i)));
-      sample.examples[i].y.treePsi=SVM_CFG_Y::SPtr(new SVM_CFG_Y(lines.at(i)+".ypred"));
+      sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo());
+      sample.examples[i].x.allSceneInfo->init(lines.at(i));
+      sample.examples[i].y.treePsi=SVM_CFG_Y::SPtr(new SVM_CFG_Y(lines.at(i)));
   }
   
   /* fill in your code here */
@@ -267,6 +268,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   }
   assert(count==numNZ);
   fvec->words[count].wnum=0;
+  fvec->next=NULL;
   
 
   /* insert code for computing the feature vector for x and y here */

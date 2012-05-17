@@ -686,23 +686,27 @@ public:
     int NUMTerminalsToBeParsed;
 
     void init(const char * sceneF,const char * sceneOrigF, const char * nbrFile);
-    void init(const char * sceneF)
+    void init(string  sfile)
     {
-        string sfile(sceneF);
         string sceneOrigF=sfile.substr(0,sfile.length()-14);
         string nbrFile=sfile+"_nbr.txt"; 
-        init(sceneF,sceneOrigF.data(), nbrFile.data());        
+        init(sfile.data(),sceneOrigF.data(), nbrFile.data());        
     }
     
-    SceneInfo(const char * sceneF)
-    {
-        init(sceneF);
-    }
+
+    // these constructors can cause trouble. some shared_ptr should own
+    // this object befor init is called. init uses shared_from_this for
+    // initializing terminals
     
-    SceneInfo(string sceneF)
-    {
-        init(sceneF.data());
-    }
+//    SceneInfo(const char * sceneF)
+//    {
+//        init(sceneF);
+//    }
+//    
+//    SceneInfo(string sceneF)
+//    {
+//        init(sceneF.data());
+//    }
     
     SceneInfo(char * sceneF, char * sceneOrigF, char * nbrFile)
     {
@@ -5446,7 +5450,7 @@ SceneInfo::SPtr initParsing(int argc, char** argv)
         cerr<<"Usage: "<<argv[0]<<" <pcdFile> <nbrMapFile> <origPCD> [FoldNum]"<<endl;
         exit(-1);
     }
-    SceneInfo::SPtr sceneInfo= SceneInfo::SPtr(new SceneInfo());
+    SceneInfo::SPtr sceneInfo= SceneInfo::SPtr(new SceneInfo()); 
     sceneInfo->init(argv[1],argv[3],argv[2]);
     //convertToXY(scene,scene2D);
   //  scene2DPtr=createStaticShared<pcl::PointCloud<pcl::PointXY> >(&scene2D);

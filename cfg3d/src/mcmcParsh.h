@@ -229,7 +229,7 @@ public:
     
     int getSizePsi()
     {
-        return psi.cols();
+        return psi.rows();
     }
     SVM_CFG_Y(vector<Symbol::Ptr> &trees)
     {
@@ -238,7 +238,7 @@ public:
     
     int countNumNZ()
     {
-        int sizeP=psi.cols();
+        int sizeP=psi.rows();
         assert(sizeP>1);
         int count=0; 
         for(int i=0;i<sizeP;i++)
@@ -252,6 +252,12 @@ public:
     void init(vector<Symbol::Ptr> &trees)
     {
         this->trees=trees;
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        for(vector<Symbol::Ptr>::iterator it =trees.begin();it!=trees.end();it++)
+        {
+            (*it)->addYourLabelmapTo(labelMap);
+        }
+#endif
         featsReadFromFileNoTrees=false;                
     }
     
@@ -264,8 +270,9 @@ public:
     void init(string file)
     {
 
+        string base=file.substr(0,file.length()-4);
         vector<string> lines;
-        getLines(file.data(),lines);
+        getLines((base+".ypred").data(),lines);
 
         int numFeats=lines.size();
         psi.setZero(numFeats); // if not present, use line counter
@@ -275,6 +282,17 @@ public:
              psi(count)=boost::lexical_cast<double>(lines.at(count));
         }
         featsReadFromFileNoTrees=true;
+        lines.clear();
+        getLines((file+"_gt_tree.dot.labelmap").data(),lines);
+        for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
+        {
+            vector<string> toks; 
+            getTokens(*it,toks);
+            assert(toks.size()==2);
+            labelMap[boost::lexical_cast<int>(toks.at(1))]=toks.at(0);
+        }
+
+        
     }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     
