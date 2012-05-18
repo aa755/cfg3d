@@ -68,7 +68,7 @@ public:
         }
         
 #endif        
-        cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
+ //       cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
     }
     
     void readModel(double * w_svm)
@@ -143,6 +143,7 @@ protected:
     VectorXd psi;
     bool featsReadFromFileNoTrees;
     LABELMAP_TYPE labelMap;
+    const static double LOSS_PER_NODE=2.0;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
     typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
@@ -151,7 +152,15 @@ public:
      * @param segmentNum 1 based segment index
      * @return "" if not found.
      */
+    int getSize()
+    {
+        return labelMap.size();
+    }
     
+    double getEmptyTreeLoss()
+    {
+        return getSize()*LOSS_PER_NODE;
+    }
     static string lookupLabel(const LABELMAP_TYPE &labelMap,int segmentNum)
     {
         LABELMAP_CITER res=labelMap.find(segmentNum);
@@ -177,7 +186,7 @@ public:
         {
             string label=lookupLabel(add,it->first);
             if(label==it->second)
-                loss-=2;
+                loss-=LOSS_PER_NODE;
         }
         
         return loss;
@@ -190,7 +199,7 @@ public:
         {
             string label=lookupLabel(del,it->first);
             if(label==it->second)
-                loss+=2;
+                loss+=LOSS_PER_NODE;
         }
         
         return loss;
@@ -205,7 +214,7 @@ public:
           /*  if(label=="") // commented to make deltaLoss independent of current state
                 loss+=1;
             else */if(label!=it->second)
-                loss+=2;
+                loss+=LOSS_PER_NODE;
                 
         }
         
@@ -221,7 +230,7 @@ public:
           /*  if(label=="") // commented to make deltaLoss independent of current state
                 loss+=1;
             else */if(label!=it->second)
-                loss+=2;
+                loss+=LOSS_PER_NODE;
                 
         }
         
@@ -293,6 +302,7 @@ public:
         featsReadFromFileNoTrees=true;
         lines.clear();
         getLines((file+"_gt_tree.dot.labelmap").data(),lines);
+        assert(lines.size()>0);
         for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
         {
             vector<string> toks; 
@@ -440,6 +450,7 @@ public:
 
     bool lossAugmented()
     {
+        assert (gtSVMY!=NULL);
         return (gtSVMY!=NULL);
     }
     
@@ -473,8 +484,9 @@ public:
      */
     Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB,SVM_CFG_Y::SPtr gtY)
     {
-        init(sceneInfo,rulesDB);
         gtSVMY=gtY;
+        curNegLogProb=gtY->getEmptyTreeLoss();
+        init(sceneInfo,rulesDB);
     }
     
     
@@ -564,7 +576,7 @@ public:
     {
         assert(tree!=NULL);
         trees.push_back(tree);
-        cerr<<"adTr:"<<tree->getName()<<endl;
+       // cerr<<"adTr:"<<tree->getName()<<endl;
         addNewMoves(tree,trees.size()-1);
     }
     
@@ -702,8 +714,8 @@ public:
             if(ratio>1.0 || getRandFloat(1.0)<ratio)
             {
             
-                cerr<<"#tri= "<<count<<endl;
-                cerr<<"sMv:"<<selMove->toString()<<",rat:"<<ratio<<",#n:"<<trees.size()<<endl;
+   //             cerr<<"#tri= "<<count<<endl;
+     //           cerr<<"sMv:"<<selMove->toString()<<",rat:"<<ratio<<",#n:"<<trees.size()<<endl;
                 return selectedMove;
             }
 //            else
@@ -845,7 +857,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         if(mergeResult==NULL)
         {
-            cerr<<"mf:"<<mergeNode1->getName()+","+mergeNode2->getName()<<":"<<typeid(*mergeRule).name()<<endl;
+ //           cerr<<"mf:"<<mergeNode1->getName()+","+mergeNode2->getName()<<":"<<typeid(*mergeRule).name()<<endl;
             return;
         }
 
@@ -871,7 +883,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         assert(cfor.getTree(mergeIndex1)==mergeNode1);
         assert(cfor.getTree(mergeIndex2)==mergeNode2);
         
-        cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl;
+  //      cerr<<"mer-move rule "<<typeid(*mergeRule).name()<<endl;
         
         cfor.deleteTree(mergeIndex1);// max to reduce #index updates in moves
         
@@ -980,7 +992,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         applied=true;
         assert(cfor.getTree(mergeIndex)==mergeNode);
-        cerr<<"sr"<<mergeNode->getName()<<"->"<<mergeResult->getName()<<endl;
+//        cerr<<"sr"<<mergeNode->getName()<<"->"<<mergeResult->getName()<<endl;
         
         cfor.replaceTree(mergeIndex,mergeResult);
         

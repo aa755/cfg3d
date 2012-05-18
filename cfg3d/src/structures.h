@@ -2882,7 +2882,7 @@ public:
     double getAvgSqrDist()
     {
         double sumSquaredDistances = eigenValsAscending(0);
-        assert(sumSquaredDistances>-0.01);
+        //assert(sumSquaredDistances>-0.01);
         if(sumSquaredDistances<0)
         {
             cerr<<"negEig:"<<sumSquaredDistances<<endl;
@@ -3271,6 +3271,22 @@ public:
           pdist->readModel(w_svm, startIndex , getNumParams());
     }
     
+//    static double getVectorElem(double * w, int i)
+//    {
+//        return w[i];
+//    }
+//    
+//    static double getVectorElem(VectorXd & psi, int i)
+//    {
+//        return psi[i];
+//    }
+//    
+//    virtual void printModel(double * w_svm)
+//    {
+//        assert(startIndex!=-1);
+//          pdist->readModel(w_svm, startIndex , getNumParams());
+//    }
+//    
     void setStartIndex(int index)
     {
         startIndex=index;

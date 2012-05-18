@@ -500,5 +500,22 @@ void subtractLabelmap(std::map<MAPIN, MAPOUT> & src, std::map<MAPIN, MAPOUT> & d
 
 }
 
+//class VectorWrapper
+//{
+//public:
+//    virtual int getSize()=0;
+//    virtual void getElem(int i)=0;
+//};
+//
+//template <typename T>
+//class VectorWrapperSTL: public VectorWrapper
+//{
+//    vector<T> & elems;
+//    int start;
+//    int end;
+//public:
+//    VectorWrapperSTL(vector<T> & elems, int start=0, int end=-1):
+//    
+//};
 #endif	/* UTILS_H */
 
