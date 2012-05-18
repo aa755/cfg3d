@@ -3747,6 +3747,7 @@ public:
 template<typename LHS_Type, typename RHS_Type>
 class SingleRule : public Rule
 {
+protected:
     virtual void combineAndPushForParam(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals, long iterationNo /* = 0 */)
     {
         boost::shared_ptr<RHS_Type> RHS_extracted = boost::dynamic_pointer_cast<RHS_Type>(extractedSym);
@@ -3779,7 +3780,13 @@ class SingleRule : public Rule
     }
     static const int NUM_FEATS=17;
     
+    virtual void additionalProcessing(boost::shared_ptr<LHS_Type >  LHS, boost::shared_ptr<RHS_Type>  RHS)
+    {
+        
+    }
+    
 public:
+    
     virtual int getNumParams()
     {
         return NUM_FEATS; 
@@ -3827,7 +3834,7 @@ public:
 #endif
     }
     
-    virtual void computeFeatures(boost::shared_ptr<RHS_Type> input)
+    void computeFeatures(boost::shared_ptr<RHS_Type> input)
     {
         features.clear();
         computeFeaturesSpecializable(input);
@@ -3935,6 +3942,7 @@ public:
         boost::shared_ptr<LHS_Type > LHS (new LHS_Type());
         LHS->addChild(RHS);
         LHS->computeSpannedTerminals();
+        additionalProcessing(LHS,RHS);
         return LHS;
     }
     
@@ -4898,7 +4906,7 @@ class SingleRuleNoFeature : public SingleRule<LHS_Type,RHS_Type>
 public:
     virtual int getNumParams()
     {
-        return 0; 
+        return 2; 
     }
     
     SingleRuleNoFeature(float ratio=1):SingleRule<LHS_Type,RHS_Type>("dummy")
@@ -4907,48 +4915,51 @@ public:
         this->filename=string("SingleRuleChoice_")+typeid(LHS_Type).name()+"_"+typeid(RHS_Type).name(); // not used : only for tagging
     }
     
-    virtual void additionalProcessing(boost::shared_ptr<LHS_Type >  LHS, boost::shared_ptr<RHS_Type>  RHS)
-    {
-        
-    }
     
-    virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type>  RHS, vector<Terminal_SPtr> & terminals)
+//    virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type>  RHS, vector<Terminal_SPtr> & terminals)
+//    {
+//        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
+//        
+//        computeFeatures(RHS);
+//        LHS->setAdditionalCost(this->cost);
+//        additionalProcessing(LHS,RHS);
+//        LHS->declareOptimal();
+//#ifdef USING_SVM_FOR_LEARNING_CFG
+//       LHS->computePsi(this->startIndex, this->features);
+//#endif
+//        
+//        return LHS;
+//    }
+    virtual void computeFeaturesSpecializable(boost::shared_ptr<RHS_Type> input)
     {
-        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
-        
-        computeFeatures(RHS);
-        LHS->setAdditionalCost(this->cost);
-        additionalProcessing(LHS,RHS);
-        LHS->declareOptimal();
-#ifdef USING_SVM_FOR_LEARNING_CFG
-       LHS->computePsi(this->startIndex, this->features);
-#endif
-        
-        return LHS;
-    }
-    
-    virtual boost::shared_ptr<LHS_Type>  applyRuleInference(boost::shared_ptr<RHS_Type>  RHS)
-    {
-        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
-        
-        // to be replace by generic features
-        additionalProcessing(LHS,RHS);
-        computeFeatures(RHS);
-        
         vector<Symbol::SPtr> RHSExpanded;
-        RHS->expandIntermediates(RHSExpanded);
-
-        double ac=std::max(0,(3-(int)RHSExpanded.size()) );
-        assert(ac>0);
-        assert(ac<3);
-        LHS->setAdditionalCost(25*ac);
-       if(Rule::META_LEARNING)
-       {
-           LHS->declareOptimal();
-       }
-        
-        return LHS;
+        input->expandIntermediates(RHSExpanded);
+        this->features.push_back(1.0);
+        this->features.push_back(RHSExpanded.size());
     }
+    
+//    virtual boost::shared_ptr<LHS_Type>  applyRuleInference(boost::shared_ptr<RHS_Type>  RHS)
+//    {
+//        boost::shared_ptr<LHS_Type >  LHS = applyRuleGeneric(RHS);
+//        
+//        // to be replace by generic features
+//        additionalProcessing(LHS,RHS);
+//        computeFeatures(RHS);
+//        
+//        vector<Symbol::SPtr> RHSExpanded;
+//        RHS->expandIntermediates(RHSExpanded);
+//
+//        double ac=std::max(0,(3-(int)RHSExpanded.size()) );
+//        assert(ac>0);
+//        assert(ac<3);
+//        LHS->setAdditionalCost(25*ac);
+//       if(Rule::META_LEARNING)
+//       {
+//           LHS->declareOptimal();
+//       }
+//        
+//        return LHS;
+//    }
     
 };
 
@@ -4962,7 +4973,7 @@ class SingleRuleComplex : public SingleRuleNoFeature<SupportComplex<SupportType>
 public:
     virtual int getNumParams()
     {
-        return 1; 
+        return 2; 
     }
     
     
