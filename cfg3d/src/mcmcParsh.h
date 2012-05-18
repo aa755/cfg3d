@@ -442,8 +442,14 @@ class Forest
     SVM_CFG_Y::SPtr gtSVMY;
     
 public:
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    const static double ADDITIONAL_COMPONENT_PENALTY=0;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=0;
+#else
     const static double ADDITIONAL_COMPONENT_PENALTY=150;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
+#endif
+    
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
     const static int timeLimit=50;

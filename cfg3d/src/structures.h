@@ -2164,7 +2164,9 @@ public:
     NonTerminal() : Symbol()
     {
         costSet = false;
+#ifdef CFG_RULES_DEBUG
         cout << "nNT: " << id << endl;
+#endif
         numTerminals = 0;
         lastIteration = 0;
         duplicate=false;
@@ -2225,8 +2227,10 @@ public:
 //            }
 //        }
         costSet = true;
+#ifdef CFG_RULES_DEBUG
                 cout<<"st:"<<getName()<<endl;
         cout << "ac:" << additionalCost << ",tc:" << cost << endl; // don't unshorten it unless u want the log files to swell into GBs
+#endif
 
     }
     void increaseCost(double additionalCost) {
@@ -2240,7 +2244,9 @@ public:
      */
     void setAbsoluteCost(double absoluteCost) {
         assert(!isDeclaredOptimal);
+#ifdef CFG_RULES_DEBUG
         cout<<absoluteCost<<endl;
+#endif
         assert(absoluteCost >= (0 - .001));
         if (absoluteCost >= (0 - .001) && absoluteCost < 0) {
             absoluteCost = 0;
@@ -2252,8 +2258,10 @@ public:
         }
         cost = absoluteCost;
         costSet = true;
+#ifdef CFG_RULES_DEBUG
                 cout<<"st:"<<getName()<<endl;
         cout << "absc " << cost << endl;
+#endif
     }
 
     virtual void addChild(Symbol::SPtr child) {
@@ -3226,7 +3234,9 @@ public:
     }
 
     Symbol::SPtr pop(bool & duplicate) {
+#ifdef CFG_RULES_DEBUG
         cout<<"sizeq"<<costSortedQueue.size()<<endl;
+#endif
         duplicate=false;
         if(costSortedQueue.empty())
             return Symbol::SPtr();
@@ -4620,7 +4630,7 @@ void readLabelMap(char * filename , map<int,int> & label_mapping)
             labelFile>>segNo>>label;
             if(label==-1)
                 break;
-            cout<<"adding seg "<<segNo<<" with label:"<<label<<endl;
+         //   cout<<"adding seg "<<segNo<<" with label:"<<label<<endl;
             label_mapping[segNo]=label;
         }
     }
@@ -5216,8 +5226,9 @@ public:
                     feats.computeInfo((*it), RHS2);
                 else
                     feats.computeInfo(RHS2, (*it));
-
+#ifdef CFG_RULES_DEBUG
                 cout << name1 << "," << name2 << endl;
+#endif
                 ofstream * file = pairWiseFeatFiles[sortTypes];
                 assert(file != NULL);
                 feats.writeToFile(*file);
