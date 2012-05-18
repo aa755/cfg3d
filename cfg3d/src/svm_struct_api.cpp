@@ -310,6 +310,10 @@ void        print_struct_learning_stats(SAMPLE sample, STRUCTMODEL *sm,
   /* This function is called after training and allows final touches to
      the model sm. But primarly it allows computing and printing any
      kind of statistic (e.g. training error) you might want. */
+    static int i=0;
+    i++;
+    string fname=string("model")+boost::lexical_cast<string>(i);
+    write_struct_model(fname.data(),sm,sparm);
 }
 
 void        print_struct_testing_stats(SAMPLE sample, STRUCTMODEL *sm,
@@ -336,10 +340,17 @@ void        eval_prediction(long exnum, EXAMPLE ex, LABEL ypred,
   }
 }
 
-void        write_struct_model(char *file, STRUCTMODEL *sm, 
+void        write_struct_model(const char *file, STRUCTMODEL *sm, 
 			       STRUCT_LEARN_PARM *sparm)
 {
   /* Writes structural model sm to file file. */
+    ofstream ofile;
+    ofile.open(file);
+    for(int i=0;i<sm->sizePsi;i++)
+    {
+        ofile<<sm->w[i]<<endl;
+    }
+    ofile.close();
 }
 
 STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)

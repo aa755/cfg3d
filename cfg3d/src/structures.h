@@ -4452,13 +4452,13 @@ public:
         boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS1,RHS2);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
+        appendAllFeatures(LHS,RHS1,RHS2);
+        
 #ifdef USING_SVM_FOR_LEARNING_CFG
 #else
-               appendAllFeatures(LHS,RHS1,RHS2);
-
+        writeFeaturesToFile();
 #endif
 
-        writeFeaturesToFile();
         return LHS;
     }
     

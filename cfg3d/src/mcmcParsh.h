@@ -355,7 +355,12 @@ protected:
      */
     void setTransProbFromDelta()
     {
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        transProb=exp(costDelta/10.0);
+#else
         transProb=exp(-costDelta/10.0);
+        
+#endif
         transProbSet=true;
     }
     

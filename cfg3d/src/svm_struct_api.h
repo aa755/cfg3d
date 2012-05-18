@@ -58,7 +58,7 @@ void        print_struct_testing_stats(SAMPLE sample, STRUCTMODEL *sm,
 void        eval_prediction(long exnum, EXAMPLE ex, LABEL prediction, 
 			    STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm,
 			    STRUCT_TEST_STATS *teststats);
-void        write_struct_model(char *file,STRUCTMODEL *sm, 
+void        write_struct_model(const char *file,STRUCTMODEL *sm, 
 			       STRUCT_LEARN_PARM *sparm);
 STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm);
 void        write_label(FILE *fp, LABEL y);
