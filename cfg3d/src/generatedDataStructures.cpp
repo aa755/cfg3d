@@ -400,7 +400,7 @@ vector<string> temp;
 	appendRuleInstance(learningRules,RulePtr(new DoubleRuleComplex<Floor,cupboard>(temp)));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<FridgeTop_FridgeSide,FridgeTop,FridgeSide>()));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<FridgeTop_FridgeSide_FridgeDoor,FridgeTop_FridgeSide,FridgeDoor>()));
-	appendRuleInstance(learningRules,RulePtr(new SingleRule<Fridge,FridgeTop_FridgeSide_FridgeDoor>()));
+	appendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<Fridge,FridgeTop_FridgeSide_FridgeDoor>()));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<sofaBackRest_sofaBase,sofaBackRest,sofaBase>()));
 	appendRuleInstance(learningRules,RulePtr(new SingleRuleNoFeature<Sofa,sofaBackRest_sofaBase>()));
 	appendRuleInstance(learningRules,RulePtr(new DoubleRule<keyboardTray_tableBack,keyboardTray,tableBack>()));

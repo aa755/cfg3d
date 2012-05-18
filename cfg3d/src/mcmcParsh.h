@@ -188,7 +188,7 @@ public:
             if(label==it->second)
                 loss-=LOSS_PER_NODE;
         }
-        
+   //     cout<<"rl\n";
         return loss;
     }
     
@@ -490,9 +490,10 @@ public:
      */
     Forest(SceneInfo::SPtr sceneInfo, RulesDB::SPtr rulesDB,SVM_CFG_Y::SPtr gtY)
     {
+   //     cout<<"created a l-ag forest"<<endl;
         gtSVMY=gtY;
-        curNegLogProb=gtY->getEmptyTreeLoss();
         init(sceneInfo,rulesDB);
+        curNegLogProb=gtY->getEmptyTreeLoss();
     }
     
     
