@@ -86,6 +86,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
      contain the learned weights for the model. */
     sm->rulesDB=RulesDB::SPtr(new RulesDB());
     sm->sizePsi=sm->rulesDB->getTotalNumParams();
+    assert(sample.n>0);
     for(int i=0;i<sample.n;i++)
     {
         sample.examples[i].x.allSceneInfo->setPsiSize(sm->sizePsi);

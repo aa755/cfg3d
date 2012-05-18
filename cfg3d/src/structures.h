@@ -3834,10 +3834,13 @@ public:
 #endif
     }
     
-    void computeFeatures(boost::shared_ptr<RHS_Type> input)
+    void computeFeatures(boost::shared_ptr<RHS_Type> input,boost::shared_ptr<LHS_Type> output)
     {
         features.clear();
         computeFeaturesSpecializable(input);
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       output->computePsi(this->startIndex, this->features);
+#endif
     }
     
     /**
@@ -3886,11 +3889,11 @@ public:
     {
         boost::shared_ptr<LHS_Type > LHS = applyRuleGeneric(RHS);
         
-        computeFeatures(RHS);
+        computeFeatures(RHS,LHS);
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
 #ifdef USING_SVM_FOR_LEARNING_CFG
-       LHS->computePsi(this->startIndex, this->features);
+       //LHS->computePsi(this->startIndex, this->features); // moved to computeFeats
         if(makesPlanarPrimitive())
         {
             vector<int> span;
@@ -3915,7 +3918,7 @@ public:
         }
         
         // to be replace by generic features
-        computeFeatures(RHS);
+        computeFeatures(RHS,LHS);
 #ifdef USING_SVM_FOR_LEARNING_CFG        
         if(makesPlanarPrimitive())
         {
@@ -4415,6 +4418,11 @@ public:
 //        features.push_back(rhs1Area+rhs2Area-lhsArea);
 //        features.push_back(lhsArea/max(rhs1Area,rhs2Area));        
 //        output->appendFeatures(features);
+        
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       output->computePsi(startIndex, features);
+#endif
+
     }
     
     virtual bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type1> RHS1, boost::shared_ptr<RHS_Type2> RHS2) {
@@ -4445,7 +4453,6 @@ public:
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
 #ifdef USING_SVM_FOR_LEARNING_CFG
-       LHS->computePsi(startIndex, features);
 #else
                appendAllFeatures(LHS,RHS1,RHS2);
 
@@ -4659,26 +4666,7 @@ public:
     }
     
 
-    Plane::SPtr  applyRuleInference(Symbol::SPtr extractedSym)
-    {
-        Plane::SPtr  LHS(new Plane());
-        LHS->addChild(extractedSym);
-        LHS->computeSpannedTerminals();
-//        LHS->computePlaneParamsAndSetCost();
-//        LHS->computePlaneParamsAndEigens(); // also computes feats
-//        LHS->setAdditionalCost(0);
-        LHS->computePlaneParamsAndSetCost();
-        
-       if(Rule::META_LEARNING)
-       {
-           LHS->declareOptimal();
-       }
-        
-        return LHS;
-        
-    }
-    
-    Plane::SPtr  applyRuleLearning(Symbol::SPtr extractedSym)
+    Plane::SPtr commonTask(Symbol::SPtr extractedSym)
     {
         Plane::SPtr  LHS ( new Plane());
         LHS->addChild(extractedSym);
@@ -4689,6 +4677,30 @@ public:
         features.push_back(LHS->getAvgSqrDist());
 #ifdef USING_SVM_FOR_LEARNING_CFG
        LHS->computePsi(this->startIndex, this->features);
+#endif        
+       return LHS;
+    }
+    
+    Plane::SPtr  applyRuleInference(Symbol::SPtr extractedSym)
+    {
+        Plane::SPtr  LHS=commonTask(extractedSym);
+        
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
+        double cost=getMinusLogProbability(features);
+        LHS->setAdditionalCost(cost);
+        
+        return LHS;
+        
+    }
+    
+    Plane::SPtr  applyRuleLearning(Symbol::SPtr extractedSym)
+    {
+        Plane::SPtr  LHS=commonTask(extractedSym);
+#ifdef USING_SVM_FOR_LEARNING_CFG
 #else
                writeFeaturesToFile();
 #endif
@@ -4699,7 +4711,7 @@ public:
         
     }
     
-    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
+    virtual void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
     {
         if (typeid (*extractedSym) != typeid (Terminal))
             return;
@@ -4735,35 +4747,9 @@ public:
     {
         return typeid(Plane).name();
     }
-    
-    Plane::SPtr  applyRuleInference(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) {
-        if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
-            return Plane::SPtr();
-        }
-        
-        Plane::SPtr  LHS( new Plane());
-        LHS->addChild(RHS_plane);
-        //TODO : FIRST COMPUTE PLANE PARAMS FROM JUST THIS AND THEN 
-        LHS->addChild(RHS_seg);
-        LHS->computeSpannedTerminals();
-//        LHS->computePlaneParamsAndEigens(); // also computes feats
-//        LHS->setAdditionalCost(0);
-        LHS->computePlaneParamsAndSetCost();
-       if(Rule::META_LEARNING)
-       {
-           LHS->declareOptimal();
-       }
-        return LHS;
-    }
-    
-    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    Plane::SPtr commonTask(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg)
     {
-        return applyRuleInference(boost::dynamic_pointer_cast<Plane>(children.at(0)),boost::dynamic_pointer_cast<Terminal>(children.at(1)));
-    }
-
-    Plane::SPtr  applyRuleLearning(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) {
-        
-        Plane::SPtr  LHS (new Plane());
+        Plane::SPtr  LHS ( new Plane());
         LHS->addChild(RHS_plane);
         LHS->addChild(RHS_seg);
         LHS->computeSpannedTerminals();
@@ -4773,6 +4759,38 @@ public:
         features.push_back(LHS->getAvgSqrDist());
 #ifdef USING_SVM_FOR_LEARNING_CFG
        LHS->computePsi(this->startIndex, this->features);
+#endif        
+       return LHS;
+    }
+    
+    Plane::SPtr  applyRuleInference(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) {
+        if (!RHS_plane->isAllCloseEnough(RHS_seg)) {
+            return Plane::SPtr();
+        }
+        
+        Plane::SPtr  LHS=commonTask(RHS_plane,RHS_seg);
+        
+       if(Rule::META_LEARNING)
+       {
+           LHS->declareOptimal();
+       }
+        
+              double cost=getMinusLogProbability(features);
+        LHS->setAdditionalCost(cost);
+  
+        return LHS;
+    }
+    
+    virtual NonTerminal_SPtr applyRuleMarshalledParams(vector<Symbol::Ptr> children)
+    {
+        return applyRuleInference(boost::dynamic_pointer_cast<Plane>(children.at(0)),boost::dynamic_pointer_cast<Terminal>(children.at(1)));
+    }
+
+    Plane::SPtr  applyRuleLearning(Plane::SPtr  RHS_plane, Terminal_SPtr RHS_seg) 
+    {
+        
+        Plane::SPtr  LHS=commonTask(RHS_plane,RHS_seg);
+#ifdef USING_SVM_FOR_LEARNING_CFG
 #else
                writeFeaturesToFile();
 #endif
@@ -5150,6 +5168,9 @@ public:
         LHS->objectsOnTop.push_back(RHS2);
         appendMainFeats(RHS1,RHS2);
         LHS->computeSpannedTerminals();
+#ifdef USING_SVM_FOR_LEARNING_CFG
+       LHS->computePsi(this->startIndex, this->features);
+#endif        
         return LHS;
     }
 
@@ -5161,7 +5182,6 @@ public:
         LHS->setAdditionalCost(0);
         LHS->declareOptimal();
 #ifdef USING_SVM_FOR_LEARNING_CFG
-       LHS->computePsi(this->startIndex, this->features);
 #else
         this->writeFeaturesToFile();
         if (RHS1 != NULL)
@@ -5204,7 +5224,6 @@ public:
             return LHS;
         }
         
-            appendMainFeats(RHS1, RHS2);
 	this->numIntermediates=1;
              if(!setCost(LHS, RHS1, RHS2)) // set main cost
              {
@@ -5266,10 +5285,6 @@ public:
             }
         }
 #endif
-       if(Rule::META_LEARNING)
-       {
-           LHS->declareOptimal();
-       }
          return LHS;
         
     }

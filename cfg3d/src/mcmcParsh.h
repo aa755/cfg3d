@@ -237,9 +237,11 @@ public:
     {
         return psi.rows();
     }
+    
     SVM_CFG_Y(vector<Symbol::Ptr> &trees)
     {
         init(trees);
+        
     }
     
     int countNumNZ()
@@ -263,6 +265,7 @@ public:
         {
             (*it)->addYourLabelmapTo(labelMap);
         }
+        computePsi();
 #endif
         featsReadFromFileNoTrees=false;                
     }
@@ -281,7 +284,7 @@ public:
         getLines((base+".ypred").data(),lines);
 
         int numFeats=lines.size();
-        psi.setZero(numFeats); // if not present, use line counter
+        psi.setZero(numFeats); 
         
         for(int count=0;count<numFeats;count++)
         {
@@ -428,7 +431,7 @@ public:
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=500;
+    const static int timeLimit=50;
 
     bool lossAugmented()
     {
