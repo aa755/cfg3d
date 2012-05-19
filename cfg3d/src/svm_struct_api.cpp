@@ -215,6 +215,8 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   mfor.runMCMC();
   ybar.treePsi=mfor.getParsingResult();
   cerr<<"l:"<<y.treePsi->evalLoss(ybar.treePsi)<<","<<y.treePsi->getEmptyTreeLoss()<<endl;
+  ybar.treePsi->printPsi("pred");
+  y.treePsi->printPsi("gt");
   /* insert your code for computing the label ybar here */
 
   return(ybar);
@@ -273,6 +275,8 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   fvec->words[count].wnum=0;
   fvec->next=NULL;
   fvec->userdefined=NULL;
+  fvec->factor=1.0;
+  fvec->kernel_id=0;
   
 
   /* insert code for computing the feature vector for x and y here */

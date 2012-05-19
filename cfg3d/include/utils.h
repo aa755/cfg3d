@@ -510,6 +510,10 @@ void printLabelmap(std::map<MAPIN, MAPOUT> & src, std::ostream & file)
 
 }
 
+bool floatEqual(double a, double b, double tol=0.01)
+{
+    return (fabs(a-b)<tol);
+}
 //class VectorWrapper
 //{
 //public:

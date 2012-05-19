@@ -73,6 +73,10 @@ public:
     
     void readModel(double * w_svm)
     {
+//        for(int i=0;i<totalNumParams;i++)
+//        {
+//            assert(w_svm[i]==0);
+//        }
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             (*it)->readModel(w_svm);
@@ -282,6 +286,16 @@ public:
         featsReadFromFileNoTrees=false;                
     }
     
+    void printPsi(string label="")
+    {
+        cerr<<"psi-"<<label<<endl;
+        for(int i=0;i<psi.rows();i++)
+        {
+            cerr<<psi(i)<<",";
+        }
+        cerr<<endl;
+    }
+    
     SVM_CFG_Y(string file)
     {
         init(file);
@@ -460,11 +474,12 @@ public:
             score+=(*it)->getCost();
         }
         
+//        assert(score==0);
         if(lossAugmented())
         {
             score+=gtSVMY->evalLoss(labelmap);
         }
-        assert(score==curNegLogProb);
+        assert(floatEqual(score,curNegLogProb));
     }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     const static double ADDITIONAL_COMPONENT_PENALTY=0;
