@@ -499,6 +499,16 @@ void subtractLabelmap(std::map<MAPIN, MAPOUT> & src, std::map<MAPIN, MAPOUT> & d
     }
 
 }
+template<typename MAPIN, typename MAPOUT>
+void printLabelmap(std::map<MAPIN, MAPOUT> & src, std::ostream & file) 
+{
+
+    for (typename std::map<MAPIN,MAPOUT>::iterator it = src.begin(); it != src.end(); it++) 
+    {
+        file<<it->first<<it->second<<endl;
+    }
+
+}
 
 //class VectorWrapper
 //{

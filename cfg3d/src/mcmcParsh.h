@@ -186,7 +186,10 @@ public:
         {
             string label=lookupLabel(add,it->first);
             if(label==it->second)
+            {
+  //              cerr<<"lr:"<<it->second<<endl;
                 loss-=LOSS_PER_NODE;
+            }
         }
    //     cout<<"rl\n";
         return loss;
@@ -377,8 +380,14 @@ protected:
 public:
     void applylabelMapDelta( LABELMAP_TYPE & lab)
     {
-        appendLabelmap(addMap,lab);
+//        cerr<<"---delta: nodes for deletion:-------\n";
+//        printLabelmap(delMap,cerr);
         subtractLabelmap(delMap,lab);
+        
+//        cerr<<"---nodes for addition---\n";
+//        printLabelmap(addMap,cerr);
+        appendLabelmap(addMap,lab);
+//        cerr<<"----------------------\n";
     }
     
     typedef SupportComplex<Floor> SCENE_TYPE;
@@ -442,6 +451,21 @@ class Forest
     SVM_CFG_Y::SPtr gtSVMY;
     
 public:
+    void validate()
+    {
+       // print();
+        double score=0;
+        for (vector<Symbol::Ptr>::iterator it = trees.begin(); it != trees.end(); it++)
+        {
+            score+=(*it)->getCost();
+        }
+        
+        if(lossAugmented())
+        {
+            score+=gtSVMY->evalLoss(labelmap);
+        }
+        assert(score==curNegLogProb);
+    }
 #ifdef USING_SVM_FOR_LEARNING_CFG
     const static double ADDITIONAL_COMPONENT_PENALTY=0;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=0;
@@ -747,6 +771,7 @@ public:
             if(lossAugmented())
                 selMove->applylabelMapDelta(labelmap);
             
+            validate();
             if(bestCostSoFar>curNegLogProb)
             {
                 bestCostSoFar=curNegLogProb;

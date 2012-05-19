@@ -214,6 +214,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   Forest mfor(x.allSceneInfo,sm->rulesDB,y.treePsi);
   mfor.runMCMC();
   ybar.treePsi=mfor.getParsingResult();
+  cerr<<"l:"<<y.treePsi->evalLoss(ybar.treePsi)<<","<<y.treePsi->getEmptyTreeLoss()<<endl;
   /* insert your code for computing the label ybar here */
 
   return(ybar);
@@ -287,7 +288,9 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
       assert(false);                            /* return 0, if y==ybar. return 1 else */
   }
   else {
-      return y.treePsi->evalLoss(ybar.treePsi);
+      double loss=y.treePsi->evalLoss(ybar.treePsi);
+      cerr<<"loss:"<<loss<<endl;
+      return loss;
     /* Put your code for different loss functions here. But then
        find_most_violated_constraint_???(x, y, sm) has to return the
        highest scoring label with the largest loss. */
