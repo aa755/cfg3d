@@ -35,6 +35,9 @@ class RulesDB
     vector<RulePtr> emptyRules;
     int totalNumParams;
     VectorXd wSvm;
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    int countIter;
+#endif
 public:
     typedef  boost::shared_ptr<RulesDB> SPtr;
 
@@ -67,7 +70,7 @@ public:
             (*it)->setStartIndex(totalNumParams);
             totalNumParams+=(*it)->getNumParams();
         }
-        
+      countIter=0;   
 #endif        
  //       cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
     }
@@ -146,6 +149,16 @@ public:
     int getTotalNumParams() const {
         return totalNumParams;
     }
+#ifdef USING_SVM_FOR_LEARNING_CFG
+
+    void incrementCountIter() {
+        this->countIter++;
+    }
+
+    int getCountIter() const {
+        return countIter;
+    }
+#endif
 };
 
 class SVM_CFG_Y :  public boost::enable_shared_from_this<SVM_CFG_Y> 
@@ -509,7 +522,8 @@ public:
     
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimit=50;
+    const static int timeLimitInit=50;
+    const static int timeLimitIncrement=15;
 
     bool lossAugmented()
     {
@@ -803,6 +817,13 @@ public:
         bestCostSoFar=infinity();
         TicToc timer;
         int iter=0;
+        int timeLimit=timeLimitInit;
+        
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        timeLimit+=(timeLimitIncrement*rulesDB->getCountIter());
+#endif
+        
+        cerr<<"tl:"<<timeLimit<<endl;
         while(timer.toc()<timeLimit)
         {
             iter++;

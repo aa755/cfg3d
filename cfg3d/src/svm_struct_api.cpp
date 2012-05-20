@@ -319,7 +319,8 @@ void        print_struct_learning_stats(SAMPLE sample, STRUCTMODEL *sm,
      kind of statistic (e.g. training error) you might want. */
   //  static int i=0;
     //i++;
-    string fname=string("model")+boost::lexical_cast<string>(clock());
+    string fname=string("model.")+boost::lexical_cast<string>(sm->rulesDB->getCountIter());
+    sm->rulesDB->incrementCountIter();
     write_struct_model(fname.data(),sm,sparm);
 }
 
