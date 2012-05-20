@@ -29,8 +29,9 @@
 #include "svm_struct_common.cpp" 
 #include "svm_struct_main.cpp"
 
-#define MAX(x,y)      ((x) < (y) ? (y) : (x))
-#define MIN(x,y)      ((x) > (y) ? (y) : (x))
+//already equivalently defined in some included library
+//#define MAX(x,y)      ((x) < (y) ? (y) : (x))
+//#define MIN(x,y)      ((x) > (y) ? (y) : (x))
 
 
 void svm_learn_struct(SAMPLE sample, STRUCT_LEARN_PARM *sparm,

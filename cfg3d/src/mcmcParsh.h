@@ -34,6 +34,7 @@ class RulesDB
     map<set<string>, vector<RulePtr> > childTypeToRule; // same LHS can have multiple RHS; Wall, Floor -> Plane
     vector<RulePtr> emptyRules;
     int totalNumParams;
+    VectorXd wSvm;
 public:
     typedef  boost::shared_ptr<RulesDB> SPtr;
 
@@ -73,14 +74,21 @@ public:
     
     void readModel(double * w_svm)
     {
-//        for(int i=0;i<totalNumParams;i++)
-//        {
-//            assert(w_svm[i]==0);
-//        }
+        wSvm.setZero(totalNumParams);
+        for(int i=0;i<totalNumParams;i++)
+        {
+            wSvm(i)=w_svm[i];
+        }
+        
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             (*it)->readModel(w_svm);
         }        
+    }
+    
+    VectorXd & getWSVM()
+    {
+        return wSvm;
     }
     
     vector<RulePtr> & lookupRule(set<string> & childTypes)
@@ -140,7 +148,7 @@ public:
     }
 };
 
-class SVM_CFG_Y
+class SVM_CFG_Y :  public boost::enable_shared_from_this<SVM_CFG_Y> 
 {
 protected:
     vector<Symbol::Ptr> trees;
@@ -181,6 +189,11 @@ public:
     string lookupLabel(int segmentNum)
     {
         return lookupLabel(labelMap, segmentNum);
+    }
+    
+    void printLabelMap()
+    {
+        printLabelmap(labelMap,cerr);
     }
     
     double evalLossDeltaOnAdd(const LABELMAP_TYPE & add) const
@@ -240,8 +253,13 @@ public:
                 loss+=LOSS_PER_NODE;
                 
         }
-        
+        cerr<<"mcmcmloss:"<<loss<<endl;
         return loss;
+    }
+    
+    double computeScore(VectorXd & wSvm, SVM_CFG_Y::CSPtr gt) const
+    {
+        return wSvm.dot(psi) + gt->evalLoss(shared_from_this());
     }
     
     double getFeat(int i)
@@ -538,7 +556,17 @@ public:
     
     SVM_CFG_Y::SPtr getParsingResult()
     {
-        return SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
+        SVM_CFG_Y::SPtr ret= SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
+        double scoreEstimate=ret->computeScore(rulesDB->getWSVM(), getGTSVMY());
+        print();
+//        cerr<<"----estimated labelmap-----\n";
+//        printLabelmap(labelmap,cerr);
+//        cerr<<"-----actual labelmap------\n";
+//        ret->printLabelMap();
+//        cerr<<"-----------\n";
+        cerr<<"scores"<<curNegLogProb<<","<<scoreEstimate<<endl;
+        assert(floatEqual(curNegLogProb,scoreEstimate));
+        return ret;
     }
     
     /**

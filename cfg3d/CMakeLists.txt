@@ -8,7 +8,6 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 set(ROS_BUILD_TYPE Debug)
-
 rosbuild_init()
 find_package(Qt4 REQUIRED)
 # enable/disable some Qt features
@@ -64,6 +63,7 @@ rosbuild_add_executable(featGen src/featGen.cpp)
 rosbuild_add_executable(mcmcParse src/mcmcParse.cpp)
 rosbuild_add_executable(svm_cfg_classify src/svm_struct/svm_struct_classify.cpp )
 rosbuild_add_executable(svm_cfg_learn src/svm_light/svm_hideo.c src/svm_struct/svm_struct_learn.cpp)
+rosbuild_add_compile_flags(svm_cfg_learn -Wall -Wno-write-strings)
         
 #rosbuild_add_executable(rulesGenerator src/rulesGenerator.cpp)
 #rosbuild_add_executable(generatedLearner src/generatedLearner.cpp)

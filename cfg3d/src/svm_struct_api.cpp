@@ -317,9 +317,9 @@ void        print_struct_learning_stats(SAMPLE sample, STRUCTMODEL *sm,
   /* This function is called after training and allows final touches to
      the model sm. But primarly it allows computing and printing any
      kind of statistic (e.g. training error) you might want. */
-    static int i=0;
-    i++;
-    string fname=string("model")+boost::lexical_cast<string>(i);
+  //  static int i=0;
+    //i++;
+    string fname=string("model")+boost::lexical_cast<string>(clock());
     write_struct_model(fname.data(),sm,sparm);
 }
 
@@ -364,6 +364,8 @@ STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
 {
   /* Reads structural model sm from file file. This function is used
      only in the prediction module, not in the learning module. */
+    assert(false); // not implemented yet
+    return STRUCTMODEL();
 }
 
 void        write_label(FILE *fp, LABEL y)
