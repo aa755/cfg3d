@@ -541,19 +541,11 @@ std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) 
     return newClusters;
 }
 
-void segmentAndGetClusters(string filename, std::vector<pcl::PointIndices> & clusters)
+void segment(string filename, std::vector<pcl::PointIndices> & clusters, pcl::PointCloud<PointOutT> & scene)
 {
-    
-}
-
-int main(int argc, char** argv)
-{
-    cout<<"Starting..."<<endl;
-   string filename=string(argv[1]);
         pcl::PointCloud<PointInT> cloud_temp;
-        pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
+        pcl::io::loadPCDFile<PointInT > (filename, cloud_temp);
         pcl::PointCloud<PointInT> cloud;
-        pcl::PointCloud<PointOutT> scene;
         cloud.points.reserve(cloud_temp.size());
         cloud.sensor_origin_=cloud_temp.sensor_origin_;
         //remove Nans
@@ -576,27 +568,6 @@ int main(int argc, char** argv)
 
     int number_neighbours = 30;
     
-    std::vector<pcl::PointIndices> clusters;
-    //enable for old seg
-//    float radius =  0.01;
-//    float angle = 0.40;
-//    pcl::KdTree<PointInT>::Ptr normals_tree_, clusters_tree_;
-//    pcl::NormalEstimation<PointInT, pcl::Normal> n3d_;
-//    clusters_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
-//    initTree(0, clusters_tree_);
-//    clusters_tree_->setInputCloud(cloud_ptr);
-//    normals_tree_ = boost::make_shared<pcl::KdTreeFLANN<PointInT> > ();
-//    n3d_.setKSearch(number_neighbours);
-//    n3d_.setSearchMethod(clusters_tree_);
-//    pcl::PointCloud<pcl::Normal> cloud_normals;
-//    n3d_.setInputCloud(cloud_ptr);
-//    n3d_.compute(cloud_normals);
-
-    //pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_ptr = createStaticShared<const pcl::PointCloud<pcl::Normal> > (& cloud_normals);
- //   pcl::extractEuclideanClusters<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,300);
-    
-    //extractEuclideanClustersM<PointInT, pcl::Normal > (cloud, cloud_normals, radius, clusters_tree_, clusters, angle,500);
-   // extractRansacClusters(cloud, clusters);
         SegmentPCDGraph<PointInT> segmenter(0.05,0.04,number_neighbours,0.1,500);
         segmenter.segment(cloud,clusters);
 
@@ -623,9 +594,7 @@ int main(int argc, char** argv)
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);
     cout<<"Cluster Size = "<<clusters.size()<<endl;
-
     int total = 0;
-
     for (size_t i = 0; i < clusters.size(); i++)
     {
         if(clusters[i].indices.size()<MIN_SEG_SIZE)
@@ -638,19 +607,28 @@ int main(int argc, char** argv)
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         total += clusters[i].indices.size();
     }
-   
    string toAppendToString = filename;//filename.substr(0, filename.length()-4);
    string segmentedPCD = toAppendToString.append("_segmented.pcd");
    
    pcl::io::savePCDFile<PointOutT>(segmentedPCD, scene,true);
    std::cout << total << std::endl;
-   
+    
+}
+
+int main(int argc, char** argv)
+{
+    cout<<"Starting..."<<endl;
+   string filename=string(argv[1]);
+    std::vector<pcl::PointIndices> clusters;
+     pcl::PointCloud<PointOutT> scene;
+     
+     segment(filename,clusters,scene);
 #ifdef COMPUTE_NEIGHBORS
     OccupancyMapAdv occupancy(scene);
 #endif        
     std::ofstream logFile;
     
-    string neighborMap = toAppendToString.append("_nbr.txt");
+    string neighborMap = filename.append("_nbr.txt");
     logFile.open(neighborMap.data(),ios::out);
     set<int>::iterator sit;
     
@@ -671,7 +649,6 @@ int main(int argc, char** argv)
         
         std::cout << "seg size " << clusters[i].indices.size() << std::endl;
         
-        total += clusters[i].indices.size();
         
             logFile<<i+1;
             for(sit=segNbrs.begin();sit!=segNbrs.end();sit++)
