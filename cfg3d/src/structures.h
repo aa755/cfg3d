@@ -3286,6 +3286,20 @@ public:
           pdist->readModel(w_svm, startIndex , getNumParams());
     }
     
+    virtual void printModel(VectorXd & vec, string suffix="")
+    {
+        assert(startIndex!=-1);
+        ofstream file;
+        string filename=string(typeid(*this).name())+".svm"+suffix;
+        file.open(filename.data(), ios::app);
+        for(int i=0;i<getNumParams();i++)
+        {
+            file<<vec(startIndex+i)<<",";
+        }
+        file<<endl;
+        file.close();        
+    }
+    
 //    static double getVectorElem(double * w, int i)
 //    {
 //        return w[i];

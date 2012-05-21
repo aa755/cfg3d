@@ -49,6 +49,25 @@ public:
                 
     }
     
+
+    
+    void printRuleWise(VectorXd & vec, string suffix="")
+    {
+        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
+        {
+            (*it)->printModel(vec, suffix);
+        }        
+    }
+    void printRuleWise()
+    {
+        printRuleWise(wSvm,"model");
+    }
+    void printRuleWise(double * w_svm)
+    {
+        setwSvm(w_svm);
+        printRuleWise();
+    }
+    
     RulesDB()
     {
         prepareRulesVector();
@@ -75,14 +94,17 @@ public:
  //       cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
     }
     
-    void readModel(double * w_svm)
+    void setwSvm(double * w_svm)
     {
         wSvm.setZero(totalNumParams);
         for(int i=0;i<totalNumParams;i++)
         {
             wSvm(i)=w_svm[i];
-        }
-        
+        }        
+    }
+    void readModel(double * w_svm)
+    {
+        setwSvm(w_svm);
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             (*it)->readModel(w_svm);
