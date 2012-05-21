@@ -1612,6 +1612,11 @@ public:
         cost = 0;
     }
 
+    Terminal() 
+    {
+        index = -1;
+        cost = 0;
+    }
 
     int getIndex() const {
         return index;

@@ -424,19 +424,19 @@ Terminal mergeTerminals(Terminal& terminal1, Terminal& terminal2) {
     return terminal1;
 }
 
-bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOrigin) {
+bool goodEnough(Terminal & terminal1, Terminal& terminal2, pcl::PointXYZ cameraOrigin, pcl::PointCloud<PointOutT> & scene) {
     
     terminal1.computeFeatures();
     terminal2.computeFeatures();
     
     Plane terminal1Plane;
-    terminal1Plane.addChild(&terminal1);
+    terminal1Plane.addChild(createStaticShared(&terminal1));
     terminal1Plane.addPointIndices(terminal1.getPointIndices());
     terminal1Plane.computeFeatures();
     terminal1Plane.computePlaneParams();
     
     Plane terminal2Plane;
-    terminal2Plane.addChild(&terminal2);
+    terminal2Plane.addChild(createStaticShared(&terminal2));
     terminal2Plane.addPointIndices(terminal2.getPointIndices());
     terminal2Plane.computeFeatures();
     terminal2Plane.computePlaneParams();
@@ -487,10 +487,10 @@ bool goodEnough(Terminal& terminal1, Terminal& terminal2, pcl::PointXYZ cameraOr
  * @return true if we merged baseTerminal with one of terminalsToMerge
  *      if true, baseTerminal grown, terminalsToMerge size - 1
  */
-bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& terminalsToMerge, pcl::PointXYZ cameraOrigin) {
+bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& terminalsToMerge, pcl::PointXYZ cameraOrigin,pcl::PointCloud<PointOutT> & scene) {
     vector<Terminal>::iterator it;
     for (it = terminalsToMerge.begin(); it != terminalsToMerge.end(); it++) {
-        if(goodEnough(baseTerminal, *it, cameraOrigin)) {
+        if(goodEnough(baseTerminal, *it, cameraOrigin,scene)) {
             mergeTerminals(baseTerminal, *it);
             terminalsToMerge.erase(it);
             return true;
@@ -499,12 +499,12 @@ bool runThroughTerminalsToMerge(Terminal& baseTerminal, vector<Terminal>& termin
     return false;
 }
 
-vector<Terminal> mergeTerminalsProcess(vector<Terminal> terminalsToMerge, pcl::PointXYZ cameraOrigin) {
+vector<Terminal> mergeTerminalsProcess(vector<Terminal> terminalsToMerge, pcl::PointXYZ cameraOrigin,pcl::PointCloud<PointOutT> & scene) {
     vector<Terminal> mergedTerminals;
     while(!terminalsToMerge.empty()) {
         Terminal baseTerminal = terminalsToMerge.at(0);
         terminalsToMerge.erase(terminalsToMerge.begin());
-        while (runThroughTerminalsToMerge(baseTerminal, terminalsToMerge, cameraOrigin)) {
+        while (runThroughTerminalsToMerge(baseTerminal, terminalsToMerge, cameraOrigin,scene)) {
         }
         mergedTerminals.push_back(baseTerminal);
     }
@@ -541,12 +541,19 @@ std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) 
     return newClusters;
 }
 
+void segmentAndGetClusters(string filename, std::vector<pcl::PointIndices> & clusters)
+{
+    
+}
+
 int main(int argc, char** argv)
 {
     cout<<"Starting..."<<endl;
+   string filename=string(argv[1]);
         pcl::PointCloud<PointInT> cloud_temp;
         pcl::io::loadPCDFile<PointInT > (argv[1], cloud_temp);
         pcl::PointCloud<PointInT> cloud;
+        pcl::PointCloud<PointOutT> scene;
         cloud.points.reserve(cloud_temp.size());
         cloud.sensor_origin_=cloud_temp.sensor_origin_;
         //remove Nans
@@ -612,7 +619,7 @@ int main(int argc, char** argv)
     cout<<"Unmerged Terminal Size = "<<unmergedTerminals.size()<<endl;
     pcl::PointXYZ cameraOrigin = pcl::PointXYZ(cloud.sensor_origin_[0], cloud.sensor_origin_[1], cloud.sensor_origin_[2]);
     //assert(cameraOrigin.z!=0);
-    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin);
+    vector<Terminal> mergedTerminals = mergeTerminalsProcess(unmergedTerminals, cameraOrigin,scene);
     cout<<"Merged Terminal Size = "<<mergedTerminals.size()<<endl;
     clusters = clusterFromTerminals(mergedTerminals);
     cout<<"Cluster Size = "<<clusters.size()<<endl;
@@ -632,7 +639,6 @@ int main(int argc, char** argv)
         total += clusters[i].indices.size();
     }
    
-   string filename=string(argv[1]);
    string toAppendToString = filename;//filename.substr(0, filename.length()-4);
    string segmentedPCD = toAppendToString.append("_segmented.pcd");
    

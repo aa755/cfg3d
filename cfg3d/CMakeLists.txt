@@ -50,7 +50,7 @@ gencfg()
 #rosbuild_add_executable(ParseTreeLablerF  ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 #target_link_libraries(ParseTreeLablerF ${QT_LIBRARIES})
 
-#rosbuild_add_executable(makeGraph src/makeGraph.cpp)
+rosbuild_add_executable(makeGraph src/makeGraph.cpp)
 #rosbuild_add_executable(visualizeNighbors src/labelVisualizer.cpp)
 #rosbuild_add_executable(featuresGenerator src/featuresGenerator.cpp)
 #rosbuild_add_executable(singleBag2PCD src/singleBag2PCD.cpp)
