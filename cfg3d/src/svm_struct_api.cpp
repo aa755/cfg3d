@@ -90,6 +90,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
     for(int i=0;i<sample.n;i++)
     {
         sample.examples[i].x.allSceneInfo->setPsiSize(sm->sizePsi);
+       sm->rulesDB->printRuleWise(sample.examples[i].y.treePsi->getPsi());
     }
 }
 
@@ -215,8 +216,9 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   mfor.runMCMC();
   ybar.treePsi=mfor.getParsingResult();
   cerr<<"l:"<<y.treePsi->evalLoss(ybar.treePsi)<<","<<y.treePsi->getEmptyTreeLoss()<<endl;
-  ybar.treePsi->printPsi("pred");
-  y.treePsi->printPsi("gt");
+//  ybar.treePsi->printPsi("pred");
+//  y.treePsi->printPsi("gt");
+  sm->rulesDB->printRuleWise(ybar.treePsi->getPsi());
   /* insert your code for computing the label ybar here */
 
   return(ybar);

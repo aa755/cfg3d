@@ -836,11 +836,13 @@ void svm_learn_struct_joint(SAMPLE sample, STRUCT_LEARN_PARM *sparm,
 
       rt_total+=MAX(get_runtime()-rt1,0);
 
-  } while(cached_constraint || (ceps > sparm->epsilon) || 
-	  finalize_iteration(ceps,cached_constraint,sample,sm,cset,alpha,sparm)
-	 );
-  
+  } while(finalize_iteration(ceps,cached_constraint,sample,sm,cset,alpha,sparm)|| cached_constraint || (ceps > sparm->epsilon) );
 
+  // originally like below ... finalize_iteration was not called because of short-circuit evaluation
+//  } while(cached_constraint || (ceps > sparm->epsilon) || 
+//	  finalize_iteration(ceps,cached_constraint,sample,sm,cset,alpha,sparm)
+//	 );
+  
   if(struct_verbosity>=1) {
     printf("Final epsilon on KKT-Conditions: %.5f\n",
 	   MAX(svmModel->maxdiff,ceps));

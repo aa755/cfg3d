@@ -3286,7 +3286,7 @@ public:
           pdist->readModel(w_svm, startIndex , getNumParams());
     }
     
-    virtual void printModel(VectorXd & vec, string suffix="")
+    virtual void printModel(const VectorXd & vec, string suffix="")
     {
         assert(startIndex!=-1);
         ofstream file;

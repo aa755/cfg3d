@@ -51,7 +51,7 @@ public:
     
 
     
-    void printRuleWise(VectorXd & vec, string suffix="")
+    void printRuleWise(const VectorXd & vec, string suffix="")
     {
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
@@ -174,7 +174,7 @@ public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
 
     void incrementCountIter() {
-        this->countIter++;
+        countIter++;
     }
 
     int getCountIter() const {
@@ -397,7 +397,7 @@ public:
         
 #endif
 
-    VectorXd getPsi() const {
+    const VectorXd & getPsi() const {
         return psi;
     }
     
