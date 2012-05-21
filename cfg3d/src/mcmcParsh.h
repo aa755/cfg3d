@@ -544,8 +544,8 @@ public:
     
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimitInit=50;
-    const static int timeLimitIncrement=15;
+    const static int timeLimitInit=500;
+    const static int timeLimitIncrement=50;
 
     bool lossAugmented()
     {
