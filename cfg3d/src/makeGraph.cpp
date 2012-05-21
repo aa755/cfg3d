@@ -541,6 +541,36 @@ std::vector<pcl::PointIndices> clusterFromTerminals(vector<Terminal> terminals) 
     return newClusters;
 }
 
+/**
+ * reads an already segmented PCD .. useful for times when only neighborgraph has to be computed
+ * @param filename
+ * @param clusters
+ * @param scene
+ */
+void segmentDummy(string filename, std::vector<pcl::PointIndices> & clusters, pcl::PointCloud<PointOutT> & scene)
+{
+    pcl::io::loadPCDFile<PointOutT > (filename, scene);
+    int segId=1;
+    int done=false;
+    while(!done)
+    {
+        pcl::PointIndices segIndices;
+        for(int i=0;i<(int)scene.size();i++)
+        {
+            if((int)scene.points[i].segment==segId)
+                segIndices.indices.push_back(i);
+        }
+        if(segIndices.indices.size()>0)
+        {
+            clusters.push_back(segIndices);
+            segId++;
+        }
+        else
+            done=true;
+
+    }
+}
+
 void segment(string filename, std::vector<pcl::PointIndices> & clusters, pcl::PointCloud<PointOutT> & scene)
 {
         pcl::PointCloud<PointInT> cloud_temp;
@@ -622,7 +652,8 @@ int main(int argc, char** argv)
     std::vector<pcl::PointIndices> clusters;
      pcl::PointCloud<PointOutT> scene;
      
-     segment(filename,clusters,scene);
+//     segment(filename,clusters,scene);
+       segmentDummy(filename,clusters,scene);
 #ifdef COMPUTE_NEIGHBORS
     OccupancyMapAdv occupancy(scene);
 #endif        
