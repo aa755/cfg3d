@@ -111,6 +111,20 @@ public:
         }        
     }
     
+    void readModel(string file)
+    {
+        vector<string> lines;
+        getLines(file.data(), lines);
+        vector<double> wModel;
+        wModel.resize(lines.size());
+        for(int i=0;i<(int)lines.size();i++)
+        {
+            wModel.at(i)=boost::lexical_cast<double>(lines.at(i));
+        }
+        readModel(wModel.data());
+        
+    }
+    
     VectorXd & getWSVM()
     {
         return wSvm;
@@ -549,7 +563,7 @@ public:
 
     bool lossAugmented()
     {
-        assert (gtSVMY!=NULL);
+//        assert (gtSVMY!=NULL);
         return (gtSVMY!=NULL);
     }
     
@@ -594,7 +608,7 @@ public:
     {
         SVM_CFG_Y::SPtr ret= SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
         double scoreEstimate=ret->computeScore(rulesDB->getWSVM(), getGTSVMY());
-        print();
+        //print();
 //        cerr<<"----estimated labelmap-----\n";
 //        printLabelmap(labelmap,cerr);
 //        cerr<<"-----actual labelmap------\n";
@@ -861,10 +875,11 @@ public:
             if(bestCostSoFar>curNegLogProb)
             {
                 bestCostSoFar=curNegLogProb;
-              //  fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
-              //  print();
+                //fileName=origFileName+"__"+boost::lexical_cast<string>(bestCostSoFar);
             }
         }
+                        print();
+
     }
     
     
