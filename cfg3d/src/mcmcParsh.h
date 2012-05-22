@@ -204,7 +204,7 @@ protected:
     VectorXd psi;
     bool featsReadFromFileNoTrees;
     LABELMAP_TYPE labelMap;
-    const static double LOSS_PER_NODE=2.0;
+    const static double LOSS_PER_NODE=0.1;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
     typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
@@ -558,8 +558,8 @@ public:
     
     const static int NUM_MCMC_ITERATIONS=10000000;
     const static int NON_FLOORCOMPLEX_PENALTY=0;
-    const static int timeLimitInit=500;
-    const static int timeLimitIncrement=50;
+    const static int timeLimitInit=50;
+    const static int timeLimitIncrement=1;
 
     bool lossAugmented()
     {
@@ -850,6 +850,7 @@ public:
 
     void runMCMC()
     {
+        srand(time(NULL));
         bestCostSoFar=infinity();
         TicToc timer;
         int iter=0;

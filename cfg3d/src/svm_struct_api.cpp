@@ -308,12 +308,17 @@ int         finalize_iteration(double ceps, int cached_constraint,
 			       CONSTSET cset, double *alpha, 
 			       STRUCT_LEARN_PARM *sparm)
 {
+    static int i=0;
   /* This function is called just before the end of each cutting plane iteration. ceps is the amount by which the most violated constraint found in the current iteration was violated. cached_constraint is true if the added constraint was constructed from the cache. If the return value is FALSE, then the algorithm is allowed to terminate. If it is TRUE, the algorithm will keep iterating even if the desired precision sparm->epsilon is already reached. */
     string fname=string("model.")+boost::lexical_cast<string>(sm->rulesDB->getCountIter());
     sm->rulesDB->incrementCountIter();
     sm->rulesDB->printRuleWise(sm->w);
     write_struct_model(fname.data(),sm,sparm);
-  return(0);
+    i++;
+    if(i<300)
+        return(1);
+    else
+        return(0);
 }
 
 void        print_struct_learning_stats(SAMPLE sample, STRUCTMODEL *sm,
