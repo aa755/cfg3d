@@ -9,6 +9,7 @@
 #define	MCMCPARSH_H
 
 
+#define GREEDY_SVM_TRAINING_PREDICTION
 #include "structures.h"
 #include "wallDistance.h"
 //#include "CPU_generatedDataStructures.cpp"
@@ -530,7 +531,54 @@ class Forest
     SceneInfo::SPtr sceneInfo;
     LABELMAP_TYPE labelmap;
     SVM_CFG_Y::SPtr gtSVMY;
+        TicToc timer;
+        int timeLimit;
     
+/**
+     * inefficient, but needs less code-change . Alternatively, can make moves a sorted (multi)set
+     */
+     int findBestMove() 
+    {
+
+        double bestScore=-infinity();
+        int bestMoveIndex=-1;
+        for (int i=0 ; i < moves.size() ; i++) 
+        {
+            double score=moves.at(i)->getCostDelta();
+            if(bestScore<score)
+            {
+                bestScore=score;
+                bestMoveIndex=i;
+            }
+        }
+     //   assert(bestMoveIndex!=-1);
+        return bestMoveIndex;
+    }
+    
+     void searchStarting()
+     {
+         timer.tic();
+        timeLimit=timeLimitInit;
+        
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        timeLimit+=(timeLimitIncrement*rulesDB->getCountIter());
+#endif
+        
+     }
+     
+#ifdef GREEDY_SVM_TRAINING_PREDICTION
+     bool shouldSearchEnd()
+     {
+         assert(trees.size()>=1);
+         return (trees.size()==1);
+         
+     }     
+#else
+     bool shouldSearchEnd()
+     {
+         return (timer.toc()>timeLimit);
+     }
+#endif     
 public:
     void validate()
     {
@@ -852,19 +900,19 @@ public:
     {
         srand(time(NULL));
         bestCostSoFar=infinity();
-        TicToc timer;
         int iter=0;
-        int timeLimit=timeLimitInit;
-        
-#ifdef USING_SVM_FOR_LEARNING_CFG
-        timeLimit+=(timeLimitIncrement*rulesDB->getCountIter());
-#endif
-        
+        searchStarting();
         cerr<<"tl:"<<timeLimit<<endl;
-        while(timer.toc()<timeLimit)
+        while(!shouldSearchEnd())
         {
             iter++;
+#ifdef GREEDY_SVM_TRAINING_PREDICTION
+            int nm=findBestMove(); 
+            if(nm==-1)
+                break;
+#else
             int nm=sampleNextMoveUniformApprox();
+#endif
             Move::SPtr selMove=moves.at(nm);
             selMove->applyMove(*this);
             curNegLogProb+=(selMove->getCostDelta());
@@ -1322,6 +1370,8 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
         }
     }
 
+#ifndef GREEDY_SVM_TRAINING_PREDICTION
+
     // add the delete move for this new node
     if(tree->isOfSubClass<NonTerminal>())
         moves.push_back(Move::SPtr(new SplitMove(*this, index)));
@@ -1343,7 +1393,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     }
     
-
+#endif
 
 }
 
