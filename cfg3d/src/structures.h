@@ -669,9 +669,8 @@ class RulesDB;
 
 class SceneInfo :  public boost::enable_shared_from_this<SceneInfo> 
 {
-protected:
-    boost::shared_ptr<RulesDB> rulesDB;
 public:
+    boost::shared_ptr<RulesDB> rulesDB;
     typedef  boost::shared_ptr<SceneInfo> SPtr;
     pcl::PointCloud<PointT> scene;
     pcl::PointCloud<PointT> originalScene;
@@ -846,7 +845,8 @@ public:
     {
         // for some cases like terminals, need not do anything
     }
-    
+    virtual void validateCost(){}
+
     LABELMAP_TYPE labelMap;
     
     const virtual  LABELMAP_TYPE & getLabelMap()
@@ -1915,6 +1915,7 @@ public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
     bool labelMapComputed;
+    virtual void validateCost();
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         psi+=this->psi;
@@ -5724,5 +5725,13 @@ public:
     {
         return rulesDB->getTotalNumParams();
     }
+
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    void NonTerminal::validateCost()
+    {
+        double estimatedScore=thisScene->rulesDB->getWSVM().dot(psi);
+        assert(floatEqual(cost,estimatedScore));
+    }
+#endif    
 
 #endif
