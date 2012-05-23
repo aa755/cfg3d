@@ -1932,7 +1932,7 @@ public:
             return;
         for(int i=0;i<(int)features.size();i++)
         {
-            psi(index+i)+=features.at(i);
+            psi(index+i)+=(features.at(i));
         }
     }
     
