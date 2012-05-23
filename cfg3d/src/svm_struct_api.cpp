@@ -315,10 +315,10 @@ int         finalize_iteration(double ceps, int cached_constraint,
     sm->rulesDB->printRuleWise(sm->w);
     write_struct_model(fname.data(),sm,sparm);
     i++;
-    if(i<300)
+//    if(i<300)
         return(1);
-    else
-        return(0);
+//    else
+//        return(0);
 }
 
 void        print_struct_learning_stats(SAMPLE sample, STRUCTMODEL *sm,

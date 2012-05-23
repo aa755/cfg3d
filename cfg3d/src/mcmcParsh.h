@@ -542,7 +542,7 @@ class Forest
 
         double bestScore=-infinity();
         int bestMoveIndex=-1;
-        for (int i=0 ; i < moves.size() ; i++) 
+        for (int i=0 ; i < (int)moves.size() ; i++) 
         {
             double score=moves.at(i)->getCostDelta();
             if(bestScore<score)
@@ -792,43 +792,33 @@ public:
             return ret;
     }
     
-//    int sampleNextMove()
-//    {
-//        double sum=0;
-//        //double partialSums[moves.size()];
-//        //std::array<double,moves.size()> partialSums;
-//        vector<double> partialSums;
-//        partialSums.resize(moves.size());
-//        cerr<<moves.size()<<":";
-//        for(int i=0; i< (int)moves.size(); i++ )
-//        {
-//            double moveProb=moves.at(i)->getTransitionProbUnnormalized(curNegLogProb);
-//            sum+=moveProb;
-//            partialSums[i]=sum;
-//            cerr<<moves.at(i)->getCostDelta() <<",";
-//        }
-//        cerr<<endl;
-//        
+    int sampleNextMove()
+    {
+        double sum=0;
+        //double partialSums[moves.size()];
+        //std::array<double,moves.size()> partialSums;
+        vector<double> partialSums;
+        partialSums.resize(moves.size());
+    //    cerr<<moves.size()<<":";
+        for(int i=0; i< (int)moves.size(); i++ )
+        {
+            double moveProb=moves.at(i)->getTransitionProbUnnormalized();
+            sum+=moveProb;
+            partialSums[i]=sum;
+  //          cerr<<moves.at(i)->getCostDelta() <<",";
+        }
+        cerr<<endl;
+        
 //        cerr<<"sum:"<<sum<<endl;
-//        
-//        int count=0;
-//        while(true)
-//        {
-//            float r = getRand(sum);
-//            vector<double>::iterator upb;
-//            upb=upper_bound(partialSums.begin(),partialSums.end(),r);
-//            assert(upb!=partialSums.end() || r==sum);
-//            int selectedMove=(int)(upb-partialSums.begin());
-//            count++;
-//            Move::SPtr selMove=moves.at(selectedMove);
-//            double ratio=1.0/(selMove->getTransitionProbUnnormalized(curNegLogProb));
-//            if(ratio>1 || getRand(1.0)<ratio)
-//            {
-//                cerr<<"#trials= "<<count<<endl;
-//                return selectedMove;
-//            }
-//        }
-//    }
+        
+            float r = getRandFloat(sum);
+            vector<double>::iterator upb;
+            upb=upper_bound(partialSums.begin(),partialSums.end(),r);
+            assert(upb!=partialSums.end() || r==sum);
+            int selectedMove=(int)(upb-partialSums.begin());
+            
+                return selectedMove;
+    }
     
 //    int sampleNextMoveUniform()
 //    {
@@ -907,9 +897,9 @@ public:
         {
             iter++;
 #ifdef GREEDY_SVM_TRAINING_PREDICTION
-            int nm=findBestMove(); 
-            if(nm==-1)
+            if(moves.size()==0)
                 break;
+            int nm=sampleNextMove(); 
 #else
             int nm=sampleNextMoveUniformApprox();
 #endif
