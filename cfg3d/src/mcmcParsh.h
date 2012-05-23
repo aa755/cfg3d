@@ -455,6 +455,7 @@ public:
         this->rulesDB=rulesDB;
         curNegLogProb = 0;
         this->sceneInfo=sceneInfo;
+        this->sceneInfo->setRulesDB(rulesDB);
         for (unsigned int i = 0; i <sceneInfo->terminals.size(); i++)
         {
             sceneInfo->terminals.at(i)->declareOptimal(false);

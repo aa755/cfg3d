@@ -385,7 +385,7 @@ void createRunLearnBack(ofstream & outputLearnerCode) {
     outputLearnerCode<<"int main(int argc, char** argv) {"<<endl;
     outputLearnerCode<<"if(argc!=3)\n{\ncerr<<\"usage:\"<<argv[0]<<\" <PCDFile> <origPCDFileWithNaNs>\"<<endl;\n exit(-1);\n}\n";        
     outputLearnerCode<<"    SceneInfo::SPtr sc(new SceneInfo());"<<endl;
-    outputLearnerCode<<"    sc->init(argv[1]);RulesDB rules;sc->setPsiSize(rules.getTotalNumParams());\n";
+    outputLearnerCode<<"    sc->init(argv[1]);RulesDB rules;sc->setRulesDB(createStaticShared<RulesDB>(&rules));\n";
     outputLearnerCode<<"    runLearn(*sc,rules);"<<endl;
     outputLearnerCode<<"}"<<endl;
 

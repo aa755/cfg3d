@@ -672,7 +672,6 @@ class SceneInfo :  public boost::enable_shared_from_this<SceneInfo>
 protected:
     boost::shared_ptr<RulesDB> rulesDB;
 public:
-    int psiSize;
     typedef  boost::shared_ptr<SceneInfo> SPtr;
     pcl::PointCloud<PointT> scene;
     pcl::PointCloud<PointT> originalScene;
@@ -777,16 +776,12 @@ public:
         }
     }
 
-    void setPsiSize(int psiSize)
+    void setRulesDB(boost::shared_ptr<RulesDB> rulesDB)
     {
-        cerr<<"psiSize:"<<psiSize<<endl;
-        this->psiSize = psiSize;
+        this->rulesDB=rulesDB;
     }
 
-    int getPsiSize() const
-    {
-        return psiSize;
-    }
+    int getPsiSize() const ;
 
     Terminal_SPtr getTerminalSafe(int segmentNum);
 };
@@ -5724,5 +5719,10 @@ public:
     }
 #endif
 };
+
+    int SceneInfo::getPsiSize() const 
+    {
+        return rulesDB->getTotalNumParams();
+    }
 
 #endif

@@ -15,7 +15,6 @@ int main(int argc, char** argv)
     RulesDB::SPtr rules=RulesDB::SPtr(new RulesDB());
 #ifdef USING_SVM_FOR_LEARNING_CFG
     rules->readModel("modelf");
-    sceneInfo->setPsiSize(rules->getTotalNumParams());
 #endif
     Forest forest(sceneInfo, rules );
     forest.runMCMC();

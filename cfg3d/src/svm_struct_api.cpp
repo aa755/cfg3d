@@ -89,7 +89,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
     assert(sample.n>0);
     for(int i=0;i<sample.n;i++)
     {
-        sample.examples[i].x.allSceneInfo->setPsiSize(sm->sizePsi);
+       sample.examples[i].x.allSceneInfo->setRulesDB(sm->rulesDB);
        sm->rulesDB->printRuleWise(sample.examples[i].y.treePsi->getPsi());
     }
 }
