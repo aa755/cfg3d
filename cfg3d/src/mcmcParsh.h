@@ -28,175 +28,6 @@ class Forest;
  * this class is designed to support multiple fast queries for rules
  */
 
-class RulesDB
-{
-    vector<RulePtr>  rules;
-    vector<RulePtr>  planarPrimitiveRules;
-    map<set<string>, vector<RulePtr> > childTypeToRule; // same LHS can have multiple RHS; Wall, Floor -> Plane
-    vector<RulePtr> emptyRules;
-    int totalNumParams;
-    VectorXd wSvm;
-#ifdef USING_SVM_FOR_LEARNING_CFG
-    int countIter;
-#endif
-public:
-    typedef  boost::shared_ptr<RulesDB> SPtr;
-
-    void prepareRulesVector()
-    {
-        rules.push_back(RulePtr(new RPlaneSeg()));
-        rules.push_back(RulePtr(new RPlane_PlaneSeg()));
-        appendLearningRules(rules); 
-                
-    }
-    
-
-    
-    void printRuleWise(const VectorXd & vec, string suffix="")
-    {
-        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
-        {
-            (*it)->printModel(vec, suffix);
-        }        
-    }
-    void printRuleWise()
-    {
-        printRuleWise(wSvm,"model");
-    }
-    void printRuleWise(double * w_svm)
-    {
-        setwSvm(w_svm);
-        printRuleWise();
-    }
-    
-    RulesDB()
-    {
-        prepareRulesVector();
-        
-        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
-        {
-            assert((*it)->getChildrenTypesAsSet().size()==(*it)->getChildrenTypes().size());
-            childTypeToRule[(*it)->getChildrenTypesAsSet()].push_back(*it);
-            if((*it)->makesPlanarPrimitive())
-            {
-                cerr<<"ppr:"<<typeid(*(*it)).name()<<endl;
-                planarPrimitiveRules.push_back(*it);
-            }
-        }
-        totalNumParams=0;
-#ifdef USING_SVM_FOR_LEARNING_CFG
-        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
-        {
-            (*it)->setStartIndex(totalNumParams);
-            totalNumParams+=(*it)->getNumParams();
-        }
-      countIter=0;   
-#endif        
- //       cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;
-    }
-    
-    void setwSvm(double * w_svm)
-    {
-        wSvm.setZero(totalNumParams);
-        for(int i=0;i<totalNumParams;i++)
-        {
-            wSvm(i)=w_svm[i];
-        }        
-    }
-    void readModel(double * w_svm)
-    {
-        setwSvm(w_svm);
-        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
-        {
-            (*it)->readModel(w_svm);
-        }        
-    }
-    
-    void readModel(string file)
-    {
-        vector<string> lines;
-        getLines(file.data(), lines);
-        vector<double> wModel;
-        wModel.resize(lines.size());
-        for(int i=0;i<(int)lines.size();i++)
-        {
-            wModel.at(i)=boost::lexical_cast<double>(lines.at(i));
-        }
-        readModel(wModel.data());
-        
-    }
-    
-    VectorXd & getWSVM()
-    {
-        return wSvm;
-    }
-    
-    vector<RulePtr> & lookupRule(set<string> & childTypes)
-    {
-        map<set<string>, vector<RulePtr> >::iterator it= childTypeToRule.find(childTypes);
-        if(it==childTypeToRule.end())
-        {
-            return emptyRules;
-        }
-        else
-        {
-            return it->second;
-        }
-    }
-    
-    template<typename T>
-    boost::shared_ptr<T> lookupRuleOfSameType(T & rul)
-    {
-        for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
-        {
-            if(typeid(*(*it))==typeid(rul))
-                return boost::dynamic_pointer_cast<T>(*it);
-        }
-        
-        return createStaticShared<T>(&rul);
-    }
-    
-    const vector<RulePtr> & lookupSingleRule(Symbol::Ptr child)
-    {
-        set<string> childTypeSet;
-        childTypeSet.insert(typeid(*child).name());
-        vector<RulePtr> & ret = lookupRule(childTypeSet);
-//        for(int i=0;i<ret.size();i++)
-//        {
-//            assert(ret.at(i)->getChildrenTypes().size()==1);
-//        }
-        return ret;
-    }
-    
-    const vector<RulePtr> & lookupDoubleRule(Symbol::Ptr child1, Symbol::Ptr child2 )
-    {
-        set<string> childTypeSet;
-        childTypeSet.insert(typeid(*child1).name());
-        childTypeSet.insert(typeid(*child2).name());
-        if(childTypeSet.size()==1)//both same
-            return emptyRules;
-        return lookupRule(childTypeSet);
-    }
-    
-    const vector<RulePtr> & getRulesMakingPlanarPrimitives()
-    {
-        return planarPrimitiveRules;
-    }
-
-    int getTotalNumParams() const {
-        return totalNumParams;
-    }
-#ifdef USING_SVM_FOR_LEARNING_CFG
-
-    void incrementCountIter() {
-        countIter++;
-    }
-
-    int getCountIter() const {
-        return countIter;
-    }
-#endif
-};
 
 class SVM_CFG_Y :  public boost::enable_shared_from_this<SVM_CFG_Y> 
 {
@@ -403,7 +234,7 @@ public:
     virtual void computePsi()
     {
         SceneInfo::SPtr sceneInfo=trees.at(0)->thisScene;
-        psi.setZero(sceneInfo->psiSize);
+        psi.setZero(sceneInfo->getPsiSize());
         for (vector<Symbol::SPtr>::iterator it = trees.begin(); it != trees.end(); it++) 
         {
             (*it)->addYourPsiVectorTo(psi);
@@ -423,7 +254,7 @@ public:
         SceneInfo::SPtr sceneInfo=trees.at(0)->thisScene;
         string yfile=sceneInfo->fileName+".ypred";
        file.open(yfile.data(), ios::out);
-       for(int i=0;i<sceneInfo->psiSize;i++)
+       for(int i=0;i<sceneInfo->getPsiSize();i++)
        {
            file<<psi(i)<<endl;
        }
