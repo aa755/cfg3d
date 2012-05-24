@@ -845,7 +845,7 @@ public:
     {
         // for some cases like terminals, need not do anything
     }
-    virtual void validateCost(){}
+    virtual void validateCost(bool print=false){}
 
     LABELMAP_TYPE labelMap;
     
@@ -1915,7 +1915,7 @@ public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
     VectorXd psi;
     bool labelMapComputed;
-    virtual void validateCost();
+    virtual void validateCost(bool print=false);
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         psi+=this->psi;
@@ -4474,7 +4474,11 @@ public:
         double cost=getMinusLogProbability(features);
         if(numIntermediates==0)
             numIntermediates=1;
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        output->setAdditionalCost(cost);
+#else
         output->setAdditionalCost(cost/(numIntermediates*Params::doubleRuleDivide) - log(Params::objectCost));
+#endif
         numIntermediates=0;
         
        if(Rule::META_LEARNING)
@@ -5727,9 +5731,11 @@ public:
     }
 
 #ifdef USING_SVM_FOR_LEARNING_CFG
-    void NonTerminal::validateCost()
+    void NonTerminal::validateCost(bool print)
     {
         double estimatedScore=thisScene->rulesDB->getWSVM().dot(psi);
+        if(print)
+                cerr<<"vcn:"<<getName()<<":"<<cost<<","<<estimatedScore<<endl;
         assert(floatEqual(cost,estimatedScore));
     }
 #endif    

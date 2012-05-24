@@ -578,6 +578,7 @@ public:
     
     void addTree(Symbol::Ptr tree)
     {
+        tree->validateCost();
         assert(tree!=NULL);
         trees.push_back(tree);
        // cerr<<"adTr:"<<tree->getName()<<endl;
@@ -591,6 +592,7 @@ public:
      */
     void replaceTree(int index,Symbol::Ptr tree)
     {
+        tree->validateCost();
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
         addNewMoves(tree,index);

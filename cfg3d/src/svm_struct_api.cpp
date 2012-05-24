@@ -55,7 +55,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   /* Reads struct examples and returns them in sample. The number of
      examples must be written into sample.n */
   SAMPLE   sample;  /* sample */
-
+    
   vector<string> lines;
   getLines(file, lines);
   

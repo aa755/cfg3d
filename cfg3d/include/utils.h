@@ -510,7 +510,7 @@ void printLabelmap(std::map<MAPIN, MAPOUT> & src, std::ostream & file)
 
 }
 
-bool floatEqual(double a, double b, double tol=0.1)
+bool floatEqual(double a, double b, double tol=0.000000001)
 {
     return (fabs(a-b)<tol);
 }
