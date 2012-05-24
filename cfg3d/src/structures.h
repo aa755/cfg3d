@@ -64,6 +64,7 @@ typedef  boost::shared_ptr<NonTerminal> NonTerminal_SPtr;
 typedef  boost::shared_ptr<Terminal> Terminal_SPtr;
 class HallucinatedTerminal;
 typedef  boost::shared_ptr<HallucinatedTerminal> HallucinatedTerminal_SPtr;
+bool greaterThan(const boost::dynamic_bitset<> & lhs, const boost::dynamic_bitset<> & rhs);
 class NTSetComparison {
 public:
     bool operator() (NonTerminal_SPtr const & lhs, NonTerminal_SPtr const & rhs);
@@ -1896,6 +1897,19 @@ protected:
      * leaves of children */
     bool costSet;
 public:
+    void mapEntities(map<boost::dynamic_bitset<>, string > & span2NT)
+    {
+        span2NT[this->spanned_terminals]=typeid(*this).name();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            NonTerminal_SPtr ntChild=boost::dynamic_pointer_cast<NonTerminal>(children.at(0));
+            if(ntChild!=NULL && typeid(*this)!=typeid(*ntChild))
+            {
+                mapEntities(span2NT);
+            }
+        }        
+    }
+    
     NonTerminal_SPtr thisNT()
     {
         return boost::static_pointer_cast<NonTerminal>(shared_from_this());
@@ -2674,19 +2688,23 @@ public:
 };
 
 double Scene::COST_THERSHOLD;
-
-bool NTSetComparison::operator() (NonTerminal_SPtr const & lhs, NonTerminal_SPtr const & rhs) {
-    //start with MSBs
-    for (int i = lhs->spanned_terminals.num_blocks() - 1; i >= 0; i--) {
-        if (lhs->spanned_terminals.m_bits[i] > rhs->spanned_terminals.m_bits[i])
+bool  greaterThan(const boost::dynamic_bitset<>  & lhs, const boost::dynamic_bitset<> & rhs)
+{    //start with MSBs
+    for (int i = lhs.num_blocks() - 1; i >= 0; i--) 
+    {
+        if (lhs.m_bits[i] > rhs.m_bits[i])
             return true;
-        else if (lhs->spanned_terminals.m_bits[i] < rhs->spanned_terminals.m_bits[i])
+        else if (lhs.m_bits[i] < rhs.m_bits[i])
             return false;
         // else look the lower significant block
 
     }
     return false; // actually they are equal
 }
+    bool NTSetComparison::operator() (NonTerminal_SPtr const & lhs, NonTerminal_SPtr const & rhs)
+    {
+        return greaterThan(lhs->spanned_terminals,rhs->spanned_terminals);
+    }
 
 /**
  * Check that the Terminal nodes spanned by both NonTerminals are disjoint.

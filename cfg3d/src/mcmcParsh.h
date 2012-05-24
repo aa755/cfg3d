@@ -37,6 +37,7 @@ protected:
     bool featsReadFromFileNoTrees;
     LABELMAP_TYPE labelMap;
     const static double LOSS_PER_NODE=0.1;
+    map<boost::dynamic_bitset<>, string >  span2NT;
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
     typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
@@ -401,7 +402,7 @@ class Forest
      bool shouldSearchEnd()
      {
          assert(trees.size()>=1);
-         return (trees.size()==1);
+         return (trees.size()==1 || timer.toc()>timeLimit);
          
      }     
 #else
@@ -1194,7 +1195,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
         }
     }
 
-#ifndef GREEDY_SVM_TRAINING_PREDICTION
+//#ifndef GREEDY_SVM_TRAINING_PREDICTION
 
     // add the delete move for this new node
     if(tree->isOfSubClass<NonTerminal>())
@@ -1217,7 +1218,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     }
     
-#endif
+//#endif
 
 }
 
