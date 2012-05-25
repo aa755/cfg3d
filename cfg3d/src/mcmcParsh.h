@@ -23,7 +23,6 @@ using namespace std;
  */
 
 class Forest;
-
 /**
  * this class is designed to support multiple fast queries for rules
  */
@@ -614,7 +613,10 @@ public:
      */
     float getRandFloat(float range)
     {
-            return ((float)range*(float)rand())/(float)RAND_MAX;        
+            float r= ((float)range*(float)rand())/(float)RAND_MAX;        
+            if(r>range)
+                r=range;
+            return r;
     }
     
     /* 0 to range -1
@@ -654,6 +656,7 @@ public:
             
                 return selectedMove;
     }
+    int sampleNextMoveRarelyDelete();
     
 //    int sampleNextMoveUniform()
 //    {
@@ -734,7 +737,7 @@ public:
 #ifdef GREEDY_SVM_TRAINING_PREDICTION
             if(moves.size()==0)
                 break;
-            int nm=sampleNextMove(); 
+            int nm=sampleNextMoveRarelyDelete(); 
 #else
             int nm=sampleNextMoveUniformApprox();
 #endif
@@ -1221,6 +1224,18 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 //#endif
 
 }
+    int Forest::sampleNextMoveRarelyDelete()
+    {
+        while(true)
+        {
+                int n=sampleNextMove();
+                if(typeid(*(moves.at(n)))!=typeid(SplitMove))
+                    return n;
+                else if(getRandInt(30)<2)
+                    return n;
+        }
+            
+    }
 
 #endif	/* MCMCPARSH_H */
 

@@ -1897,7 +1897,8 @@ protected:
      * leaves of children */
     bool costSet;
 public:
-    void mapEntities(map<boost::dynamic_bitset<>, string > & span2NT)
+    typedef map<boost::dynamic_bitset<>, string > ENTMAP;
+    void mapEntities(ENTMAP & span2NT)
     {
         span2NT[this->spanned_terminals]=typeid(*this).name();
         for (size_t i = 0; i < children.size(); i++)
@@ -1910,6 +1911,27 @@ public:
         }        
     }
     
+    /**
+     * for tree prec-recall
+     * @param span
+     */
+    static void printEntitiesMap( ENTMAP & span2NT, SceneInfo::SPtr scn )
+    {
+        ofstream ofile;
+        ofile.open(scn->fileName.data());
+        
+        for(ENTMAP::iterator it=span2NT.begin();it!=span2NT.end();it++)
+        {
+            ofile<<it->first<<","<<it->second<<endl;
+        }
+        
+        ofile.close();
+    }
+    
+    void printEntitiesMap( ENTMAP & span2NT)
+    {
+        printEntitiesMap(span2NT,thisScene);
+    }
     NonTerminal_SPtr thisNT()
     {
         return boost::static_pointer_cast<NonTerminal>(shared_from_this());
