@@ -650,7 +650,7 @@ public:
             upb=upper_bound(partialSums.begin(),partialSums.end(),r);
             //assert(upb!=partialSums.end() || r==sum);
             int selectedMove=(int)(upb-partialSums.begin());
-            if(selectedMove==moves.size())
+            if(selectedMove==(int)moves.size())
                 selectedMove=moves.size()-1;
             
                 return selectedMove;
