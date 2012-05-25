@@ -90,7 +90,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
     for(int i=0;i<sample.n;i++)
     {
        sample.examples[i].x.allSceneInfo->setRulesDB(sm->rulesDB);
-       sm->rulesDB->printRuleWise(sample.examples[i].y.treePsi->getPsi());
+       sm->rulesDB->printRuleWise(sample.examples[i].y.treePsi->getPsi(),sample.examples[i].x.allSceneInfo->fileName);
     }
 }
 

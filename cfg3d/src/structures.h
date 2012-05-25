@@ -3325,15 +3325,16 @@ public:
           pdist->readModel(w_svm, startIndex , getNumParams());
     }
     
-    virtual void printModel(const VectorXd & vec, string suffix="")
+    virtual void printModel(const VectorXd & vec, string comment="")
     {
         assert(startIndex!=-1);
         ofstream file;
-        string filename=string(typeid(*this).name())+".svm"+suffix;
+        string filename=string(typeid(*this).name())+".svm";
         file.open(filename.data(), ios::app);
+        file<<comment;
         for(int i=0;i<getNumParams();i++)
         {
-            file<<vec(startIndex+i)<<",";
+            file<<","<<vec(startIndex+i);
         }
         file<<endl;
         file.close();        
@@ -5628,7 +5629,7 @@ public:
     }
     void printRuleWise()
     {
-        printRuleWise(wSvm,"model");
+        printRuleWise(wSvm,"w");
     }
     void printRuleWise(double * w_svm)
     {
