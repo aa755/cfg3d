@@ -1964,7 +1964,7 @@ public:
         }
         
         if(index==-1)
-            return;
+            return; // for dummy rules not in RuleDB but in gt-tree .. to prevent featgen from crashing
         for(int i=0;i<(int)features.size();i++)
         {
             psi(index+i)+=(features.at(i));
@@ -5658,6 +5658,7 @@ public:
             (*it)->setStartIndex(totalNumParams);
             totalNumParams+=(*it)->getNumParams();
         }
+        cout<<"totalNumParams:"<<totalNumParams<<endl;
       countIter=0;   
 #endif        
  //       cerr<<"rules map has size: "<<childTypeToRule.size()<<","<<totalNumParams<<endl;

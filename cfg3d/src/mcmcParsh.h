@@ -613,10 +613,7 @@ public:
      */
     float getRandFloat(float range)
     {
-            float r= ((float)range*(float)rand())/(float)RAND_MAX;        
-            if(r>range)
-                r=range;
-            return r;
+            return ((float)range*(float)rand())/(float)RAND_MAX;        
     }
     
     /* 0 to range -1
@@ -651,8 +648,10 @@ public:
             float r = getRandFloat(sum);
             vector<double>::iterator upb;
             upb=upper_bound(partialSums.begin(),partialSums.end(),r);
-            assert(upb!=partialSums.end() || r==sum);
+            //assert(upb!=partialSums.end() || r==sum);
             int selectedMove=(int)(upb-partialSums.begin());
+            if(selectedMove==moves.size())
+                selectedMove=moves.size()-1;
             
                 return selectedMove;
     }
