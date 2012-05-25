@@ -369,7 +369,9 @@ ofstream TreeNode::errFile;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
     outputLearnerCode << "#define USING_SVM_FOR_LEARNING_CFG\n #define CONSIDER_ALL_SEGMENTS_TRAINING_NEW\n";
-    outputLearnerCode << "#include\"mcmcParsh.h\"\n";
+    outputLearnerCode << "#include\"structures.h\"\n";
+    outputLearnerCode << "#include\"wallDistance.h\"\n";
+    outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
     outputLearnerCode<<"void runLearn(SceneInfo & sceneInfo, RulesDB & rules) {"<<endl;
     outputLearnerCode<<"RPlane_PlaneSeg rulePPGb; boost::shared_ptr<RPlane_PlaneSeg> rulePPG=rules.lookupRuleOfSameType(rulePPGb);\n";
     outputLearnerCode<<"RPlaneSeg rulePGb; boost::shared_ptr<RPlaneSeg> rulePG=rules.lookupRuleOfSameType(rulePGb);\n";

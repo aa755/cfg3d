@@ -1898,17 +1898,39 @@ protected:
     bool costSet;
 public:
     typedef map<boost::dynamic_bitset<>, string > ENTMAP;
-    void mapEntities(ENTMAP & span2NT)
+    void mapEntitiesOfChildren(ENTMAP & span2NT, const type_info & ignoreType)
     {
-        span2NT[this->spanned_terminals]=typeid(*this).name();
+        //span2NT[this->spanned_terminals]=typeid(*this).name();
         for (size_t i = 0; i < children.size(); i++)
         {
-            NonTerminal_SPtr ntChild=boost::dynamic_pointer_cast<NonTerminal>(children.at(0));
-            if(ntChild!=NULL && typeid(*this)!=typeid(*ntChild))
+            NonTerminal_SPtr ntChild=boost::dynamic_pointer_cast<NonTerminal>(children.at(i));
+            if (ntChild != NULL) 
             {
-                mapEntities(span2NT);
+                if (ignoreType != typeid (*ntChild)) 
+                {
+                    ntChild->mapEntities(span2NT);
+                }
+                else
+                {
+//                    cout<<ignoreType.name()<<"=="<<typeid (*ntChild).name()<<endl;
+                    ntChild->mapEntitiesOfChildren(span2NT,ignoreType);
+                }
             }
+//            else
+//            {
+//                 //   cout<<"NonTerminal!="<<typeid (*children.at(i)).name()<<endl;                
+//            }
         }        
+    }
+    
+    void mapEntities(ENTMAP & span2NT)
+    {
+        if(span2NT.find(this->spanned_terminals)==span2NT.end()) // in case of duplicates(CPUFront->Plane), the higher one will be retained 
+        {
+                span2NT[this->spanned_terminals]=typeid(*this).name();
+        }
+        
+        mapEntitiesOfChildren(span2NT,typeid(*this));
     }
     
     /**
@@ -1918,7 +1940,8 @@ public:
     static void printEntitiesMap( ENTMAP & span2NT, SceneInfo::SPtr scn )
     {
         ofstream ofile;
-        ofile.open(scn->fileName.data());
+        string fname=scn->fileName+".entmap";
+        ofile.open(fname.data());
         
         for(ENTMAP::iterator it=span2NT.begin();it!=span2NT.end();it++)
         {
