@@ -14,7 +14,7 @@
 #include "wallDistance.h"
 //#include "CPU_generatedDataStructures.cpp"
 #include "generatedDataStructures.cpp"
-
+//#define TREE_LOSS_SVM
 using namespace std;
 
 
@@ -34,9 +34,13 @@ protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
     bool featsReadFromFileNoTrees;
-    LABELMAP_TYPE labelMap;
     const static double LOSS_PER_NODE=0.1;
-    map<boost::dynamic_bitset<>, string >  span2NT;
+#ifdef TREE_LOSS_SVM
+     NonTerminal::ENTMAP  span2NT;
+#else
+    LABELMAP_TYPE labelMap;
+#endif
+    
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
     typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
@@ -178,10 +182,14 @@ public:
 #ifdef USING_SVM_FOR_LEARNING_CFG
         for(vector<Symbol::Ptr>::iterator it =trees.begin();it!=trees.end();it++)
         {
+#ifdef TREE_LOSS_SVM
+         //   assert(false); // append ENTMAP here
+#else
             (*it)->addYourLabelmapTo(labelMap);
+#endif
         }
         computePsi();
-#endif
+#endif        
         featsReadFromFileNoTrees=false;                
     }
     
@@ -210,7 +218,29 @@ public:
 
         int numFeats=lines.size();
         psi.setZero(numFeats); 
+
+#ifdef TREE_LOSS_SVM
         
+        // read entity map
+        lines.clear();
+        getLines((base+"_entmap").data(),lines);
+        assert(lines.size()>0);
+        for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
+        {
+            vector<string> toks; 
+            getTokens(*it,toks);
+            assert(toks.size()==2);
+            stringstream sstr (stringstream::in | stringstream::out);
+            boost::dynamic_bitset<> bset;
+            sstr<<(toks.at(0));
+            bset.resize(toks.at(0).size(),0);
+            sstr>>bset;
+            assert(bset.size()==toks.at(0).size());
+            
+            span2NT[bset]=toks.at(1);
+        }
+#else
+        // read labelmap
         for(int count=0;count<numFeats;count++)
         {
              psi(count)=boost::lexical_cast<double>(lines.at(count));
@@ -226,7 +256,7 @@ public:
             assert(toks.size()==2);
             labelMap[boost::lexical_cast<int>(toks.at(1))]=toks.at(0);
         }
-
+#endif
         
     }
 #ifdef USING_SVM_FOR_LEARNING_CFG
@@ -1197,7 +1227,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
         }
     }
 
-//#ifndef GREEDY_SVM_TRAINING_PREDICTION
+#ifndef GREEDY_SVM_TRAINING_PREDICTION
 
     // add the delete move for this new node
     if(tree->isOfSubClass<NonTerminal>())
@@ -1220,7 +1250,7 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 
     }
     
-//#endif
+#endif
 
 }
     int Forest::sampleNextMoveRarelyDelete()
