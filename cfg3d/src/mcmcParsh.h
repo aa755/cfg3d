@@ -22,7 +22,7 @@ using namespace std;
  */
 
 #ifdef TREE_LOSS_SVM
-        typedef NonTerminal::ENTMAP LOSS_MAP_TYPE;
+        typedef ENTMAP LOSS_MAP_TYPE;
 #else
         typedef LABELMAP_TYPE LOSS_MAP_TYPE;
 #endif
@@ -81,6 +81,11 @@ public:
     void printLabelMap()
     {
         printLabelmap(labelMap,cerr);
+    }
+    void printLabelMap(string comment)
+    {
+        cerr<<comment<<endl;
+        printLabelMap();
     }
     
     double evalLossDeltaOnAdd(const LOSS_MAP_TYPE & add) const
@@ -176,7 +181,7 @@ public:
         for(vector<Symbol::Ptr>::iterator it =trees.begin();it!=trees.end();it++)
         {
 #ifdef TREE_LOSS_SVM
-            assert(false); // append ENTMAP here
+            (*it)->mapEntities(labelMap);
 #else
             (*it)->addYourLabelmapTo(labelMap);
 #endif
@@ -216,7 +221,7 @@ public:
         
         // read entity map
         lines.clear();
-        getLines((base+"_entmap").data(),lines);
+        getLines((base+".entmap").data(),lines);
         assert(lines.size()>0);
         for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
         {
@@ -335,7 +340,7 @@ public:
     void adjustCostDeltaForNodeAddition(Symbol::Ptr newNode, Forest & cfor);
     void adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor);
     virtual void adjustCostDeltaByLossForNodeAddition(Symbol::Ptr newNode, Forest & cfor);
-    virtual void adjustCostDeltaByLossForNodeRemovalExtra(Symbol::Ptr remNode, Forest & cfor);
+    virtual void adjustCostDeltaByLossForNodeRemoval(Symbol::Ptr remNode, Forest & cfor);
     
     virtual string toString()=0;
     double getCostDelta()
@@ -511,7 +516,7 @@ public:
     {
         SVM_CFG_Y::SPtr ret= SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
         double scoreEstimate=ret->computeScore(rulesDB->getWSVM(), getGTSVMY());
-        //print();
+//        print();
 //        cerr<<"----estimated labelmap-----\n";
 //        printLabelmap(labelmap,cerr);
 //        cerr<<"-----actual labelmap------\n";
@@ -759,7 +764,7 @@ public:
 #ifdef GREEDY_SVM_TRAINING_PREDICTION
             if(moves.size()==0)
                 break;
-            int nm=sampleNextMoveRarelyDelete(); 
+            int nm=sampleNextMove(); 
 #else
             int nm=sampleNextMoveUniformApprox();
 #endif
@@ -813,14 +818,17 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor)
     
 #ifdef USING_SVM_FOR_LEARNING_CFG        
     if(cfor.lossAugmented())
-            adjustCostDeltaByLossForNodeRemovalExtra(remNode,cfor);
+            adjustCostDeltaByLossForNodeRemoval(remNode,cfor);
 #endif
 }
 
     void Move::adjustCostDeltaByLossForNodeAddition(Symbol::Ptr newNode, Forest & cfor)
     {
 #ifdef TREE_LOSS_SVM
-        assert(false);
+        LOSS_MAP_TYPE delta;
+        newNode->mapEntities(delta);
+        appendLabelmap(delta, addMap);
+        costDelta+=cfor.getGTSVMY()->evalLossDeltaOnAdd(delta);
 #else
             newNode->addYourLabelmapTo(addMap);
             costDelta+=cfor.getGTSVMY()->evalLossDeltaOnAdd(newNode->getLabelMap());
@@ -829,10 +837,13 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor)
     }
     
     
-    void Move::adjustCostDeltaByLossForNodeRemovalExtra(Symbol::Ptr remNode, Forest & cfor)
+    void Move::adjustCostDeltaByLossForNodeRemoval(Symbol::Ptr remNode, Forest & cfor)
     {        
 #ifdef TREE_LOSS_SVM
-        assert(false);
+        LOSS_MAP_TYPE delta;
+        remNode->mapEntities(delta);
+        appendLabelmap(delta, delMap);
+        costDelta+=cfor.getGTSVMY()->evalLossDeltaOnDel(delta);
 #else
             remNode->addYourLabelmapTo(delMap);
             costDelta+=cfor.getGTSVMY()->evalLossDeltaOnDel(remNode->getLabelMap());

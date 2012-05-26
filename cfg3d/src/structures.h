@@ -57,6 +57,8 @@ typedef pcl::PointXYZRGBCamSL PointT;
     typedef map<int, string > LABELMAP_TYPE;
     typedef LABELMAP_TYPE::iterator LABELMAP_ITER;
     typedef LABELMAP_TYPE::const_iterator LABELMAP_CITER;
+        typedef map<boost::dynamic_bitset<>, string > ENTMAP;
+
 using boost::math::normal;
 class NonTerminal;
 class Terminal;
@@ -855,6 +857,9 @@ public:
         return labelMap;
     }
     
+    virtual void mapEntities(ENTMAP & span2NT){}
+    virtual void mapYourEntity(ENTMAP & span2NT){}
+
     void printLabelMap(string filename)
     {
         ofstream file;
@@ -1897,7 +1902,6 @@ protected:
      * leaves of children */
     bool costSet;
 public:
-    typedef map<boost::dynamic_bitset<>, string > ENTMAP;
     void mapEntitiesOfChildren(ENTMAP & span2NT, const type_info & ignoreType)
     {
         //span2NT[this->spanned_terminals]=typeid(*this).name();
@@ -1923,7 +1927,7 @@ public:
         }        
     }
     
-    void mapEntities(ENTMAP & span2NT)
+    virtual void mapEntities(ENTMAP & span2NT)
     {
         if(span2NT.find(this->spanned_terminals)==span2NT.end()) // in case of duplicates(CPUFront->Plane), the higher one will be retained 
         {
@@ -1933,6 +1937,11 @@ public:
         mapEntitiesOfChildren(span2NT,typeid(*this));
     }
     
+    virtual void mapYourEntity(ENTMAP & span2NT)
+    {
+         span2NT[this->spanned_terminals]=typeid(*this).name(); // will overwrite any previous entry
+    }
+
     /**
      * for tree prec-recall
      * @param span

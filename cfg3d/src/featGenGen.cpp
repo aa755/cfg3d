@@ -428,7 +428,7 @@ int main(int argc, char** argv)
     
         ofile<<"\n"<<root->getFullName()<<"->printPsi();\n";
         ofile<<"\n"<<root->getFullName()<<"->printLabelMap(\""<<string(argv[1])+".labelmap" <<"\");\n";
-        ofile<<"NonTerminal::ENTMAP entMap; "<<root->getFullName()<<"->mapEntities(entMap); "<<root->getFullName()<<"->printEntitiesMap(entMap);\n";
+        ofile<<"ENTMAP entMap; "<<root->getFullName()<<"->mapEntities(entMap); "<<root->getFullName()<<"->printEntitiesMap(entMap);\n";
     createRunLearnBack(ofile);
     ofile.close();
     TreeNode::errFile.close();

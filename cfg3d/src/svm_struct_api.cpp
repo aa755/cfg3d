@@ -68,6 +68,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
       sample.examples[i].x.allSceneInfo=SceneInfo::SPtr(new SceneInfo());
       sample.examples[i].x.allSceneInfo->init(lines.at(i));
       sample.examples[i].y.treePsi=SVM_CFG_Y::SPtr(new SVM_CFG_Y(lines.at(i)));
+      sample.examples[i].y.treePsi->printLabelMap("gtLabelmap of"+lines.at(i));
   }
   
   /* fill in your code here */
