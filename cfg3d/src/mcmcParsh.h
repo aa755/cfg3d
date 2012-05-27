@@ -13,7 +13,7 @@
 #include "structures.h"
 #include "wallDistance.h"
 #include "generatedDataStructures.cpp"
-#define TREE_LOSS_SVM
+//#define TREE_LOSS_SVM
 using namespace std;
 
 
@@ -440,14 +440,15 @@ class Forest
          return (timer.toc()>timeLimit);
      }
 #endif  
-//     Forest(const Forest & fors)
-//     {
-//         assert(false); // should never be copy-constructed ... for efficiency reasons ... use clone to explicitly copy only relevant parts
-//     }
 public:
+    double getScore()
+    {
+        return curNegLogProb;
+    }
+    
     bool equals(const Forest & other)
     {
-        assert(false); // make sure it works
+//        assert(false); // make sure it works
         return labelmap==other.labelmap;
     }
     virtual ~Forest(){}
@@ -528,10 +529,6 @@ public:
      * on
      * @param depth not used now .. only to preven 
      */
-    Forest(int depth)
-    {
-        
-    }
     
     SVM_CFG_Y::SPtr getParsingResult()
     {
@@ -683,18 +680,32 @@ public:
     Forest::SPtr clone()
     {
         Forest::SPtr clon(new Forest(*this)); // shallow copy 
+        
+        cerr<<"clon:"<<clon->moves.size()<<endl;
         // now make deep copies of desired things
         for(int i=0;i<(int)moves.size();i++)
         {
-            moves.at(i)=moves.at(i)->clone();
+            clon->moves.at(i)=moves.at(i)->clone();
+            cerr<<clon->moves.at(i)->toString()<<","<<moves.at(i)->toString()<<endl;
         }
+        cerr<<"trees:"<<trees.size()<<endl;
+        for(int i=0;i<(int)trees.size();i++)
+        {
+            cerr<<clon->trees.at(i)->getName()<<","<<trees.at(i)->getName()<<endl;
+        }
+        
         return clon;
+        
     }
     
+    void applyMove(int index)
+    {
+        moves.at(index)->applyMove(*this);
+    }
     Forest::SPtr applyMoveToClone(int moveIndex)
     {
         Forest::SPtr ret=clone();
-        ret->moves.at(moveIndex)->applyMove(*ret);
+        ret->applyMove(moveIndex);
         return ret;
     }
     
@@ -735,11 +746,15 @@ public:
             return Forest::SPtr() ; //NULL smart pointer
         else
         {
+            cerr<<"this#m"<<moves.size()<<endl;
             int n=sampleNextMove();            
+            cerr<<"chosen#m"<<n<<endl;
             Forest::SPtr ret= applyMoveToClone(n);   
+            cerr<<"this#m@app"<<moves.size()<<endl;
             fast_erase(moves,n);
             //delet this move ... either it was duplicate, or it was added .. either way, should not be there anymore
-            
+            print();
+            return ret;   
         }
         
     }
@@ -1116,14 +1131,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         
         cfor.replaceTree(mergeIndex,mergeResult);
         
-        singleMoveAdditionalWork();
         
     }
     
-    virtual void singleMoveAdditionalWork()
-    {
-        
-    }
     
     virtual bool isInvalidatedOnDeletion(int index)
     {
@@ -1195,9 +1205,6 @@ public:
         return string("mut:")+mergeNode->getName()+"->"+mergeResult->getName();
     }
     
-    virtual void singleMoveAdditionalWork()
-    {
-    }
     
 };
 class SplitMove: public Move
@@ -1360,7 +1367,9 @@ int Forest::sampleNextMoveRarelyDelete()
 class BeamSearch 
 {
     vector<Forest::SPtr> beamStates;
-    int beamSize;// max size of beam
+    int maxBeamSize;// max size of beam
+    double bestScore;
+    Forest::SPtr bestScoringForest;
     /**
      * 
      * @param newFor
@@ -1368,7 +1377,6 @@ class BeamSearch
      */
     bool addToBeamIfNotDuplicate(Forest::SPtr newFor)
     {
-        assert(false);// check for best
         for(int i=0;i<(int)beamStates.size();i++)
         {
             if(beamStates.at(i)->equals(*newFor))
@@ -1377,20 +1385,27 @@ class BeamSearch
             }
         }
         beamStates.push_back(newFor);
+        if(bestScore < newFor->getScore())
+        {
+            bestScore = newFor->getScore();
+            bestScoringForest=newFor->clone();
+        }
         return true;
     }
 public:
     BeamSearch(Forest::SPtr fors, int beamSize)
     {
+        bestScoringForest=fors;
+        bestScore=fors->getScore();
         beamStates.push_back(fors);
-        this->beamSize=beamSize;
+        this->maxBeamSize=beamSize;
     }
     
     void sampleNextBeam()
     {
         vector<Forest::SPtr> oldBeam=beamStates;
         beamStates.clear();
-        while((int)beamStates.size()<beamSize)
+        while((int)beamStates.size()<maxBeamSize)
         {
             bool allNull=true;
             for(int i=0;i<(int)oldBeam.size();i++)
@@ -1408,7 +1423,19 @@ public:
     }
     
     
+    void runBeamSearch()
+    {
+        while(beamStates.size()>0)
+        {
+            sampleNextBeam();
+        }
+    }
     
+    SVM_CFG_Y::SPtr getParsingResult()
+    {
+        return bestScoringForest->getParsingResult();
+    }
+
 };
 #endif	/* MCMCPARSH_H */
 

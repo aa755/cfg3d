@@ -21,6 +21,7 @@
 #include <string.h>
 #include "svm_struct/svm_struct_common.h"
 #include "svm_struct_api.h"
+#define USING_BEAM_SEARCH_FOR_INFERENCE
 //#include "svm_struct/svm_struct_classify.cpp"
 //#include "svm_light/svm_common.cpp"
 //#include "svm_struct/svm_struct_common.cpp"
@@ -213,9 +214,16 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   LABEL ybar;
 
   sm->rulesDB->readModel(sm->w);
-  Forest mfor(x.allSceneInfo,sm->rulesDB,y.treePsi);
-  mfor.runMCMC();
-  ybar.treePsi=mfor.getParsingResult();
+  
+  Forest::SPtr mfor(new Forest(x.allSceneInfo,sm->rulesDB,y.treePsi));
+#ifdef USING_BEAM_SEARCH_FOR_INFERENCE
+  BeamSearch beamS(mfor,10);
+  beamS.runBeamSearch();
+  ybar.treePsi=beamS.getParsingResult();  
+#else
+  mfor->runMCMC();
+  ybar.treePsi=mfor->getParsingResult();  
+#endif
   cerr<<"l:"<<y.treePsi->evalLoss(ybar.treePsi)<<","<<y.treePsi->getEmptyTreeLoss()<<endl;
 //  ybar.treePsi->printPsi("pred");
 //  y.treePsi->printPsi("gt");
