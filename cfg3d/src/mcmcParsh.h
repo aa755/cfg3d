@@ -319,6 +319,9 @@ protected:
     }
     
 public:
+typedef  boost::shared_ptr<Move> SPtr;
+    
+    virtual Move::SPtr clone()=0;
     void applylabelMapDelta( LOSS_MAP_TYPE & lab)
     {
 //        cerr<<"---delta: nodes for deletion:-------\n";
@@ -360,7 +363,6 @@ public:
         return true;
     }
     
-typedef  boost::shared_ptr<Move> SPtr;
 
     virtual void applyMove(Forest & cfor)=0;
     /**
@@ -437,8 +439,19 @@ class Forest
      {
          return (timer.toc()>timeLimit);
      }
-#endif     
+#endif  
+//     Forest(const Forest & fors)
+//     {
+//         assert(false); // should never be copy-constructed ... for efficiency reasons ... use clone to explicitly copy only relevant parts
+//     }
 public:
+    bool equals(const Forest & other)
+    {
+        assert(false); // make sure it works
+        return labelmap==other.labelmap;
+    }
+    virtual ~Forest(){}
+    typedef  boost::shared_ptr<Forest> SPtr;
     void validate()
     {
        // print();
@@ -511,6 +524,14 @@ public:
         curNegLogProb=gtY->getEmptyTreeLoss();
     }
     
+    /**
+     * on
+     * @param depth not used now .. only to preven 
+     */
+    Forest(int depth)
+    {
+        
+    }
     
     SVM_CFG_Y::SPtr getParsingResult()
     {
@@ -654,6 +675,30 @@ public:
             return ret;
     }
     
+    /**
+     * clones the non-constant(w.r.t moves) stuff in this forest. 
+     * gtSVMY, sceneInfo can't be changed by any move ... so they are not cloned
+     * @return a clone of current forest
+     */
+    Forest::SPtr clone()
+    {
+        Forest::SPtr clon(new Forest(*this)); // shallow copy 
+        // now make deep copies of desired things
+        for(int i=0;i<(int)moves.size();i++)
+        {
+            moves.at(i)=moves.at(i)->clone();
+        }
+        return clon;
+    }
+    
+    Forest::SPtr applyMoveToClone(int moveIndex)
+    {
+        Forest::SPtr ret=clone();
+        ret->moves.at(moveIndex)->applyMove(*ret);
+        return ret;
+    }
+    
+    
     int sampleNextMove()
     {
         double sum=0;
@@ -683,6 +728,22 @@ public:
             
                 return selectedMove;
     }
+    
+    Forest::SPtr genMoveAndApplyToClone()
+    {
+        if(moves.size()==0)
+            return Forest::SPtr() ; //NULL smart pointer
+        else
+        {
+            int n=sampleNextMove();            
+            Forest::SPtr ret= applyMoveToClone(n);   
+            fast_erase(moves,n);
+            //delet this move ... either it was duplicate, or it was added .. either way, should not be there anymore
+            
+        }
+        
+    }
+    
     int sampleNextMoveRarelyDelete();
     
 //    int sampleNextMoveUniform()
@@ -861,6 +922,10 @@ class MergeMove: public Move
     NonTerminal_SPtr mergeResult;
     
 public:
+    virtual Move::SPtr clone()
+    {
+        return Move::SPtr(new MergeMove(*this));
+    }
 typedef  boost::shared_ptr<MergeMove> SPtr;
 
     virtual bool moveCreationSucceded()
@@ -991,6 +1056,10 @@ protected:
     
 public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
+    virtual Move::SPtr clone()
+    {
+        return Move::SPtr(new SingleRuleMove(*this));
+    }
     
     virtual string toString()
     {
@@ -1083,6 +1152,11 @@ class MutatePlanarPrimitiveMove : public SingleRuleMove
 protected:
     Plane::SPtr  rhs;
 public:
+    virtual Move::SPtr clone()
+    {
+        return Move::SPtr(new MutatePlanarPrimitiveMove(*this));
+    }
+
     vector<Symbol::Ptr> marshalParams()
     {
         vector<Symbol::Ptr> nodes;
@@ -1132,6 +1206,10 @@ class SplitMove: public Move
     Symbol::Ptr delNode;
     string desc;
 public:
+    virtual Move::SPtr clone()
+    {
+        return Move::SPtr(new SplitMove(*this));
+    }
     
     SplitMove(Forest & cfor,int delIndex)
     {
@@ -1265,18 +1343,72 @@ void Forest::addNewMoves(Symbol::Ptr tree, int index)
 #endif
 
 }
-    int Forest::sampleNextMoveRarelyDelete()
+
+int Forest::sampleNextMoveRarelyDelete() 
+{
+    while (true) 
     {
-        while(true)
-        {
-                int n=sampleNextMove();
-                if(typeid(*(moves.at(n)))!=typeid(SplitMove))
-                    return n;
-                else if(getRandInt(30)<2)
-                    return n;
-        }
-            
+        int n = sampleNextMove();
+        if (typeid (*(moves.at(n))) != typeid (SplitMove))
+            return n;
+        else if (getRandInt(30) < 2)
+            return n;
     }
 
+}
+
+class BeamSearch 
+{
+    vector<Forest::SPtr> beamStates;
+    int beamSize;// max size of beam
+    /**
+     * 
+     * @param newFor
+     * @return true iff it was actually added
+     */
+    bool addToBeamIfNotDuplicate(Forest::SPtr newFor)
+    {
+        assert(false);// check for best
+        for(int i=0;i<(int)beamStates.size();i++)
+        {
+            if(beamStates.at(i)->equals(*newFor))
+            {
+                return false;
+            }
+        }
+        beamStates.push_back(newFor);
+        return true;
+    }
+public:
+    BeamSearch(Forest::SPtr fors, int beamSize)
+    {
+        beamStates.push_back(fors);
+        this->beamSize=beamSize;
+    }
+    
+    void sampleNextBeam()
+    {
+        vector<Forest::SPtr> oldBeam=beamStates;
+        beamStates.clear();
+        while((int)beamStates.size()<beamSize)
+        {
+            bool allNull=true;
+            for(int i=0;i<(int)oldBeam.size();i++)
+            {
+                Forest::SPtr newFor=oldBeam.at(i)->genMoveAndApplyToClone();
+                if(newFor!=NULL)
+                {
+                    allNull=false;
+                    addToBeamIfNotDuplicate(newFor);
+                }
+            }
+            if(allNull) // no moves possible from any other forest
+                break;
+        }
+    }
+    
+    
+    
+};
 #endif	/* MCMCPARSH_H */
 
