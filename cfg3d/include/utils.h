@@ -459,7 +459,9 @@ template<typename T>
 void fast_erase(std::vector<T>& v, size_t i)
 {
    v[i] = (v.back());
+//   v[i] = std::move(v.back()); // needs c++11
    v.pop_back(); 
+//      std::swap(v[i], v[v.size() - 1]);
 }
 
 int countUnderScores(string str)

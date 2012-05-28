@@ -679,21 +679,31 @@ public:
      */
     Forest::SPtr clone()
     {
+        long olduc=trees.at(0).use_count();
+        long olducm=moves.at(0).use_count();
         Forest::SPtr clon(new Forest(*this)); // shallow copy 
+        assert(trees.at(0).use_count()==olduc+1);
+        assert(clon->trees.at(0).get()==trees.at(0).get());
+        assert(clon.get()!=this);
         
         cerr<<"clon:"<<clon->moves.size()<<endl;
         // now make deep copies of desired things
         for(int i=0;i<(int)moves.size();i++)
         {
-            clon->moves.at(i)=moves.at(i)->clone();
-            cerr<<clon->moves.at(i)->toString()<<","<<moves.at(i)->toString()<<endl;
+            Move::SPtr clm=moves.at(i)->clone();
+            clon->moves.at(i)=clm;
+            assert(clon->moves.at(i).get()!=moves.at(i).get());
+            cerr<<clon->moves.at(i).use_count()<<endl;
+//            assert(clon->moves.at(i).use_count()==1);
+         //   cerr<<clon->moves.at(i)->toString()<<","<<moves.at(i)->toString()<<endl;
         }
-        cerr<<"trees:"<<trees.size()<<endl;
-        for(int i=0;i<(int)trees.size();i++)
-        {
-            cerr<<clon->trees.at(i)->getName()<<","<<trees.at(i)->getName()<<endl;
-        }
+//        cerr<<"trees:"<<trees.size()<<endl;
+//        for(int i=0;i<(int)trees.size();i++)
+//        {
+//            cerr<<clon->trees.at(i)->getName()<<","<<trees.at(i)->getName()<<endl;
+//        }
         
+        assert(moves.at(0).use_count()==olducm);
         return clon;
         
     }
@@ -722,7 +732,7 @@ public:
         {
             double moveProb=moves.at(i)->getTransitionProbUnnormalized();
             sum+=moveProb;
-            partialSums[i]=sum;
+            partialSums.at(i)=sum;
   //          cerr<<moves.at(i)->getCostDelta() <<",";
         }
         cerr<<endl;
@@ -746,14 +756,14 @@ public:
             return Forest::SPtr() ; //NULL smart pointer
         else
         {
-            cerr<<"this#m"<<moves.size()<<endl;
+//            cerr<<"this#m"<<moves.size()<<endl;
             int n=sampleNextMove();            
-            cerr<<"chosen#m"<<n<<endl;
+//            cerr<<"chosen#m"<<n<<endl;
             Forest::SPtr ret= applyMoveToClone(n);   
-            cerr<<"this#m@app"<<moves.size()<<endl;
+//            cerr<<"this#m@app"<<moves.size()<<endl;
             fast_erase(moves,n);
             //delet this move ... either it was duplicate, or it was added .. either way, should not be there anymore
-            print();
+  //          print();
             return ret;   
         }
         
@@ -939,7 +949,9 @@ class MergeMove: public Move
 public:
     virtual Move::SPtr clone()
     {
-        return Move::SPtr(new MergeMove(*this));
+        Move::SPtr ret (new MergeMove(*this));
+        cerr<<"mmclon:"<<toString()<<":"<<this<<"->"<<ret.get()<<endl;
+        return ret;
     }
 typedef  boost::shared_ptr<MergeMove> SPtr;
 
@@ -967,10 +979,15 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     
     virtual ~MergeMove()
     {
+        if(moveCreationSucceded())
+                cerr<<"mmdel:"<<toString()<<endl;
+        mergeIndex1=-1; // for debugging
+        mergeIndex2=-1; // for debugging
     }
     
     MergeMove(Forest & cfor, int mergeIndex1, int mergeIndex2, RulePtr mergeRule)
     {
+
         this->mergeIndex1=mergeIndex1;
         this->mergeIndex2=mergeIndex2;
         this->mergeRule=mergeRule;
@@ -999,6 +1016,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         adjustCostDeltaForNodeRemoval(mergeNode1,cfor);
         adjustCostDeltaForNodeRemoval(mergeNode2,cfor);
         setTransProbFromDelta();
+                cerr<<"mmcreat:"<<toString()<<endl;
         
     }
     
@@ -1073,7 +1091,8 @@ public:
 typedef  boost::shared_ptr<MergeMove> SPtr;
     virtual Move::SPtr clone()
     {
-        return Move::SPtr(new SingleRuleMove(*this));
+         Move::SPtr ret(new SingleRuleMove(*this));
+         return ret;
     }
     
     virtual string toString()
