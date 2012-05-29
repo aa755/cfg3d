@@ -858,8 +858,8 @@ public:
         return labelMap;
     }
     
-    virtual void mapEntities(ENTMAP & span2NT){}
-    virtual void mapYourEntity(ENTMAP & span2NT){}
+    virtual void mapEntities(ENTMAP & span2NT) const {}
+    virtual void mapYourEntity(ENTMAP & span2NT) const {}
 
     void printLabelMap(string filename)
     {
@@ -1903,7 +1903,7 @@ protected:
      * leaves of children */
     bool costSet;
 public:
-    void mapEntitiesOfChildren(ENTMAP & span2NT, const type_info & ignoreType)
+    void mapEntitiesOfChildren(ENTMAP & span2NT, const type_info & ignoreType) const 
     {
         //span2NT[this->spanned_terminals]=typeid(*this).name();
         for (size_t i = 0; i < children.size(); i++)
@@ -1928,7 +1928,7 @@ public:
         }        
     }
     
-    virtual void mapEntities(ENTMAP & span2NT)
+    virtual void mapEntities(ENTMAP & span2NT) const
     {
         if(span2NT.find(this->spanned_terminals)==span2NT.end()) // in case of duplicates(CPUFront->Plane), the higher one will be retained 
         {
@@ -1938,7 +1938,7 @@ public:
         mapEntitiesOfChildren(span2NT,typeid(*this));
     }
     
-    virtual void mapYourEntity(ENTMAP & span2NT)
+    virtual void mapYourEntity(ENTMAP & span2NT) const
     {
          span2NT[this->spanned_terminals]=typeid(*this).name(); // will overwrite any previous entry
     }

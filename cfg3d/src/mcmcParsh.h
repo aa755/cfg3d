@@ -13,7 +13,7 @@
 #include "structures.h"
 #include "wallDistance.h"
 #include "generatedDataStructures.cpp"
-#define TREE_LOSS_SVM
+//#define TREE_LOSS_SVM
 using namespace std;
 
 
@@ -311,6 +311,7 @@ protected:
     {
 #ifdef USING_SVM_FOR_LEARNING_CFG
         transProb=exp(costDelta/10.0);
+        //transProb=max(costDelta,0.00000000001);
 #else
         transProb=exp(-costDelta/10.0);
         
@@ -446,6 +447,20 @@ class Forest :  public boost::enable_shared_from_this<Forest>
      }
 #endif  
 public:
+
+    ENTMAP getEntityMap() const
+    {
+#ifdef TREE_LOSS_SVM
+        return labelmap;
+#else
+        ENTMAP ret;
+        for(vector<Symbol::Ptr>::const_iterator it =trees.begin();it!=trees.end();it++)
+        {
+            (*it)->mapEntities(ret);
+        }
+        return ret;
+#endif
+    }
     int getNumMoves()
     {
         return moves.size();
@@ -455,11 +470,14 @@ public:
         return curNegLogProb;
     }
     
-    bool equals(const Forest & other)
+    bool equals(const Forest & other) const
     {
 //        assert(false); // make sure it works
-        return labelmap==other.labelmap;
+//        return labelmap==other.labelmap;
+        return getEntityMap() == other.getEntityMap();
+        
     }
+    
     virtual ~Forest(){}
     typedef  boost::shared_ptr<Forest> SPtr;
     void validate()
@@ -1479,8 +1497,8 @@ class BeamSearch
         {
             bestScore = newFor->getScore();
             bestScoringForest=newFor->clone();
+            cerr<<"nbsc"<<bestScore<<endl;
         }
-        cerr<<"nbsc"<<bestScore<<endl;
         return true;
     }
 public:
