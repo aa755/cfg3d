@@ -692,7 +692,7 @@ public:
     Forest::SPtr clone()
     {
         long olduc=trees.at(0).use_count();
-        long olducm=moves.at(0).use_count();
+//        long olducm=moves.at(0).use_count();
         Forest::SPtr clon(new Forest(*this)); // shallow copy 
         assert(trees.at(0).use_count()==olduc+1);
         assert(clon->trees.at(0).get()==trees.at(0).get());
@@ -715,7 +715,7 @@ public:
 //            cerr<<clon->trees.at(i)->getName()<<","<<trees.at(i)->getName()<<endl;
 //        }
         
-        assert(moves.at(0).use_count()==olducm);
+  //      assert(moves.at(0).use_count()==olducm);
         return clon;
         
     }
@@ -1475,7 +1475,7 @@ class BeamSearch
             }
         }
         beamStates.push_back(newFor);
-        if(bestScore < newFor->getScore())
+        if(bestScore < newFor->getScore()&&newFor->getNumMoves()==0)
         {
             bestScore = newFor->getScore();
             bestScoringForest=newFor->clone();
@@ -1486,11 +1486,13 @@ class BeamSearch
 public:
     BeamSearch(Forest::SPtr fors, int beamSize)
     {
-        bestScoringForest=fors;
-        bestScore=fors->getScore();
+//        bestScoringForest=fors;
+//        bestScore=fors->getScore();
+        cerr<<"newb\n";
+        bestScore=-infinity();
         beamStates.push_back(fors);
         this->maxBeamSize=beamSize;
-                srand(time(NULL));
+        srand(time(NULL));
 
     }
     
@@ -1516,54 +1518,54 @@ public:
         }
     }
     
-    void sampleNextBeamIneffPtr()
-    {
-        vector<Forest::SPtr> oldBeam=beamStates;
-        beamStates.clear();
-        while((int)beamStates.size()<maxBeamSize)
-        {
-            bool allNull=true;
-            for(int i=0;i<(int)oldBeam.size();i++)
-            {
-                Forest::SPtr newFor=oldBeam.at(i)->deepClonePtr();
-                //todo .. delet this move from oldBeam.at(i)
-                if(newFor->getNumMoves()>0)
-                {
-                    
-                    newFor->makeOneMove();
-                    allNull=false;
-                    addToBeamIfNotDuplicate(newFor);
-                }
-            }
-            if(allNull) // no moves possible from any other forest
-                break;
-        }
-    }
-    
-    void sampleNextBeamIneff()
-    {
-        vector<Forest::SPtr> oldBeam=beamStates;
-        beamStates.clear();
-        while((int)beamStates.size()<maxBeamSize)
-        {
-            bool allNull=true;
-            for(int i=0;i<(int)oldBeam.size();i++)
-            {
-                Forest newFor=oldBeam.at(i)->deepClone();
-                //todo .. delet this move from oldBeam.at(i)
-                if(newFor.getNumMoves()>0)
-                {
-                    newFor.makeOneMove();
-                    allNull=false;
-                    Forest::SPtr fors(new Forest());
-                    *fors=newFor;
-                    addToBeamIfNotDuplicate(fors);
-                }
-            }
-            if(allNull) // no moves possible from any other forest
-                break;
-        }
-    }
+//    void sampleNextBeamIneffPtr()
+//    {
+//        vector<Forest::SPtr> oldBeam=beamStates;
+//        beamStates.clear();
+//        while((int)beamStates.size()<maxBeamSize)
+//        {
+//            bool allNull=true;
+//            for(int i=0;i<(int)oldBeam.size();i++)
+//            {
+//                Forest::SPtr newFor=oldBeam.at(i)->deepClonePtr();
+//                //todo .. delet this move from oldBeam.at(i)
+//                if(newFor->getNumMoves()>0)
+//                {
+//                    
+//                    newFor->makeOneMove();
+//                    allNull=false;
+//                    addToBeamIfNotDuplicate(newFor);
+//                }
+//            }
+//            if(allNull) // no moves possible from any other forest
+//                break;
+//        }
+//    }
+//    
+//    void sampleNextBeamIneff()
+//    {
+//        vector<Forest::SPtr> oldBeam=beamStates;
+//        beamStates.clear();
+//        while((int)beamStates.size()<maxBeamSize)
+//        {
+//            bool allNull=true;
+//            for(int i=0;i<(int)oldBeam.size();i++)
+//            {
+//                Forest newFor=oldBeam.at(i)->deepClone();
+//                //todo .. delet this move from oldBeam.at(i)
+//                if(newFor.getNumMoves()>0)
+//                {
+//                    newFor.makeOneMove();
+//                    allNull=false;
+//                    Forest::SPtr fors(new Forest());
+//                    *fors=newFor;
+//                    addToBeamIfNotDuplicate(fors);
+//                }
+//            }
+//            if(allNull) // no moves possible from any other forest
+//                break;
+//        }
+//    }
     
     void runBeamSearch()
     {
@@ -1571,11 +1573,13 @@ public:
         {
             sampleNextBeam();
             //sampleNextBeamIneffPtr();
+            cerr<<"nextb#"<<beamStates.size()<<endl;
         }
     }
     
     SVM_CFG_Y::SPtr getParsingResult()
     {
+        assert(bestScoringForest!=NULL);
         return bestScoringForest->getParsingResult();
     }
 
