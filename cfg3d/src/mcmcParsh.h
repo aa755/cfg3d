@@ -13,7 +13,7 @@
 #include "structures.h"
 #include "wallDistance.h"
 #include "generatedDataStructures.cpp"
-//#define TREE_LOSS_SVM
+#define TREE_LOSS_SVM
 using namespace std;
 
 
@@ -364,6 +364,11 @@ typedef  boost::shared_ptr<Move> SPtr;
     }
     
 
+    virtual void applyMove(boost::shared_ptr<Forest> cfor)
+    {
+        applyMove(*cfor);
+    }
+    
     virtual void applyMove(Forest & cfor)=0;
     /**
      * 
@@ -377,12 +382,12 @@ typedef  boost::shared_ptr<Move> SPtr;
     }
     
     virtual bool isInvalidatedOnDeletion(int index)=0;
-    virtual bool handleMove(int oldIndex, int newIndex, Forest * cfor /* = NULL */)=0;
+    virtual bool handleMove(int oldIndex, int newIndex)=0;
     virtual ~Move() {}
 };
 
 
-class Forest
+class Forest :  public boost::enable_shared_from_this<Forest>
 {
     vector<Symbol::Ptr> trees;
     vector<Move::SPtr> moves;
@@ -441,6 +446,10 @@ class Forest
      }
 #endif  
 public:
+    int getNumMoves()
+    {
+        return moves.size();
+    }
     double getScore()
     {
         return curNegLogProb;
@@ -484,7 +493,7 @@ public:
 
     bool lossAugmented()
     {
-//        assert (gtSVMY!=NULL);
+        assert (gtSVMY!=NULL);
         return (gtSVMY!=NULL);
     }
     
@@ -601,7 +610,7 @@ public:
             
             for(it=moves.begin();it!=moves.end();it++)
             {
-                (*it)->handleMove(oldIndex, index, this);
+                (*it)->handleMove(oldIndex, index);
             }
             
             // some of these deleted moves might be active .. this function 
@@ -612,7 +621,7 @@ public:
             // this call
             for(it=delMoves.begin();it!=delMoves.end();it++)
             {
-                (*it)->handleMove(oldIndex, index, this);
+                (*it)->handleMove(oldIndex, index);
             }
         }
     }
@@ -645,7 +654,10 @@ public:
         
     }
     
-    
+    Forest()
+    {
+        
+    }
     
     Symbol::Ptr getTree(int index)
     {
@@ -708,9 +720,54 @@ public:
         
     }
     
+    Forest::SPtr deepClonePtr()
+    {
+        Forest::SPtr ret(new Forest());
+        
+        ret->rulesDB=rulesDB;
+        ret->curNegLogProb = curNegLogProb;
+        ret->sceneInfo=sceneInfo;
+        ret->gtSVMY=gtSVMY;
+        for (unsigned int i = 0; i <trees.size(); i++)
+        {
+            ret->addTree(trees.at(i));
+        }
+//        assert(moves.size()==ret->moves.size());
+        ret->labelmap=labelmap;
+        return ret;
+    }
+    
+    Forest deepClone()
+    {
+        Forest ret;
+        cerr<<"moves after constructor:"<<ret.moves.size()<<endl;
+        
+        ret.rulesDB=rulesDB;
+        ret.curNegLogProb = curNegLogProb;
+        ret.sceneInfo=sceneInfo;
+        ret.gtSVMY=gtSVMY;
+        for (unsigned int i = 0; i <trees.size(); i++)
+        {
+            ret.addTree(trees.at(i));
+        }
+        cerr<<"moves after adding trees"<<ret.moves.size()<<endl;
+        
+       // assert(moves.size()==ret.moves.size());
+        ret.labelmap=labelmap;
+        return ret;
+    }
+    
     void applyMove(int index)
     {
-        moves.at(index)->applyMove(*this);
+        Move::SPtr selMove=moves.at(index);
+        selMove->applyMove(shared_from_this());
+        curNegLogProb+=(selMove->getCostDelta());
+            
+            if(lossAugmented())
+                selMove->applylabelMapDelta(labelmap);
+            
+            validate();
+
     }
     Forest::SPtr applyMoveToClone(int moveIndex)
     {
@@ -718,6 +775,7 @@ public:
         ret->applyMove(moveIndex);
         return ret;
     }
+    
     
     
     int sampleNextMove()
@@ -769,6 +827,12 @@ public:
         
     }
     
+    void makeOneMove()
+    {
+        int n=sampleNextMove();    
+        applyMove(n);
+    }
+
     int sampleNextMoveRarelyDelete();
     
 //    int sampleNextMoveUniform()
@@ -913,6 +977,7 @@ void Move::adjustCostDeltaForNodeRemoval(Symbol::Ptr remNode, Forest & cfor)
 #ifdef TREE_LOSS_SVM
         LOSS_MAP_TYPE delta;
         newNode->mapEntities(delta);
+        assert(delta.size()>0);
         appendLabelmap(delta, addMap);
         costDelta+=cfor.getGTSVMY()->evalLossDeltaOnAdd(delta);
 #else
@@ -949,8 +1014,10 @@ class MergeMove: public Move
 public:
     virtual Move::SPtr clone()
     {
-        Move::SPtr ret (new MergeMove(*this));
+        boost::shared_ptr<MergeMove> ret (new MergeMove(*this));
         cerr<<"mmclon:"<<toString()<<":"<<this<<"->"<<ret.get()<<endl;
+        assert(ret->mergeIndex1!=-1);
+        assert(ret->mergeIndex2!=-1);
         return ret;
     }
 typedef  boost::shared_ptr<MergeMove> SPtr;
@@ -979,8 +1046,9 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     
     virtual ~MergeMove()
     {
+        
         if(moveCreationSucceded())
-                cerr<<"mmdel:"<<toString()<<endl;
+                cerr<<"mmdel:"<<toString()<<":"<<this<<endl;
         mergeIndex1=-1; // for debugging
         mergeIndex2=-1; // for debugging
     }
@@ -988,6 +1056,8 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     MergeMove(Forest & cfor, int mergeIndex1, int mergeIndex2, RulePtr mergeRule)
     {
 
+        assert(mergeIndex1>=0);
+        assert(mergeIndex2>=0);
         this->mergeIndex1=mergeIndex1;
         this->mergeIndex2=mergeIndex2;
         this->mergeRule=mergeRule;
@@ -1051,7 +1121,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex , Forest * cfor /* = NULL */)
+    virtual bool handleMove(int oldIndex, int newIndex )
     {
         bool changed=false;
         
@@ -1162,7 +1232,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex , Forest * cfor /* = NULL */)
+    virtual bool handleMove(int oldIndex, int newIndex )
     {
         bool changed=false;
         if(mergeIndex == oldIndex)
@@ -1290,7 +1360,7 @@ public:
         return false;
     }
     
-    virtual bool handleMove(int oldIndex, int newIndex /* = 0 */, Forest * cfor /* = NULL */)
+    virtual bool handleMove(int oldIndex, int newIndex /* = 0 */)
     {
         bool changed=false;
         if(delIndex == oldIndex)
@@ -1441,12 +1511,61 @@ public:
         }
     }
     
+    void sampleNextBeamIneffPtr()
+    {
+        vector<Forest::SPtr> oldBeam=beamStates;
+        beamStates.clear();
+        while((int)beamStates.size()<maxBeamSize)
+        {
+            bool allNull=true;
+            for(int i=0;i<(int)oldBeam.size();i++)
+            {
+                Forest::SPtr newFor=oldBeam.at(i)->deepClonePtr();
+                //todo .. delet this move from oldBeam.at(i)
+                if(newFor->getNumMoves()>0)
+                {
+                    
+                    newFor->makeOneMove();
+                    allNull=false;
+                    addToBeamIfNotDuplicate(newFor);
+                }
+            }
+            if(allNull) // no moves possible from any other forest
+                break;
+        }
+    }
+    
+    void sampleNextBeamIneff()
+    {
+        vector<Forest::SPtr> oldBeam=beamStates;
+        beamStates.clear();
+        while((int)beamStates.size()<maxBeamSize)
+        {
+            bool allNull=true;
+            for(int i=0;i<(int)oldBeam.size();i++)
+            {
+                Forest newFor=oldBeam.at(i)->deepClone();
+                //todo .. delet this move from oldBeam.at(i)
+                if(newFor.getNumMoves()>0)
+                {
+                    newFor.makeOneMove();
+                    allNull=false;
+                    Forest::SPtr fors(new Forest());
+                    *fors=newFor;
+                    addToBeamIfNotDuplicate(fors);
+                }
+            }
+            if(allNull) // no moves possible from any other forest
+                break;
+        }
+    }
     
     void runBeamSearch()
     {
         while(beamStates.size()>0)
         {
-            sampleNextBeam();
+            //sampleNextBeam();
+            sampleNextBeamIneffPtr();
         }
     }
     

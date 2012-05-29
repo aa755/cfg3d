@@ -217,7 +217,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   
   Forest::SPtr mfor(new Forest(x.allSceneInfo,sm->rulesDB,y.treePsi));
 #ifdef USING_BEAM_SEARCH_FOR_INFERENCE
-  BeamSearch beamS(mfor,10);
+  BeamSearch beamS(mfor,2);
   beamS.runBeamSearch();
   ybar.treePsi=beamS.getParsingResult();  
 #else
