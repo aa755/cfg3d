@@ -1480,6 +1480,7 @@ class BeamSearch
             bestScore = newFor->getScore();
             bestScoringForest=newFor->clone();
         }
+        cerr<<"nbsc"<<bestScore<<endl;
         return true;
     }
 public:
@@ -1489,6 +1490,8 @@ public:
         bestScore=fors->getScore();
         beamStates.push_back(fors);
         this->maxBeamSize=beamSize;
+                srand(time(NULL));
+
     }
     
     void sampleNextBeam()
@@ -1505,6 +1508,7 @@ public:
                 {
                     allNull=false;
                     addToBeamIfNotDuplicate(newFor);
+                    assert(newFor->equals(*newFor));
                 }
             }
             if(allNull) // no moves possible from any other forest
