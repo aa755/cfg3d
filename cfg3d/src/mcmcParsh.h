@@ -136,7 +136,7 @@ public:
     double evalLoss(SVM_CFG_Y::CSPtr other) const
     {
         double loss=evalLoss(other->labelMap);
-        cerr<<"mcmcmloss:"<<loss<<endl;
+        //cerr<<"mcmcmloss:"<<loss<<endl;
         return loss;
     }
     
@@ -698,14 +698,14 @@ public:
         assert(clon->trees.at(0).get()==trees.at(0).get());
         assert(clon.get()!=this);
         
-        cerr<<"clon:"<<clon->moves.size()<<endl;
+        //cerr<<"clon:"<<clon->moves.size()<<endl;
         // now make deep copies of desired things
         for(int i=0;i<(int)moves.size();i++)
         {
             Move::SPtr clm=moves.at(i)->clone();
             clon->moves.at(i)=clm;
             assert(clon->moves.at(i).get()!=moves.at(i).get());
-            cerr<<clon->moves.at(i).use_count()<<endl;
+            //cerr<<clon->moves.at(i).use_count()<<endl;
 //            assert(clon->moves.at(i).use_count()==1);
          //   cerr<<clon->moves.at(i)->toString()<<","<<moves.at(i)->toString()<<endl;
         }
@@ -740,7 +740,7 @@ public:
     Forest deepClone()
     {
         Forest ret;
-        cerr<<"moves after constructor:"<<ret.moves.size()<<endl;
+        //cerr<<"moves after constructor:"<<ret.moves.size()<<endl;
         
         ret.rulesDB=rulesDB;
         ret.curNegLogProb = curNegLogProb;
@@ -750,7 +750,7 @@ public:
         {
             ret.addTree(trees.at(i));
         }
-        cerr<<"moves after adding trees"<<ret.moves.size()<<endl;
+        //cerr<<"moves after adding trees"<<ret.moves.size()<<endl;
         
        // assert(moves.size()==ret.moves.size());
         ret.labelmap=labelmap;
@@ -769,6 +769,7 @@ public:
             validate();
 
     }
+    
     Forest::SPtr applyMoveToClone(int moveIndex)
     {
         Forest::SPtr ret=clone();
@@ -793,7 +794,7 @@ public:
             partialSums.at(i)=sum;
   //          cerr<<moves.at(i)->getCostDelta() <<",";
         }
-        cerr<<endl;
+        //cerr<<endl;
         
 //        cerr<<"sum:"<<sum<<endl;
         
@@ -907,7 +908,7 @@ public:
         bestCostSoFar=infinity();
         int iter=0;
         searchStarting();
-        cerr<<"tl:"<<timeLimit<<endl;
+     //   cerr<<"tl:"<<timeLimit<<endl;
         while(!shouldSearchEnd())
         {
             iter++;
@@ -1015,7 +1016,7 @@ public:
     virtual Move::SPtr clone()
     {
         boost::shared_ptr<MergeMove> ret (new MergeMove(*this));
-        cerr<<"mmclon:"<<toString()<<":"<<this<<"->"<<ret.get()<<endl;
+        //cerr<<"mmclon:"<<toString()<<":"<<this<<"->"<<ret.get()<<endl;
         assert(ret->mergeIndex1!=-1);
         assert(ret->mergeIndex2!=-1);
         return ret;
@@ -1048,7 +1049,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
     {
         
         if(moveCreationSucceded())
-                cerr<<"mmdel:"<<toString()<<":"<<this<<endl;
+                //cerr<<"mmdel:"<<toString()<<":"<<this<<endl;
         mergeIndex1=-1; // for debugging
         mergeIndex2=-1; // for debugging
     }
@@ -1086,7 +1087,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         adjustCostDeltaForNodeRemoval(mergeNode1,cfor);
         adjustCostDeltaForNodeRemoval(mergeNode2,cfor);
         setTransProbFromDelta();
-                cerr<<"mmcreat:"<<toString()<<endl;
+                //cerr<<"mmcreat:"<<toString()<<endl;
         
     }
     
@@ -1564,8 +1565,8 @@ public:
     {
         while(beamStates.size()>0)
         {
-            //sampleNextBeam();
-            sampleNextBeamIneffPtr();
+            sampleNextBeam();
+            //sampleNextBeamIneffPtr();
         }
     }
     
