@@ -13,7 +13,8 @@
 #include "structures.h"
 #include "wallDistance.h"
 #include "generatedDataStructures.cpp"
-//#define TREE_LOSS_SVM
+#define TREE_LOSS_SVM
+#define EXTRA_FOREST_SIZE_LOSS
 using namespace std;
 
 
@@ -38,13 +39,14 @@ protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
     bool featsReadFromFileNoTrees;
-    const static double LOSS_PER_NODE=0.1;
 
      LOSS_MAP_TYPE  labelMap;
     
 public:
     typedef  boost::shared_ptr<SVM_CFG_Y> SPtr;
     typedef  boost::shared_ptr<const SVM_CFG_Y> CSPtr;
+    const static double LOSS_PER_NODE=0.1;
+    const static double LOSS_PER_TREE=0.2;
     /**
      * 
      * @param segmentNum 1 based segment index
@@ -81,6 +83,7 @@ public:
     void printLabelMap()
     {
         printLabelmap(labelMap,cerr);
+
     }
     void printLabelMap(string comment)
     {
@@ -136,6 +139,9 @@ public:
     double evalLoss(SVM_CFG_Y::CSPtr other) const
     {
         double loss=evalLoss(other->labelMap);
+#ifdef EXTRA_FOREST_SIZE_LOSS
+        loss+=(other->trees.size()-1)*LOSS_PER_TREE;
+#endif
         //cerr<<"mcmcmloss:"<<loss<<endl;
         return loss;
     }
@@ -257,6 +263,7 @@ public:
 #endif
         
     }
+
 #ifdef USING_SVM_FOR_LEARNING_CFG
     
     virtual void computePsi()
@@ -296,11 +303,11 @@ public:
 class Move
 {
 private:
-    double costDelta;
     double transProb;
     LOSS_MAP_TYPE addMap;
     LOSS_MAP_TYPE delMap;
 protected:
+    double costDelta;
     bool transProbSet;
     bool applied;
     
@@ -320,6 +327,12 @@ protected:
     }
     
 public:
+    
+    void disable()
+    {
+        transProb=0;
+    }
+    
 typedef  boost::shared_ptr<Move> SPtr;
     
     virtual Move::SPtr clone()=0;
@@ -448,6 +461,11 @@ class Forest :  public boost::enable_shared_from_this<Forest>
 #endif  
 public:
 
+    string getName()
+    {
+        return sceneInfo->fileName;
+    }
+    
     ENTMAP getEntityMap() const
     {
 #ifdef TREE_LOSS_SVM
@@ -493,6 +511,9 @@ public:
         if(lossAugmented())
         {
             score+=gtSVMY->evalLoss(labelmap);
+#ifdef EXTRA_FOREST_SIZE_LOSS
+             score+=(trees.size()-1)*SVM_CFG_Y::LOSS_PER_TREE;
+#endif
         }
         assert(floatEqual(score,curNegLogProb));
     }
@@ -550,6 +571,10 @@ public:
         gtSVMY=gtY;
         init(sceneInfo,rulesDB);
         curNegLogProb=gtY->getEmptyTreeLoss();
+        
+#ifdef EXTRA_FOREST_SIZE_LOSS
+        curNegLogProb+=(trees.size()-1)*SVM_CFG_Y::LOSS_PER_TREE;
+#endif
     }
     
     /**
@@ -564,9 +589,9 @@ public:
 //        print();
 //        cerr<<"----estimated labelmap-----\n";
 //        printLabelmap(labelmap,cerr);
-//        cerr<<"-----actual labelmap------\n";
-//        ret->printLabelMap();
-//        cerr<<"-----------\n";
+        cerr<<"-----inferred labelmap------\n";
+        ret->printLabelMap();
+        cerr<<"-----------\n";
         cerr<<"scores"<<curNegLogProb<<","<<scoreEstimate<<endl;
         assert(floatEqual(curNegLogProb,scoreEstimate));
         return ret;
@@ -707,35 +732,20 @@ public:
      * gtSVMY, sceneInfo can't be changed by any move ... so they are not cloned
      * @return a clone of current forest
      */
-    Forest::SPtr clone()
+    Forest::SPtr clone(vector<Move::SPtr> & origmoves)
     {
-        long olduc=trees.at(0).use_count();
-//        long olducm=moves.at(0).use_count();
         Forest::SPtr clon(new Forest(*this)); // shallow copy 
-        assert(trees.at(0).use_count()==olduc+1);
-        assert(clon->trees.at(0).get()==trees.at(0).get());
-        assert(clon.get()!=this);
-        
-        //cerr<<"clon:"<<clon->moves.size()<<endl;
-        // now make deep copies of desired things
-        for(int i=0;i<(int)moves.size();i++)
+        clon->moves.clear();
+        for(int i=0;i<(int)origmoves.size();i++)
         {
-            Move::SPtr clm=moves.at(i)->clone();
-            clon->moves.at(i)=clm;
-            assert(clon->moves.at(i).get()!=moves.at(i).get());
-            //cerr<<clon->moves.at(i).use_count()<<endl;
-//            assert(clon->moves.at(i).use_count()==1);
-         //   cerr<<clon->moves.at(i)->toString()<<","<<moves.at(i)->toString()<<endl;
+            clon->moves.push_back(origmoves.at(i)->clone());
         }
-//        cerr<<"trees:"<<trees.size()<<endl;
-//        for(int i=0;i<(int)trees.size();i++)
-//        {
-//            cerr<<clon->trees.at(i)->getName()<<","<<trees.at(i)->getName()<<endl;
-//        }
-        
-  //      assert(moves.at(0).use_count()==olducm);
         return clon;
-        
+    }
+    
+    Forest::SPtr clone()
+    {        
+        return clone(moves);        
     }
     
     Forest::SPtr deepClonePtr()
@@ -778,6 +788,7 @@ public:
     void applyMove(int index)
     {
         Move::SPtr selMove=moves.at(index);
+        cerr<<"selMove:"<<selMove->toString()<<endl;
         selMove->applyMove(shared_from_this());
         curNegLogProb+=(selMove->getCostDelta());
             
@@ -788,9 +799,10 @@ public:
 
     }
     
-    Forest::SPtr applyMoveToClone(int moveIndex)
+    Forest::SPtr applyMoveToClone(int moveIndex,vector<Move::SPtr> & origmoves)
     {
-        Forest::SPtr ret=clone();
+        Forest::SPtr ret=clone(origmoves);
+        assert(moves.at(moveIndex)->toString()==ret->moves.at(moveIndex)->toString());
         ret->applyMove(moveIndex);
         return ret;
     }
@@ -827,18 +839,27 @@ public:
                 return selectedMove;
     }
     
-    Forest::SPtr genMoveAndApplyToClone()
+    bool allMovesDisabled()
     {
-        if(moves.size()==0)
+        for(int i=0;i<(int)moves.size();i++)
+        {
+            if(moves.at(i)->getTransitionProbUnnormalized()!=0)
+                return false;
+        }
+        return true;
+    }
+    Forest::SPtr genMoveAndApplyToClone(Forest::SPtr oldForest)
+    {
+        if(allMovesDisabled())
             return Forest::SPtr() ; //NULL smart pointer
         else
         {
 //            cerr<<"this#m"<<moves.size()<<endl;
             int n=sampleNextMove();            
 //            cerr<<"chosen#m"<<n<<endl;
-            Forest::SPtr ret= applyMoveToClone(n);   
+            Forest::SPtr ret= applyMoveToClone(n,oldForest->moves);   
 //            cerr<<"this#m@app"<<moves.size()<<endl;
-            fast_erase(moves,n);
+            moves.at(n)->disable();
             //delet this move ... either it was duplicate, or it was added .. either way, should not be there anymore
   //          print();
             return ret;   
@@ -1104,6 +1125,10 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         adjustCostDeltaForNodeAddition(mergeResult,cfor);
         adjustCostDeltaForNodeRemoval(mergeNode1,cfor);
         adjustCostDeltaForNodeRemoval(mergeNode2,cfor);
+#ifdef EXTRA_FOREST_SIZE_LOSS
+        costDelta-=SVM_CFG_Y::LOSS_PER_TREE;
+#endif
+        
         setTransProbFromDelta();
                 //cerr<<"mmcreat:"<<toString()<<endl;
         
@@ -1518,12 +1543,17 @@ public:
     {
         vector<Forest::SPtr> oldBeam=beamStates;
         beamStates.clear();
+        vector<Forest::SPtr> cleanOldBeam;
+        for(int i=0;i<(int)oldBeam.size();i++)
+        {
+            cleanOldBeam.push_back(oldBeam.at(i)->clone()); // moves won't be disabled here
+        }
         while((int)beamStates.size()<maxBeamSize)
         {
             bool allNull=true;
             for(int i=0;i<(int)oldBeam.size();i++)
             {
-                Forest::SPtr newFor=oldBeam.at(i)->genMoveAndApplyToClone();
+                Forest::SPtr newFor=oldBeam.at(i)->genMoveAndApplyToClone(cleanOldBeam.at(i));
                 if(newFor!=NULL)
                 {
                     allNull=false;
@@ -1598,6 +1628,7 @@ public:
     SVM_CFG_Y::SPtr getParsingResult()
     {
         assert(bestScoringForest!=NULL);
+        cerr<<"found bs forest for:"<<bestScoringForest->getName()<<endl;
         return bestScoringForest->getParsingResult();
     }
 
