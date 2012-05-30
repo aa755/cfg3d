@@ -46,7 +46,7 @@ gencfg()
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(parse src/cfg3D.cpp)
+rosbuild_add_executable(parse src/cfg3D.cpp)
 #rosbuild_add_executable(ParseTreeLablerF  ${uis_h} ${qt_srcs} ${qt_moc_srcs})
 #target_link_libraries(ParseTreeLablerF ${QT_LIBRARIES})
 

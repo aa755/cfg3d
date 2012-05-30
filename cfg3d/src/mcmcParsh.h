@@ -521,8 +521,10 @@ public:
     const static double ADDITIONAL_COMPONENT_PENALTY=0;
     const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=0;
 #else
-    const static double ADDITIONAL_COMPONENT_PENALTY=150;
-    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
+    const static double ADDITIONAL_COMPONENT_PENALTY=0;
+    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=0;
+//    const static double ADDITIONAL_COMPONENT_PENALTY=150;
+//    const static double ADDITIONAL_PLANE_TERMINAL_PENALTY=-70;
 #endif
     
     const static int NUM_MCMC_ITERATIONS=10000000;
@@ -532,7 +534,7 @@ public:
 
     bool lossAugmented()
     {
-        assert (gtSVMY!=NULL);
+      //  assert (gtSVMY!=NULL);
         return (gtSVMY!=NULL);
     }
     
@@ -676,7 +678,7 @@ public:
     
     void addTree(Symbol::Ptr tree)
     {
-        tree->validateCost();
+//        tree->validateCost();
         assert(tree!=NULL);
         trees.push_back(tree);
        // cerr<<"adTr:"<<tree->getName()<<endl;
@@ -690,7 +692,7 @@ public:
      */
     void replaceTree(int index,Symbol::Ptr tree)
     {
-        tree->validateCost();
+//        tree->validateCost();
         updateMovesOnDeletion(index);
         trees.at(index)=tree;
         addNewMoves(tree,index);
@@ -1126,6 +1128,7 @@ typedef  boost::shared_ptr<MergeMove> SPtr;
         adjustCostDeltaForNodeRemoval(mergeNode1,cfor);
         adjustCostDeltaForNodeRemoval(mergeNode2,cfor);
 #ifdef EXTRA_FOREST_SIZE_LOSS
+        if(cfor.lossAugmented())
         costDelta-=SVM_CFG_Y::LOSS_PER_TREE;
 #endif
         

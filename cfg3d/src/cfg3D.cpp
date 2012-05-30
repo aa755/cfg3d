@@ -17,40 +17,40 @@
 // Manual rules that we need.
     vector<VisualObject::SPtr> identifiedScenes;
     
-class RGreedyScene : public Rule {
-public:
-    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
-    {
-        VisualObject::SPtrdummyTypeCheck=boost::dynamic_pointer_cast<VisualObject::SPtr>(extractedSym);
-        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
-        {
-           // cout << "An object!!" << endl;
-            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
-            {
-                identifiedScenes.push_back(dummyTypeCheck);
-            }
-        }
-    }
-};
+//class RGreedyScene : public Rule {
+//public:
+//    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
+//    {
+//        VisualObject::SPtr dummyTypeCheck=boost::dynamic_pointer_cast<VisualObject::SPtr>(extractedSym);
+//        if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
+//        {
+//           // cout << "An object!!" << endl;
+//            if (dummyTypeCheck->doesNotOverlapWithScenes( identifiedScenes)) 
+//            {
+//                identifiedScenes.push_back(dummyTypeCheck);
+//            }
+//        }
+//    }
+//};
+//
+//class RVisualObjects : public Rule {
+//public:
+//    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
+//    {
+//        if (extractedSym->isOfSubClass<VisualObject>()) // if min is of type Scene(Goal)
+//        {
+//            VisualObjects * LHS= new VisualObjects();
+//                LHS->addChild(extractedSym);
+//                LHS->computeSpannedTerminals();
+//                LHS->setAdditionalCost(0);
+//                addToPqueueIfNotDuplicate(LHS,pqueue);
+//                
+//            
+//        }
+//    }
+//};
 
-class RVisualObjects : public Rule {
-public:
-    void combineAndPush(Symbol::SPtr extractedSym, SymbolPriorityQueue & pqueue, vector<Terminal_SPtr> & terminals /* = 0 */, long iterationNo /* = 0 */)
-    {
-        if (extractedSym->isOfSubClass<VisualObject>()) // if min is of type Scene(Goal)
-        {
-            VisualObjects * LHS= new VisualObjects();
-                LHS->addChild(extractedSym);
-                LHS->computeSpannedTerminals();
-                LHS->setAdditionalCost(0);
-                addToPqueueIfNotDuplicate(LHS,pqueue);
-                
-            
-        }
-    }
-};
-
-Scene *bestSceneSoFar=NULL;
+Scene::SPtr bestSceneSoFar;
 template<typename SceneType>
 class RScene : public Rule {
 public:
@@ -58,7 +58,7 @@ public:
     {
         if (extractedSym->isOfSubClass<SceneType>()) // if min is of type Scene(Goal)
         {
-            Scene * LHS= new Scene();
+            Scene::SPtr  LHS(new Scene());
                 LHS->addChild(extractedSym);
                 LHS->computeSpannedTerminals();
                 assert(extractedSym->getNumPoints()!=0);
@@ -93,17 +93,17 @@ bool DoubleRule<VisualObjects,VisualObjects,VisualObject>::isLearned()
 //    return false;
 //}
 
-template<>
-VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject::SPtr RHS2)
-{
-            VisualObjects* LHS= new VisualObjects();
-                LHS->addChild(RHS1);
-                LHS->addChild(RHS2);
-                LHS->computeSpannedTerminals();
-                LHS->setAdditionalCost(0);
-                //LHS->setAdditionalCost(NUMPointsToBeParsed-RHS1->getNumPoints()-RHS2->getNumPoints());
-                return LHS;
-}
+//template<>
+//VisualObjects * DoubleRule<VisualObjects,VisualObjects,VisualObject>::applyRuleInference(VisualObjects * RHS1, VisualObject::SPtr RHS2)
+//{
+//            VisualObjects* LHS= new VisualObjects();
+//                LHS->addChild(RHS1);
+//                LHS->addChild(RHS2);
+//                LHS->computeSpannedTerminals();
+//                LHS->setAdditionalCost(0);
+//                //LHS->setAdditionalCost(NUMPointsToBeParsed-RHS1->getNumPoints()-RHS2->getNumPoints());
+//                return LHS;
+//}
 
 void appendRuleInstancesForPrimitives(vector<RulePtr> & rules) {
     
@@ -182,7 +182,7 @@ void runParse(vector<Terminal_SPtr> & terminals) {
         
         if(alreadyExtracted)
         {
-            delete min;
+//            delete min;
             cout << "Dup." << endl;
             // since there are no parent links yet(not yet declared optimal),
             // and it was not a child of anyone (not yet combined)
@@ -194,7 +194,7 @@ void runParse(vector<Terminal_SPtr> & terminals) {
 
         cout << "\n\n\nIteration: " << count++ << " Cost: " << min->getCost() <<" Type: "<<min->getName()<< endl;
 
-        Scene *dummyTypeCheck=boost::dynamic_pointer_cast<Scene*>(min);
+        Scene::SPtr dummyTypeCheck=boost::dynamic_pointer_cast<Scene>(min);
         
         if (dummyTypeCheck!=NULL) // if min is of type Scene(Goal)
         {
@@ -258,7 +258,6 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
-    vector<Terminal_SPtr>  terminals;
     SceneInfo::SPtr scn=initParsing(argc,argv);
     runParse(scn->terminals);
 

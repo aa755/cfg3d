@@ -81,7 +81,7 @@ public:
     const static double missPenalty=0;
     const static double onTopPairDivide=1;
     const static double onTopPairDefaultOnModelMissing=1000.0;
-    const static int timeLimit=500;
+    const static int timeLimit=300;
     const static double doubleRuleDivide=1;
     const static double objectCost=1.0;
     const static double maxFloorHeight=0.05;
@@ -844,6 +844,8 @@ protected:
     }
     
 public:
+    virtual void mapEntities(ENTMAP & span2NT) const {}
+    virtual void mapYourEntity(ENTMAP & span2NT) const {}
 #ifdef USING_SVM_FOR_LEARNING_CFG
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
@@ -858,8 +860,6 @@ public:
         return labelMap;
     }
     
-    virtual void mapEntities(ENTMAP & span2NT) const {}
-    virtual void mapYourEntity(ENTMAP & span2NT) const {}
 
     void printLabelMap(string filename)
     {
@@ -2956,6 +2956,11 @@ public:
     void computePlaneParamsAndSetCost()
     {
         computePlaneParamsAndEigens();
+        setCost();
+    }
+    
+    void setCost()
+    {
         double sumSquaredDistances = eigenValsAscending(0);
         if(sumSquaredDistances<0)
         {
@@ -4812,8 +4817,12 @@ public:
            LHS->declareOptimal();
        }
         
+#ifdef USING_SVM_FOR_LEARNING_CFG
         double cost=getMinusLogProbability(features);
         LHS->setAdditionalCost(cost);
+#else
+        LHS->setCost();
+#endif
         
         return LHS;
         
@@ -4824,7 +4833,7 @@ public:
         Plane::SPtr  LHS=commonTask(extractedSym);
 #ifdef USING_SVM_FOR_LEARNING_CFG
 #else
-               writeFeaturesToFile();
+//               writeFeaturesToFile();
 #endif
                
         LHS->setAdditionalCost(0);
@@ -4896,9 +4905,13 @@ public:
        {
            LHS->declareOptimal();
        }
-        
-              double cost=getMinusLogProbability(features);
+#ifdef USING_SVM_FOR_LEARNING_CFG
+        double cost=getMinusLogProbability(features);
         LHS->setAdditionalCost(cost);
+#else
+        LHS->setCost();
+#endif
+        
   
         return LHS;
     }
@@ -4914,7 +4927,7 @@ public:
         Plane::SPtr  LHS=commonTask(RHS_plane,RHS_seg);
 #ifdef USING_SVM_FOR_LEARNING_CFG
 #else
-               writeFeaturesToFile();
+         //      writeFeaturesToFile();
 #endif
                
         LHS->setAdditionalCost(0);
@@ -5055,6 +5068,13 @@ public:
         this->filename=string("SingleRuleChoice_")+typeid(LHS_Type).name()+"_"+typeid(RHS_Type).name(); // not used : only for tagging
     }
     
+#ifndef USING_SVM_FOR_LEARNING_CFG
+    virtual bool setCost(boost::shared_ptr<LHS_Type> output, boost::shared_ptr<RHS_Type> input) 
+    {
+        output->setAdditionalCost(0);
+        return true;
+    }
+#endif
     
 //    virtual boost::shared_ptr<LHS_Type>  applyRuleLearning(boost::shared_ptr<RHS_Type>  RHS, vector<Terminal_SPtr> & terminals)
 //    {
@@ -5749,12 +5769,13 @@ public:
     template<typename T>
     boost::shared_ptr<T> lookupRuleOfSameType(T & rul)
     {
+#ifdef USING_SVM_FOR_LEARNING_CFG
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             if(typeid(*(*it))==typeid(rul))
                 return boost::dynamic_pointer_cast<T>(*it);
         }
-        
+#endif
         return createStaticShared<T>(&rul);
     }
     

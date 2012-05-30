@@ -4,6 +4,7 @@
  *
  * Created on February 15, 2012, 7:39 PM
  */
+#define USING_SVM_FOR_LEARNING_CFG
 
 #include <cstdlib>
 #include "utils.h"
@@ -425,8 +426,11 @@ int main(int argc, char** argv)
     {
         ofile<<"\nScene::printOnlyScene("<<root->getFullName()<<");\n";
     }
-    
+
+#ifdef USING_SVM_FOR_LEARNING_CFG
         ofile<<"\n"<<root->getFullName()<<"->printPsi();\n";
+#endif
+        
         ofile<<"\n"<<root->getFullName()<<"->printLabelMap(\""<<string(argv[1])+".labelmap" <<"\");\n";
         ofile<<"ENTMAP entMap; "<<root->getFullName()<<"->mapEntities(entMap); "<<root->getFullName()<<"->printEntitiesMap(entMap);\n";
     createRunLearnBack(ofile);

@@ -5,7 +5,7 @@
  *
  * Created on April 12, 2012, 8:43 PM
  */
-#define USING_SVM_FOR_LEARNING_CFG
+//#define USING_SVM_FOR_LEARNING_CFG
 #define USING_BEAM_SEARCH_FOR_INFERENCE
 #include "mcmcParsh.h"
 int main(int argc, char** argv)
