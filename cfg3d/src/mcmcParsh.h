@@ -1631,6 +1631,11 @@ public:
         cerr<<"found bs forest for:"<<bestScoringForest->getName()<<endl;
         return bestScoringForest->getParsingResult();
     }
+    
+    void printParsingResult()
+    {
+        bestScoringForest->print();
+    }
 
 };
 #endif	/* MCMCPARSH_H */
