@@ -9,7 +9,6 @@
 #define	MCMCPARSH_H
 
 
-#define GREEDY_SVM_TRAINING_PREDICTION
 #include "structures.h"
 #include "wallDistance.h"
 #include "generatedDataStructures.cpp"

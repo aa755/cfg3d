@@ -17,11 +17,13 @@
 /*                                                                     */
 /***********************************************************************/
 
+#define USING_BEAM_SEARCH_FOR_INFERENCE
+#define GREEDY_SVM_TRAINING_PREDICTION
 #include <stdio.h>
 #include <string.h>
 #include "svm_struct/svm_struct_common.h"
 #include "svm_struct_api.h"
-#define USING_BEAM_SEARCH_FOR_INFERENCE
+
 //#include "svm_struct/svm_struct_classify.cpp"
 //#include "svm_light/svm_common.cpp"
 //#include "svm_struct/svm_struct_common.cpp"

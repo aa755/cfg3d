@@ -7,6 +7,8 @@
  */
 #define USING_SVM_FOR_LEARNING_CFG
 #define USING_BEAM_SEARCH_FOR_INFERENCE
+#define GREEDY_SVM_TRAINING_PREDICTION
+
 #include "mcmcParsh.h"
 int main(int argc, char** argv)
 {
