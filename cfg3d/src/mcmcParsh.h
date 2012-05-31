@@ -146,6 +146,15 @@ public:
         return loss;
     }
     
+    void printLoss(SVM_CFG_Y & predicted) const
+    {
+        assert(featsReadFromFileNoTrees);// ground truth
+        double loss=evalLoss(predicted.labelMap);
+        ofstream ofile;
+        ofile.open("treeMetrics.txt", ios::app);
+        ofile<<labelMap.size()<<","<<predicted.labelMap.size()<<","<<loss/LOSS_PER_NODE<<endl;
+    }
+    
     double computeScore(VectorXd & wSvm, SVM_CFG_Y::CSPtr gt) const
     {
         return wSvm.dot(psi) + gt->evalLoss(shared_from_this());
@@ -180,10 +189,16 @@ public:
         return count;
     }
     
+    SVM_CFG_Y(Symbol::Ptr tree)
+    {
+        vector<Symbol::Ptr> temp;
+        temp.push_back(tree);
+        init(temp);
+    }
+    
     void init(vector<Symbol::Ptr> &trees)
     {
         this->trees=trees;
-#ifdef USING_SVM_FOR_LEARNING_CFG
         for(vector<Symbol::Ptr>::iterator it =trees.begin();it!=trees.end();it++)
         {
 #ifdef TREE_LOSS_SVM
@@ -192,6 +207,7 @@ public:
             (*it)->addYourLabelmapTo(labelMap);
 #endif
         }
+#ifdef USING_SVM_FOR_LEARNING_CFG        
         computePsi();
 #endif        
         featsReadFromFileNoTrees=false;                
@@ -215,6 +231,7 @@ public:
     
     void readPsi(string base)
     {
+#ifdef USING_SVM_FOR_LEARNING_CFG
         vector<string> lines;
         getLines((base+".ypred").data(),lines);
 
@@ -224,7 +241,7 @@ public:
         {
              psi(count)=boost::lexical_cast<double>(lines.at(count));
         }
-        
+#endif        
     }
 
     void init(string file)
@@ -780,21 +797,21 @@ public:
     void applyMove(int index)
     {
         Move::SPtr selMove=moves.at(index);
-        cerr<<"selMove:"<<selMove->toString()<<endl;
+     //   cerr<<"selMove:"<<selMove->toString()<<endl;
         selMove->applyMove(shared_from_this());
         curNegLogProb+=(selMove->getCostDelta());
             
             if(lossAugmented())
                 selMove->applylabelMapDelta(labelmap);
             
-            validate();
+           //dbg validate();
 
     }
     
     Forest::SPtr applyMoveToClone(int moveIndex,vector<Move::SPtr> & origmoves)
     {
         Forest::SPtr ret=clone(origmoves);
-        assert(moves.at(moveIndex)->toString()==ret->moves.at(moveIndex)->toString());
+      //dbg  assert(moves.at(moveIndex)->toString()==ret->moves.at(moveIndex)->toString());
         ret->applyMove(moveIndex);
         return ret;
     }

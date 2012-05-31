@@ -847,6 +847,11 @@ public:
     virtual void mapEntities(ENTMAP & span2NT) const {}
     virtual void mapYourEntity(ENTMAP & span2NT) const {}
 #ifdef USING_SVM_FOR_LEARNING_CFG
+    virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
+    {
+        // for some cases like terminals, need not do anything
+    }
+    
     virtual void addYourPsiVectorTo(VectorXd & psi)
     {
         // for some cases like terminals, need not do anything
@@ -872,10 +877,6 @@ public:
         
     }
     
-    virtual void addYourLabelmapTo(LABELMAP_TYPE & lab)
-    {
-        // for some cases like terminals, need not do anything
-    }
     
     virtual void subtractYourLabelmapFrom(LABELMAP_TYPE & lab)
     {

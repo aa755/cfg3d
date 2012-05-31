@@ -4,11 +4,11 @@
  *
  * Created on July 26, 2011, 7:41 PM
  */
-
-#include "structures.h"
-#include "wallDistance.h"
+#include "mcmcParsh.h"
+//#include "structures.h"
+//#include "wallDistance.h"
+//#include "generatedDataStructures.cpp"
 //#include "CPU_generatedDataStructures.cpp"
-#include "generatedDataStructures.cpp"
 //#include "Monitor_generatedDataStructures.cpp"
 //#include "Printer_generatedDataStructures.cpp"
 //#include "Rules_Floor.h"
@@ -129,7 +129,7 @@ void outputOnBothStreams(string str)
     cerr<<str<<endl;
 }
 
-void runParse(vector<Terminal_SPtr> & terminals) {
+void runParse(vector<Terminal_SPtr> & terminals, SVM_CFG_Y & gtTree) {
     vector<RulePtr> rules;
     appendRuleInstancesForPrimitives(rules);
 
@@ -166,6 +166,9 @@ void runParse(vector<Terminal_SPtr> & terminals) {
             {
                 cerr<<"parsing completed ... PQ empty"<<endl;
                 bestSceneSoFar->printData();
+                SVM_CFG_Y predicted(bestSceneSoFar);
+                gtTree.printLoss(predicted);
+                
             }
 //            exit(0);
             
@@ -201,6 +204,9 @@ void runParse(vector<Terminal_SPtr> & terminals) {
             cout << "Goal reached!! in time "<< timer.toc() << endl;
             cerr << "Goal reached!! with cost:"<<min->getCost()<< endl;
             min->printData();
+                SVM_CFG_Y predicted(min);
+                gtTree.printLoss(predicted);
+            
             return;
         }
         
@@ -212,6 +218,8 @@ void runParse(vector<Terminal_SPtr> & terminals) {
             if(bestSceneSoFar!=NULL)
             {
                 bestSceneSoFar->printData();
+                SVM_CFG_Y predicted(bestSceneSoFar);
+                gtTree.printLoss(predicted);
             }
             return;
             
@@ -219,7 +227,7 @@ void runParse(vector<Terminal_SPtr> & terminals) {
         
         if (typeid (*min) == typeid (Terminal) || !alreadyExtracted) {
             min->declareOptimal(true);
-            min->printData();
+          //dbg  min->printData();
  //           cout<<"mz"<<min->getMaxZ()<<endl;
             
             for (size_t i = 0; i < rules.size(); i++) {
@@ -259,7 +267,8 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     SceneInfo::SPtr scn=initParsing(argc,argv);
-    runParse(scn->terminals);
+    SVM_CFG_Y gtTree(scn->fileName);
+    runParse(scn->terminals,gtTree);
 
     return 0;
     
