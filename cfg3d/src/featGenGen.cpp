@@ -4,7 +4,7 @@
  *
  * Created on February 15, 2012, 7:39 PM
  */
-#define USING_SVM_FOR_LEARNING_CFG
+//#define USING_SVM_FOR_LEARNING_CFG
 
 #include <cstdlib>
 #include "utils.h"
@@ -369,7 +369,10 @@ map<string,TreeNode::Ptr> TreeNode::nameToTreeNode;
 ofstream TreeNode::errFile;
 
 void createRunLearnFront(ofstream & outputLearnerCode) {
-    outputLearnerCode << "#define USING_SVM_FOR_LEARNING_CFG\n #define CONSIDER_ALL_SEGMENTS_TRAINING_NEW\n";
+#ifdef USING_SVM_FOR_LEARNING_CFG
+    outputLearnerCode << "#define USING_SVM_FOR_LEARNING_CFG\n";
+#endif
+    outputLearnerCode << "#define CONSIDER_ALL_SEGMENTS_TRAINING_NEW\n";
     outputLearnerCode << "#include\"structures.h\"\n";
     outputLearnerCode << "#include\"wallDistance.h\"\n";
     outputLearnerCode << "#include\"generatedDataStructures.cpp\"\n";
@@ -429,9 +432,9 @@ int main(int argc, char** argv)
 
 #ifdef USING_SVM_FOR_LEARNING_CFG
         ofile<<"\n"<<root->getFullName()<<"->printPsi();\n";
+        ofile<<"\n"<<root->getFullName()<<"->printLabelMap(\""<<string(argv[1])+".labelmap" <<"\");\n";
 #endif
         
-        ofile<<"\n"<<root->getFullName()<<"->printLabelMap(\""<<string(argv[1])+".labelmap" <<"\");\n";
         ofile<<"ENTMAP entMap; "<<root->getFullName()<<"->mapEntities(entMap); "<<root->getFullName()<<"->printEntitiesMap(entMap);\n";
     createRunLearnBack(ofile);
     ofile.close();

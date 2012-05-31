@@ -213,44 +213,34 @@ public:
     }
     SVM_CFG_Y(){}
     
-    void init(string file)
+    void readPsi(string base)
     {
-
-        string base=file.substr(0,file.length()-4);
         vector<string> lines;
         getLines((base+".ypred").data(),lines);
 
         int numFeats=lines.size();
         psi.setZero(numFeats); 
-
-#ifdef TREE_LOSS_SVM
-        
-        // read entity map
-        lines.clear();
-        getLines((base+".entmap").data(),lines);
-        assert(lines.size()>0);
-        for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
-        {
-            vector<string> toks; 
-            getTokens(*it,toks);
-            assert(toks.size()==2);
-            stringstream sstr (stringstream::in | stringstream::out);
-            boost::dynamic_bitset<> bset;
-            sstr<<(toks.at(0));
-            bset.resize(toks.at(0).size(),0);
-            sstr>>bset;
-            assert(bset.size()==toks.at(0).size());
-            
-            labelMap[bset]=toks.at(1);
-        }
-#else
-        // read labelmap
         for(int count=0;count<numFeats;count++)
         {
              psi(count)=boost::lexical_cast<double>(lines.at(count));
         }
+        
+    }
+
+    void init(string file)
+    {
+
         featsReadFromFileNoTrees=true;
-        lines.clear();
+        string base=file.substr(0,file.length()-4);
+        
+        readPsi(base);
+#ifdef TREE_LOSS_SVM
+        
+        // read entity map
+        readEntityMap(base,labelMap);
+#else
+        // read labelmap
+        vector<string> lines;
         getLines((file+"_gt_tree.dot.labelmap").data(),lines);
         assert(lines.size()>0);
         for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)

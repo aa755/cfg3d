@@ -5507,9 +5507,10 @@ void appendRuleInstance(vector<RulePtr> & rules, RulePtr rule) {
            {
                if(maxSegIndex<(int)scene.points.at(i).segment)
                {
+                   cerr<<"WARN: nbrmap extended:"<<maxSegIndex<<" to "<< scene.points.at(i).segment<<endl;
                    for(int j=maxSegIndex+1;j<=(int)scene.points.at(i).segment;j++)
                    {
-                        set<int> temp;
+                        set<int> temp;// empty nbrmap bad
                         neighbors[j]=temp;
                        
                    }
@@ -5770,6 +5771,7 @@ public:
     boost::shared_ptr<T> lookupRuleOfSameType(T & rul)
     {
 #ifdef USING_SVM_FOR_LEARNING_CFG
+        
         for(vector<RulePtr>::iterator it=rules.begin();it!=rules.end();it++)
         {
             if(typeid(*(*it))==typeid(rul))
@@ -5835,5 +5837,25 @@ public:
         assert(floatEqual(cost,estimatedScore));
     }
 #endif    
+    void readEntityMap(string base,ENTMAP & entmap)
+    {
+        vector<string> lines;
+        getLines((base+".entmap").data(),lines);
+        assert(lines.size()>0);
+        for(vector<string>::iterator it=lines.begin();it!=lines.end();it++)
+        {
+            vector<string> toks; 
+            getTokens(*it,toks);
+            assert(toks.size()==2);
+            stringstream sstr (stringstream::in | stringstream::out);
+            boost::dynamic_bitset<> bset;
+            sstr<<(toks.at(0));
+            bset.resize(toks.at(0).size(),0);
+            sstr>>bset;
+            assert(bset.size()==toks.at(0).size());
+            entmap[bset]=toks.at(1);
+        }
+        
+    }
 
 #endif
