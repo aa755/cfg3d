@@ -38,6 +38,7 @@ protected:
     vector<Symbol::Ptr> trees;
     VectorXd psi;
     bool featsReadFromFileNoTrees;
+    string fname;
 
      LOSS_MAP_TYPE  labelMap;
     
@@ -152,6 +153,10 @@ public:
         ofstream ofile;
         ofile.open("treeMetrics.txt", ios::app);
         ofile<<labelMap.size()<<","<<predicted.labelMap.size()<<","<<loss/LOSS_PER_NODE<<endl;
+        ofile.close();
+        ofile.open((fname+".entmap.predicted").data());
+        printLabelmap(predicted.labelMap,ofile);
+        ofile.close();
     }
     
     double computeScore(VectorXd & wSvm, SVM_CFG_Y::CSPtr gt) const
@@ -248,7 +253,7 @@ public:
 
         featsReadFromFileNoTrees=true;
         string base=file.substr(0,file.length()-4);
-        
+        fname=base;
         readPsi(base);
 #ifdef TREE_LOSS_SVM
         

@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     
     Forest::SPtr forest(new Forest(sceneInfo, rules ));
 #ifdef USING_BEAM_SEARCH_FOR_INFERENCE
-  BeamSearch beamS(forest,100);
+  BeamSearch beamS(forest,500);
   beamS.runBeamSearch();
   beamS.printParsingResult();  
 #else
