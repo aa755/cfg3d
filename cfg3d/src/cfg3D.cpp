@@ -267,7 +267,7 @@ void convertToXY(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<pcl::Poin
 int main(int argc, char** argv) {
 //    assert(isinf(infinity()));
     SceneInfo::SPtr scn=initParsing(argc,argv);
-    SVM_CFG_Y gtTree(scn->fileName);
+    SVM_CFG_Y gtTree(scn->fileName+".pcd");
     runParse(scn->terminals,gtTree);
 
     return 0;
