@@ -464,7 +464,15 @@ class Forest :  public boost::enable_shared_from_this<Forest>
      {
          return (timer.toc()>timeLimit);
      }
-#endif  
+#endif
+     void computeEntityMap(ENTMAP & ret) const
+     {
+        for(vector<Symbol::Ptr>::const_iterator it =trees.begin();it!=trees.end();it++)
+        {
+            (*it)->mapEntities(ret);
+        }         
+     }
+     
 public:
 
     string getName()
@@ -472,17 +480,22 @@ public:
         return sceneInfo->fileName;
     }
     
+    
     ENTMAP getEntityMap() const
     {
 #ifdef TREE_LOSS_SVM
+        if(lossAugmented())
         return labelmap;
-#else
-        ENTMAP ret;
-        for(vector<Symbol::Ptr>::const_iterator it =trees.begin();it!=trees.end();it++)
+        else
         {
-            (*it)->mapEntities(ret);
+            ENTMAP ret;
+            computeEntityMap(ret);
+            return ret;
         }
-        return ret;
+#else
+            ENTMAP ret;
+            computeEntityMap(ret);
+            return ret;
 #endif
     }
     int getNumMoves()
@@ -538,7 +551,7 @@ public:
     const static int timeLimitInit=50;
     const static int timeLimitIncrement=5;
 
-    bool lossAugmented()
+    bool lossAugmented() const
     {
       //  assert (gtSVMY!=NULL);
         return (gtSVMY!=NULL);
