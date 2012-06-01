@@ -74,6 +74,7 @@ public:
 };
 string rulePath;
 
+
 class Params
 {
 public:
@@ -1821,6 +1822,7 @@ protected:
      */
     long lastIteration;
     int numObjectsSpanned;
+    static int nonterminal_id_ctr;
     
     /**
      * convex hull of this = convex hull of union of points in convex hull of 
@@ -2238,6 +2240,7 @@ public:
     NonTerminal() : Symbol()
     {
         costSet = false;
+        id=++nonterminal_id_ctr;
 #ifdef CFG_RULES_DEBUG
         cout << "nNT: " << id << endl;
 #endif
@@ -2532,6 +2535,7 @@ public:
      */
 };
 
+int NonTerminal::nonterminal_id_ctr;
 
 class NonTerminalIntermediate : virtual public NonTerminal
 {

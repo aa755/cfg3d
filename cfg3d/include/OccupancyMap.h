@@ -28,7 +28,7 @@ protected:
     pcl::KdTreeFLANN<PointOutT> nnFinder;
     pcl::PointCloud<PointOutT> *cloudSeg;
     static const float nearThresh=0.07;
-    static const float nearOccThresh=1;
+    static const float nearOccThresh=0.2;
     static const float step = 0.005;
     bool maxDistReady;
 public:

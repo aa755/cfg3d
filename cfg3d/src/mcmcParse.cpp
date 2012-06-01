@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     
     Forest::SPtr forest(new Forest(sceneInfo, rules ));
 #ifdef USING_BEAM_SEARCH_FOR_INFERENCE
-  BeamSearch beamS(forest,200);
+  BeamSearch beamS(forest,50);
   beamS.runBeamSearch();
   beamS.printParsingResult();  
   gtTree.printLoss(*beamS.getParsingResult());
