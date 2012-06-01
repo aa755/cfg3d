@@ -611,6 +611,7 @@ public:
     SVM_CFG_Y::SPtr getParsingResult()
     {
         SVM_CFG_Y::SPtr ret= SVM_CFG_Y::SPtr(new SVM_CFG_Y(trees));
+#ifdef USING_SVM_FOR_LEARNING_CFG
         double scoreEstimate=ret->computeScore(rulesDB->getWSVM(), getGTSVMY());
 //        print();
 //        cerr<<"----estimated labelmap-----\n";
@@ -620,6 +621,7 @@ public:
         cerr<<"-----------\n";
         cerr<<"scores"<<curNegLogProb<<","<<scoreEstimate<<endl;
         assert(floatEqual(curNegLogProb,scoreEstimate));
+#endif
         return ret;
     }
     
